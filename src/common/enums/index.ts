@@ -1,0 +1,46 @@
+export enum UserRole {
+  BUYER = 'BUYER',
+  SELLER = 'SELLER',
+  ADMIN = 'ADMIN',
+  THREE_PL = '3PL',
+}
+
+export enum KycStatus {
+  DRAFT = 'DRAFT',
+  SUBMITTED = 'SUBMITTED',
+  IN_REVIEW = 'IN_REVIEW',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+export enum RfqStatus {
+  DRAFT = 'DRAFT',
+  OPEN = 'OPEN',
+  CLOSED = 'CLOSED',
+  EXPIRED = 'EXPIRED',
+}
+
+export enum QuoteStatus {
+  DRAFT = 'DRAFT',
+  SUBMITTED = 'SUBMITTED',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+  EXPIRED = 'EXPIRED',
+}
+
+export enum OrderStatus {
+  CREATED = 'CREATED',
+  CONFIRMED = 'CONFIRMED',
+  PAID = 'PAID',
+  DISPATCHED = 'DISPATCHED',
+  DELIVERED = 'DELIVERED',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum DocumentType {
+  GST_CERTIFICATE = 'GST_CERTIFICATE',
+  PAN_CARD = 'PAN_CARD',
+  CANCELLED_CHEQUE = 'CANCELLED_CHEQUE',
+  FACTORY_LICENSE = 'FACTORY_LICENSE',
+}

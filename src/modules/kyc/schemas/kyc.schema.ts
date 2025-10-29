@@ -1,0 +1,52 @@
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Types } from 'mongoose';
+
+export type KycCaseDocument = KycCase & Document;
+
+@Schema({ timestamps: true })
+export class KycCase {
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Organization' })
+  organizationId: Types.ObjectId;
+
+  @Prop({ required: true })
+  submissionNumber: string; // KYC-ORG_ID-001
+
+  @Prop({ default: 'SUBMITTED' })
+  status: string; // SUBMITTED, APPROVED, REJECTED, RESUBMITTED
+
+  // Snapshot of organization data at time of submission
+  @Prop({ type: Object })
+  submittedData: {
+    orgKyc?: any;
+    primaryBankAccount?: any;
+    complianceDocuments?: any[];
+    catalog?: any[];
+    priceFloors?: any[];
+    logisticsPreference?: any;
+  };
+
+  // Admin review fields
+  @Prop()
+  reviewedBy?: string; // Admin user ID
+
+  @Prop()
+  reviewedAt?: Date;
+
+  @Prop()
+  rejectionReason?: string; // Only if rejected
+
+  @Prop({ default: 0 })
+  submissionAttempt: number; // Track resubmission attempts
+
+  @Prop({ default: [] })
+  activityLog: Array<{
+    action: string; // SUBMITTED, APPROVED, REJECTED, RESUBMITTED
+    timestamp: Date;
+    performedBy: string;
+    remarks?: string;
+  }>;
+} // <--- THIS CLOSING BRACE WAS MISSING
+
+export const KycCaseSchema = SchemaFactory.createForClass(KycCase);
+KycCaseSchema.index({ organizationId: 1, status: 1 });
+KycCaseSchema.index({ submissionNumber: 1 });
