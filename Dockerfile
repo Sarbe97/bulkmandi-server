@@ -23,7 +23,7 @@ ENV NODE_ENV=production
 RUN npm run build
 
 # Expose the port your application will listen on (typically 3000 for Nuxt.js)
-EXPOSE 3002
+EXPOSE 3001
 
 # Specify the command to start your Nuxt.js application
 CMD ["node", "dist/main"]
