@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Organization, OrganizationDocument } from '../organizations/schemas/organization.schema';
-import { KycCase, KycCaseDocument } from './schemas/kyc.schema';
+import { Organization, OrganizationDocument } from 'src/modules/organizations/schemas/organization.schema';
+import { KycCase, KycCaseDocument } from '../schemas/kyc.schema';
  
 @Injectable()
 export class KycCaseService {

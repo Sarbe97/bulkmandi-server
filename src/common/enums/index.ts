@@ -3,6 +3,7 @@ export enum UserRole {
   SELLER = 'SELLER',
   ADMIN = 'ADMIN',
   THREE_PL = '3PL',
+  SUPER_ADMIN = 'SUPER_ADMIN', // Optional: for senior admins
 }
 
 export enum KycStatus {

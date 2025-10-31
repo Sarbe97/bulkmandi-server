@@ -1,16 +1,27 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
 import { Model } from 'mongoose';
-import { Organization, OrganizationDocument } from '../organizations/schemas/organization.schema';
+import { UserRole } from 'src/common/enums';
+import {
+  Organization,
+  OrganizationDocument,
+} from '../organizations/schemas/organization.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @InjectModel(Organization.name) private organizationModel: Model<OrganizationDocument>,
+    @InjectModel(User.name)
+    private userModel: Model<UserDocument>,
+
+    @InjectModel(Organization.name)
+    private organizationModel: Model<OrganizationDocument>,
     private jwtService: JwtService,
   ) {}
 
@@ -27,32 +38,64 @@ export class AuthService {
     return null;
   }
 
-  async login(loginDto: { email: string; password: string }) {
-    const user = await this.validateUser(loginDto.email, loginDto.password);
-    if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
-    if (!user.organizationId) {
-      throw new UnauthorizedException('User is not linked to an organization');
-    }
+ async login(loginDto: { email: string; password: string; ip?: string }) {
+  const user = await this.validateUser(loginDto.email, loginDto.password);
+  
+  if (!user) {
+    throw new UnauthorizedException('Invalid email or password');
+  }
 
-    const payload = {
-      userId: user._id,
+  const isAdmin = [UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role);
+
+  if (!isAdmin && !user.organizationId) {
+    throw new UnauthorizedException('User is not linked to an organization');
+  }
+
+  // Update last login
+  await this.userModel.findByIdAndUpdate(user._id, {
+    lastLoginAt: new Date(),
+    lastLoginIp: loginDto.ip,
+  });
+
+  // Build JWT payload
+  const payload: any = {
+    userId: user._id.toString(), // IMPORTANT: Convert ObjectId to string
+    email: user.email,
+    role: user.role,
+    isAdmin,
+  };
+
+  // Add organizationId for non-admin users
+  if (!isAdmin && user.organizationId) {
+    payload.organizationId = user.organizationId.toString(); // IMPORTANT: Convert to string
+  }
+
+  // Add permissions for admin users
+  if (isAdmin) {
+    payload.permissions = user.permissions || [];
+  }
+
+  const response: any = {
+    accessToken: this.jwtService.sign(payload),
+    user: {
+      id: user._id.toString(),
       email: user.email,
       role: user.role,
-      organizationId: user.organizationId,
-    };
+      name: user.name,
+    },
+  };
 
-    return {
-      accessToken: this.jwtService.sign(payload),
-      user: {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-        organizationId: user.organizationId,
-      },
-    };
+  if (!isAdmin) {
+    response.user.organizationId = user.organizationId?.toString();
   }
+
+  if (isAdmin) {
+    response.user.permissions = user.permissions;
+  }
+
+  return response;
+}
+
 
   async register(registerDto: {
     email: string;
@@ -63,25 +106,38 @@ export class AuthService {
   }) {
     const { email, password, mobile, role, organizationName } = registerDto;
 
+    // Prevent admin registration via public API
+    if ([UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(role as UserRole)) {
+      throw new ConflictException(
+        'Admin registration not allowed through this endpoint',
+      );
+    }
+
     // Check for duplicate email
-    const existingEmail = await this.userModel.findOne({ email: email.toLowerCase() });
+    const existingEmail = await this.userModel.findOne({
+      email: email.toLowerCase(),
+    });
     if (existingEmail) {
-      throw new ConflictException('Email already exists. Please use a different email or login.');
+      throw new ConflictException(
+        'Email already exists. Please use a different email or login.',
+      );
     }
 
     // Check for duplicate mobile
     const existingMobile = await this.userModel.findOne({ mobile });
     if (existingMobile) {
-      throw new ConflictException('Mobile number already exists. Please use a different mobile number.');
+      throw new ConflictException(
+        'Mobile number already exists. Please use a different mobile number.',
+      );
     }
 
     // Generate unique orgId
     const orgCount = await this.organizationModel.countDocuments();
-    const orgId = `ORG-${String(orgCount + 1).padStart(6, '0')}`; // e.g., ORG-000001
+    const orgId = `ORG-${String(orgCount + 1).padStart(6, '0')}`;
 
-    // Create organization with orgId
+    // Create organization
     const organization = new this.organizationModel({
-      orgId, // <--- ADDED: Unique organization ID
+      orgId,
       legalName: organizationName,
       role,
       completedSteps: [],
@@ -95,7 +151,7 @@ export class AuthService {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create user linked to the organization
+    // Create user linked to organization
     const newUser = new this.userModel({
       email: email.toLowerCase(),
       password: hashedPassword,
@@ -111,6 +167,7 @@ export class AuthService {
       email: savedUser.email,
       role: savedUser.role,
       organizationId: savedOrg._id.toString(),
+      isAdmin: false,
     };
     const accessToken = this.jwtService.sign(payload);
 
@@ -121,7 +178,50 @@ export class AuthService {
         email: savedUser.email,
         role: savedUser.role,
         organizationId: savedOrg._id.toString(),
-        orgId: savedOrg.orgId, // <--- ADDED: Return orgId to frontend
+        orgId: savedOrg.orgId,
+      },
+    };
+  }
+
+  // ADMIN ONLY: Create first admin user
+  async seedFirstAdmin() {
+    // Check if any admin already exists
+    const existingAdmin = await this.userModel.findOne({
+      role: { $in: ['ADMIN', 'SUPER_ADMIN'] },
+    });
+
+    if (existingAdmin) {
+      return {
+        message: 'Admin user already exists',
+        email: existingAdmin.email,
+      };
+    }
+
+    // Create first admin with dummy data
+    const hashedPassword = await bcrypt.hash('qwerty123', 10);
+
+    const admin = new this.userModel({
+      email: 'admin@test.com',
+      password: hashedPassword,
+      name: 'Super Admin',
+      role: UserRole.ADMIN,
+      permissions: ['*'], // All permissions
+      organizationId: null,
+      isActive: true,
+    });
+
+    await admin.save();
+
+    return {
+      message: 'First admin created successfully',
+      admin: {
+        email: admin.email,
+        name: admin.name,
+        role: admin.role,
+      },
+      credentials: {
+        email: 'admin@bulkmandi.com',
+        password: 'Admin@123',
       },
     };
   }

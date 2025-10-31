@@ -6,20 +6,28 @@ export type UserDocument = User & Document;
 
 @Schema({ timestamps: true })
 export class User {
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true, unique: true, lowercase: true })
   email: string;
 
   @Prop({ required: true })
   password: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop()
   mobile: string;
 
-  @Prop({ type: String, enum: UserRole, required: true })
-  role: UserRole;
+  @Prop()
+  name: string; // NEW: Admin name
 
-  @Prop({ type: Types.ObjectId, ref: "Organization", required: true })
-  organizationId: Types.ObjectId;
+  @Prop({ type: String, enum: UserRole, required: true })
+  role: UserRole; // SELLER, BUYER, THREE_PL, ADMIN
+
+  // For non-admin users (SELLER, BUYER, 3PL)
+  @Prop({ type: Types.ObjectId, ref: "Organization", required: false })
+  organizationId: Types.ObjectId; //
+
+  // For ADMIN users only
+  @Prop({ type: [String], default: [] })
+  permissions: string[]; // ['KYC_APPROVE', 'DISPUTE_RESOLVE', etc.]
 
   @Prop({ default: false })
   isEmailVerified: boolean;
@@ -32,6 +40,9 @@ export class User {
 
   @Prop()
   lastLoginAt: Date;
+
+  @Prop()
+  lastLoginIp: string; // NEW: Track login IP
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

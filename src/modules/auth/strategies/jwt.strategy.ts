@@ -1,35 +1,37 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { PassportStrategy } from '@nestjs/passport';
 import { Model } from 'mongoose';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { IJwtPayload } from '../../../common/interfaces/user.interface';
-import { User, UserDocument } from '../../users/schemas/user.schema';
+import { User, UserDocument } from 'src/modules/users/schemas/user.schema';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(
-    private configService: ConfigService,
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
-  ) {
+  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      secretOrKey: process.env.JWT_SECRET || 'your-secret-key',
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET'),
     });
   }
 
-  async validate(payload: IJwtPayload) {
-    const user = await this.userModel
-      .findById(payload.sub)
-      .populate('organizationId');
+  async validate(payload: any) {
+    // Payload contains: { userId, email, role, isAdmin, organizationId?, permissions? }
+    
+    const user = await this.userModel.findById(payload.userId);
+    
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('User not found or inactive');
+    }
+
+    // IMPORTANT: Return the complete user object with organizationId
     return {
-      id: payload.sub,
+      userId: payload.userId,
       email: payload.email,
       role: payload.role,
-      organizationId: payload.organizationId,
-      user: user,
+      isAdmin: payload.isAdmin || false,
+      organizationId: payload.organizationId || user.organizationId?.toString(), // Include organizationId
+      permissions: payload.permissions || [],
     };
   }
 }

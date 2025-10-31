@@ -4,10 +4,10 @@ import {
   Organization,
   OrganizationSchema,
 } from '../organizations/schemas/organization.schema';
-import { KycAdminService } from './kyc-admin.service';
 import { KycController } from './kyc.controller';
-import { KycCaseService } from './kyc.service';
 import { KycCase, KycCaseSchema } from './schemas/kyc.schema';
+import { KycAdminService } from './services/kyc-admin.service';
+import { KycCaseService } from './services/kyc.service';
 
 @Module({
   imports: [

@@ -1,46 +1,89 @@
-import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { UserRole } from 'src/common/enums';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { AdminGuard } from 'src/common/guards/admin.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { SubmitKycDto } from './dto/submit-kyc.dto';
-import { KycCaseService } from './kyc.service';
- 
+import { KycAdminService } from './services/kyc-admin.service';
 
-@ApiTags('KYC')
+@ApiTags('Admin KYC Management')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('kyc')
+@UseGuards(JwtAuthGuard, AdminGuard)
+@Controller('admin/kyc')
 export class KycController {
-  constructor(private readonly kycService: KycCaseService) {}
+  constructor(private readonly kycAdminService: KycAdminService) {}
 
-  @Roles(UserRole.BUYER, UserRole.SELLER, UserRole.THREE_PL)
-  @Post()
-  async submitKYC(@CurrentUser() user: any, @Body() dto: SubmitKycDto) {
-    return this.kycService.submitKYC(user.organizationId, dto);
+  @Get('queue')
+  @ApiOperation({ summary: 'Get KYC verification queue' })
+  @ApiQuery({ name: 'status', required: false, enum: ['SUBMITTED', 'APPROVED', 'REJECTED', 'INFO_REQUESTED'] })
+  @ApiQuery({ name: 'role', required: false, enum: ['SELLER', 'BUYER', '3PL'] })
+  @ApiQuery({ name: 'search', required: false, description: 'Search by organization name' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  async getQueue(@Query() filters: {
+    status?: string;
+    role?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    return this.kycAdminService.getKycQueue(filters);
   }
 
-  @Roles(UserRole.BUYER, UserRole.SELLER, UserRole.THREE_PL)
-  @Get('me')
-  async getMyKYC(@CurrentUser() user: any) {
-    return this.kycService.getKYCByOrgId(user.organizationId);
-  }
-
-  @Roles(UserRole.BUYER, UserRole.SELLER, UserRole.THREE_PL)
-  @Put('me/step/:stepName')
-  async updateKYCStep(
-    @CurrentUser() user: any,
-    @Param('stepName') stepName: string,
-    @Body() stepData: any,
-  ) {
-    return this.kycService.updateStep(user.organizationId, stepName, stepData);
-  }
-
-  @Roles(UserRole.ADMIN)
   @Get('case/:caseId')
-  async getKYCCase(@Param('caseId') caseId: string) {
-    return this.kycService.getKYCByCaseId(caseId);
+  @ApiOperation({ summary: 'Get detailed KYC case information' })
+  @ApiParam({ name: 'caseId', description: 'KYC Case ID' })
+  async getCaseDetail(@Param('caseId') caseId: string) {
+    return this.kycAdminService.getKycCaseDetail(caseId);
+  }
+
+  @Post('case/:caseId/approve')
+  @ApiOperation({ summary: 'Approve KYC case' })
+  @ApiParam({ name: 'caseId', description: 'KYC Case ID' })
+  async approveCase(
+    @Param('caseId') caseId: string,
+    @CurrentUser() user: any,
+    @Body() body: { remarks?: string },
+  ) {
+    return this.kycAdminService.approveKycCase(caseId, user.userId, body.remarks);
+  }
+
+  @Post('case/:caseId/reject')
+  @ApiOperation({ summary: 'Reject KYC case' })
+  @ApiParam({ name: 'caseId', description: 'KYC Case ID' })
+  async rejectCase(
+    @Param('caseId') caseId: string,
+    @CurrentUser() user: any,
+    @Body() body: { rejectionReason: string },
+  ) {
+    return this.kycAdminService.rejectKycCase(caseId, user.userId, body.rejectionReason);
+  }
+
+  @Post('case/:caseId/request-info')
+  @ApiOperation({ summary: 'Request more information from seller' })
+  @ApiParam({ name: 'caseId', description: 'KYC Case ID' })
+  async requestMoreInfo(
+    @Param('caseId') caseId: string,
+    @CurrentUser() user: any,
+    @Body() body: { message: string; fields: string[] },
+  ) {
+    return this.kycAdminService.requestMoreInfo(caseId, user.userId, body.message, body.fields);
+  }
+
+  @Post('case/:caseId/watchlist')
+  @ApiOperation({ summary: 'Add organization to watchlist' })
+  @ApiParam({ name: 'caseId', description: 'KYC Case ID' })
+  async addToWatchlist(
+    @Param('caseId') caseId: string,
+    @CurrentUser() user: any,
+    @Body() body: { reason: string; tags: string[] },
+  ) {
+    return this.kycAdminService.addToWatchlist(caseId, user.userId, body.reason, body.tags);
+  }
+
+  @Get('history/:orgId')
+  @ApiOperation({ summary: 'Get KYC case history for organization' })
+  @ApiParam({ name: 'orgId', description: 'Organization ID' })
+  async getCaseHistory(@Param('orgId') orgId: string) {
+    return this.kycAdminService.getKycCaseHistory(orgId);
   }
 }

@@ -19,16 +19,6 @@
       "post": {
         "operationId": "AuthController_register",
         "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterDto"
-              }
-            }
-          }
-        },
         "responses": {
           "201": {
             "description": "",
@@ -77,6 +67,20 @@
         ]
       }
     },
+    "/api/v1/auth/admin/create": {
+      "get": {
+        "operationId": "AuthController_createAdmin",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/api/v1/organizations/my-organization/onboarding/kyc": {
       "put": {
         "operationId": "OrganizationsController_updateOrgKyc",
@@ -91,8 +95,9 @@
             "bearer": []
           }
         ],
+        "summary": "Update organization KYC details",
         "tags": [
-          "Organizations"
+          "Organizations - Seller Onboarding"
         ]
       }
     },
@@ -110,8 +115,9 @@
             "bearer": []
           }
         ],
+        "summary": "Update bank account details",
         "tags": [
-          "Organizations"
+          "Organizations - Seller Onboarding"
         ]
       }
     },
@@ -129,8 +135,9 @@
             "bearer": []
           }
         ],
+        "summary": "Upload compliance documents",
         "tags": [
-          "Organizations"
+          "Organizations - Seller Onboarding"
         ]
       }
     },
@@ -148,8 +155,9 @@
             "bearer": []
           }
         ],
+        "summary": "Update product catalog and commercials",
         "tags": [
-          "Organizations"
+          "Organizations - Seller Onboarding"
         ]
       }
     },
@@ -167,8 +175,9 @@
             "bearer": []
           }
         ],
+        "summary": "Get current onboarding status",
         "tags": [
-          "Organizations"
+          "Organizations - Seller Onboarding"
         ]
       }
     },
@@ -186,8 +195,9 @@
             "bearer": []
           }
         ],
+        "summary": "Get onboarding review summary",
         "tags": [
-          "Organizations"
+          "Organizations - Seller Onboarding"
         ]
       }
     },
@@ -205,39 +215,65 @@
             "bearer": []
           }
         ],
+        "summary": "Submit onboarding for admin review",
         "tags": [
-          "Organizations"
+          "Organizations - Seller Onboarding"
         ]
       }
     },
-    "/api/v1/organizations/admin/kyc/pending": {
+    "/api/v1/admin/kyc/queue": {
       "get": {
-        "operationId": "OrganizationsController_getPendingKycSubmissions",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Organizations"
-        ]
-      }
-    },
-    "/api/v1/organizations/admin/kyc/{kycCaseId}": {
-      "get": {
-        "operationId": "OrganizationsController_getKycCaseDetails",
+        "operationId": "KycController_getQueue",
         "parameters": [
           {
-            "name": "kycCaseId",
-            "required": true,
-            "in": "path",
+            "name": "limit",
+            "required": false,
+            "in": "query",
             "schema": {
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search by organization name",
+            "schema": {}
+          },
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "SELLER",
+                "BUYER",
+                "3PL"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "SUBMITTED",
+                "APPROVED",
+                "REJECTED",
+                "INFO_REQUESTED"
+              ],
               "type": "string"
             }
           }
@@ -252,179 +288,21 @@
             "bearer": []
           }
         ],
+        "summary": "Get KYC verification queue",
         "tags": [
-          "Organizations"
+          "Admin KYC Management"
         ]
       }
     },
-    "/api/v1/organizations/admin/kyc/{kycCaseId}/approve": {
-      "post": {
-        "operationId": "OrganizationsController_approveKyc",
-        "parameters": [
-          {
-            "name": "kycCaseId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Organizations"
-        ]
-      }
-    },
-    "/api/v1/organizations/admin/kyc/{kycCaseId}/reject": {
-      "post": {
-        "operationId": "OrganizationsController_rejectKyc",
-        "parameters": [
-          {
-            "name": "kycCaseId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Organizations"
-        ]
-      }
-    },
-    "/api/v1/organizations/admin/kyc/{orgId}/history": {
+    "/api/v1/admin/kyc/case/{caseId}": {
       "get": {
-        "operationId": "OrganizationsController_getKycHistory",
-        "parameters": [
-          {
-            "name": "orgId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Organizations"
-        ]
-      }
-    },
-    "/api/v1/kyc": {
-      "post": {
-        "operationId": "KycController_submitKYC",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SubmitKycDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "KYC"
-        ]
-      }
-    },
-    "/api/v1/kyc/me": {
-      "get": {
-        "operationId": "KycController_getMyKYC",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "KYC"
-        ]
-      }
-    },
-    "/api/v1/kyc/me/step/{stepName}": {
-      "put": {
-        "operationId": "KycController_updateKYCStep",
-        "parameters": [
-          {
-            "name": "stepName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "KYC"
-        ]
-      }
-    },
-    "/api/v1/kyc/case/{caseId}": {
-      "get": {
-        "operationId": "KycController_getKYCCase",
+        "operationId": "KycController_getCaseDetail",
         "parameters": [
           {
             "name": "caseId",
             "required": true,
             "in": "path",
+            "description": "KYC Case ID",
             "schema": {
               "type": "string"
             }
@@ -440,8 +318,159 @@
             "bearer": []
           }
         ],
+        "summary": "Get detailed KYC case information",
         "tags": [
-          "KYC"
+          "Admin KYC Management"
+        ]
+      }
+    },
+    "/api/v1/admin/kyc/case/{caseId}/approve": {
+      "post": {
+        "operationId": "KycController_approveCase",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "description": "KYC Case ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approve KYC case",
+        "tags": [
+          "Admin KYC Management"
+        ]
+      }
+    },
+    "/api/v1/admin/kyc/case/{caseId}/reject": {
+      "post": {
+        "operationId": "KycController_rejectCase",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "description": "KYC Case ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reject KYC case",
+        "tags": [
+          "Admin KYC Management"
+        ]
+      }
+    },
+    "/api/v1/admin/kyc/case/{caseId}/request-info": {
+      "post": {
+        "operationId": "KycController_requestMoreInfo",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "description": "KYC Case ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Request more information from seller",
+        "tags": [
+          "Admin KYC Management"
+        ]
+      }
+    },
+    "/api/v1/admin/kyc/case/{caseId}/watchlist": {
+      "post": {
+        "operationId": "KycController_addToWatchlist",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "description": "KYC Case ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add organization to watchlist",
+        "tags": [
+          "Admin KYC Management"
+        ]
+      }
+    },
+    "/api/v1/admin/kyc/history/{orgId}": {
+      "get": {
+        "operationId": "KycController_getCaseHistory",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "description": "Organization ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get KYC case history for organization",
+        "tags": [
+          "Admin KYC Management"
         ]
       }
     },
@@ -2490,9 +2519,9 @@
         ]
       }
     },
-    "/api/v1/admin/kyc/pending": {
+    "/api/v1/admin/dashboard/stats": {
       "get": {
-        "operationId": "KycAdminController_getPendingKycCases",
+        "operationId": "AdminDashboardController_getStats",
         "parameters": [],
         "responses": {
           "200": {
@@ -2504,223 +2533,9 @@
             "bearer": []
           }
         ],
+        "summary": "Get admin dashboard statistics",
         "tags": [
-          "Admin KYC"
-        ]
-      }
-    },
-    "/api/v1/admin/kyc/case/{kycCaseId}": {
-      "get": {
-        "operationId": "KycAdminController_getKycCaseById",
-        "parameters": [
-          {
-            "name": "kycCaseId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Admin KYC"
-        ]
-      }
-    },
-    "/api/v1/admin/kyc/case/{kycCaseId}/approve": {
-      "post": {
-        "operationId": "KycAdminController_approveKyc",
-        "parameters": [
-          {
-            "name": "kycCaseId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Admin KYC"
-        ]
-      }
-    },
-    "/api/v1/admin/kyc/case/{kycCaseId}/reject": {
-      "post": {
-        "operationId": "KycAdminController_rejectKyc",
-        "parameters": [
-          {
-            "name": "kycCaseId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Admin KYC"
-        ]
-      }
-    },
-    "/api/v1/admin/kyc/org/{orgId}/history": {
-      "get": {
-        "operationId": "KycAdminController_getKycHistory",
-        "parameters": [
-          {
-            "name": "orgId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Admin KYC"
-        ]
-      }
-    },
-    "/api/v1/admin/price-monitor": {
-      "get": {
-        "operationId": "PriceMonitorController_getPriceIndices",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Admin Price Monitor"
-        ]
-      }
-    },
-    "/api/v1/admin/settlements/batches": {
-      "post": {
-        "operationId": "SettlementsAdminController_createBatch",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateBatchDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Admin Settlements"
-        ]
-      },
-      "get": {
-        "operationId": "SettlementsAdminController_listBatches",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Admin Settlements"
-        ]
-      }
-    },
-    "/api/v1/admin/settlements/batches/{id}/run-payouts": {
-      "post": {
-        "operationId": "SettlementsAdminController_runPayouts",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RunPayoutsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Admin Settlements"
+          "Admin Dashboard"
         ]
       }
     },
@@ -2771,39 +2586,6 @@
       }
     },
     "schemas": {
-      "RegisterDto": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          },
-          "mobile": {
-            "type": "string"
-          },
-          "role": {
-            "type": "string",
-            "enum": [
-              "BUYER",
-              "SELLER",
-              "ADMIN",
-              "3PL"
-            ]
-          },
-          "organizationName": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "email",
-          "password",
-          "mobile",
-          "role",
-          "organizationName"
-        ]
-      },
       "AuthResponseDto": {
         "type": "object",
         "properties": {
@@ -2833,10 +2615,6 @@
           "email",
           "password"
         ]
-      },
-      "SubmitKycDto": {
-        "type": "object",
-        "properties": {}
       },
       "CreateCatalogDto": {
         "type": "object",

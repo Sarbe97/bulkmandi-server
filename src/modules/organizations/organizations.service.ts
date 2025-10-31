@@ -1,13 +1,22 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { KycCaseService } from '../kyc/kyc.service';
-import { Organization, OrganizationDocument } from './schemas/organization.schema';
+import { KycCaseService } from '../kyc/services/kyc.service';
+import {
+  Organization,
+  OrganizationDocument,
+} from './schemas/organization.schema';
 
 @Injectable()
 export class OrganizationsService {
   constructor(
-    @InjectModel(Organization.name) private orgModel: Model<OrganizationDocument>,
+    @InjectModel(Organization.name)
+    private orgModel: Model<OrganizationDocument>,
     private kycCaseService: KycCaseService,
   ) {}
 
@@ -32,6 +41,7 @@ export class OrganizationsService {
     if (!org.completedSteps.includes('orgKyc')) {
       org.completedSteps.push('orgKyc');
     }
+
     return org.save();
   }
 
@@ -41,17 +51,25 @@ export class OrganizationsService {
 
     this.checkEditPermission(org);
 
+    // Convert uploadedAt strings to Date objects
     if (bankDetailsDto.documents) {
-      bankDetailsDto.documents = bankDetailsDto.documents.map(doc => ({
+      bankDetailsDto.documents = bankDetailsDto.documents.map((doc) => ({
         ...doc,
-        uploadedAt: typeof doc.uploadedAt === 'string' ? new Date(doc.uploadedAt) : doc.uploadedAt,
+        uploadedAt:
+          typeof doc.uploadedAt === 'string'
+            ? new Date(doc.uploadedAt)
+            : doc.uploadedAt,
       }));
     }
 
-    org.primaryBankAccount = { ...org.primaryBankAccount, ...bankDetailsDto } as any;
+    org.primaryBankAccount = {
+      ...org.primaryBankAccount,
+      ...bankDetailsDto,
+    } as any;
     if (!org.completedSteps.includes('bankDetails')) {
       org.completedSteps.push('bankDetails');
     }
+
     return org.save();
   }
 
@@ -64,9 +82,11 @@ export class OrganizationsService {
     org.catalog = dto.catalog;
     org.priceFloors = dto.priceFloors;
     org.logisticsPreference = dto.logisticsPreference;
+
     if (!org.completedSteps.includes('catalog')) {
       org.completedSteps.push('catalog');
     }
+
     return org.save();
   }
 
@@ -76,15 +96,21 @@ export class OrganizationsService {
 
     this.checkEditPermission(org);
 
-    const transformedDocs = dto.complianceDocuments.map(doc => ({
+    // Convert uploadedAt strings to Date objects
+    const transformedDocs = dto.complianceDocuments.map((doc) => ({
       ...doc,
-      uploadedAt: typeof doc.uploadedAt === 'string' ? new Date(doc.uploadedAt) : doc.uploadedAt,
+      uploadedAt:
+        typeof doc.uploadedAt === 'string'
+          ? new Date(doc.uploadedAt)
+          : doc.uploadedAt,
     }));
 
     org.complianceDocuments = transformedDocs as any;
+
     if (!org.completedSteps.includes('docs')) {
       org.completedSteps.push('docs');
     }
+
     return org.save();
   }
 
@@ -95,11 +121,16 @@ export class OrganizationsService {
     const org = await this.orgModel.findById(orgId);
     if (!org) throw new NotFoundException('Organization not found');
 
+    // Validate all required steps completed
     const requiredSteps = ['orgKyc', 'bankDetails', 'docs', 'catalog'];
-    const allCompleted = requiredSteps.every(step => org.completedSteps.includes(step));
+    const allCompleted = requiredSteps.every((step) =>
+      org.completedSteps.includes(step),
+    );
 
     if (!allCompleted) {
-      throw new BadRequestException('Please complete all mandatory onboarding steps');
+      throw new BadRequestException(
+        'Please complete all mandatory onboarding steps',
+      );
     }
 
     // Create KycCase snapshot
@@ -113,7 +144,8 @@ export class OrganizationsService {
     return {
       organization: org,
       kycCase,
-      message: 'Onboarding submitted for review. Your data is now locked and cannot be edited until admin action.',
+      message:
+        'Onboarding submitted for review. Your data is now locked and cannot be edited until admin action.',
     };
   }
 
@@ -122,13 +154,13 @@ export class OrganizationsService {
     if (!org) throw new NotFoundException('Organization not found');
 
     const latestKycCase = await this.kycCaseService.getLatestKycCase(orgId);
-
+    console.log('Latest KYC Case:', latestKycCase);
     return {
       organizationId: org._id.toString(),
       legalName: org.legalName,
       kycStatus: org.kycStatus,
       isOnboardingLocked: org.isOnboardingLocked,
-      rejectionReason: org.rejectionReason || null,
+      rejectionReason: org.rejectionReason || null, // FIXED: Use rejectionReason
       completedSteps: org.completedSteps,
       orgKyc: org.orgKyc,
       primaryBankAccount: org.primaryBankAccount,
@@ -161,9 +193,13 @@ export class OrganizationsService {
       stepStatus: {
         account: org.legalName ? 'COMPLETED' : 'PENDING',
         orgKyc: org.completedSteps.includes('orgKyc') ? 'COMPLETED' : 'PENDING',
-        bank: org.completedSteps.includes('bankDetails') ? 'COMPLETED' : 'PENDING',
+        bank: org.completedSteps.includes('bankDetails')
+          ? 'COMPLETED'
+          : 'PENDING',
         docs: org.completedSteps.includes('docs') ? 'COMPLETED' : 'PENDING',
-        catalog: org.completedSteps.includes('catalog') ? 'COMPLETED' : 'PENDING',
+        catalog: org.completedSteps.includes('catalog')
+          ? 'COMPLETED'
+          : 'PENDING',
       },
       orgKyc: org.orgKyc,
       primaryBankAccount: org.primaryBankAccount,

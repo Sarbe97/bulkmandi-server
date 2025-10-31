@@ -1,29 +1,27 @@
-import { Body, Controller, Post } from "@nestjs/common";
-import { ApiResponse, ApiTags } from "@nestjs/swagger";
-import { AuthService } from "./auth.service";
-import { AuthResponseDto, LoginDto, RegisterDto } from "./dto/auth.dto";
+import { Body, Controller, Get, Post } from '@nestjs/common';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { AuthService } from './auth.service';
+import { AuthResponseDto, LoginDto } from './dto/auth.dto';
 
-@ApiTags("Authentication")
-@Controller("auth")
+@ApiTags('Authentication')
+@Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post("register")
+  @Post('register')
   @ApiResponse({ status: 201, type: AuthResponseDto })
-  async register(@Body() registerDto: RegisterDto): Promise<AuthResponseDto> {
-    const result = await this.authService.register(registerDto);
-    // ensure id fields are strings to satisfy AuthResponseDto
-    const user = {
-      ...result.user,
-      id: String(result.user.id),
-      organizationId: String(result.user.organizationId),
-    };
-    return { ...result, user };
+  async register(@Body() registerDto: any) {
+    return this.authService.register(registerDto);
   }
- 
-  @Post("login")
+
+  @Post('login')
   @ApiResponse({ status: 200, type: AuthResponseDto })
   async login(@Body() dto: LoginDto): Promise<AuthResponseDto> {
     return this.authService.login(dto);
+  }
+
+  @Get('admin/create')
+  async createAdmin() {
+    return this.authService.seedFirstAdmin();
   }
 }

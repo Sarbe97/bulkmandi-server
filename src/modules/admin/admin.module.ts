@@ -1,43 +1,21 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { KycAdminService } from '../kyc/kyc-admin.service';
-import { KycModule } from '../kyc/kyc.module';
-import { QuotesModule } from '../quotes/quotes.module';
-import { RfqModule } from '../rfq/rfq.module';
-import { SettlementBatch, SettlementBatchSchema } from '../settlements/schemas/settlement-batch.schema';
-import { SettlementsModule } from '../settlements/settlements.module';
-import { KycAdminController } from './controllers/kyc-admin.controller';
-import { PriceMonitorController } from './controllers/price-monitor.controller';
-import { SettlementsAdminController } from './controllers/settlements-admin.controller';
-import { PriceIndex, PriceIndexSchema } from './schemas/price-index.schema';
-import { PriceMonitorService } from './services/price-monitor.service';
-import { SettlementsAdminService } from './services/settlement-admin.service';
+import { KycController } from '../kyc/kyc.controller';
+import { KycCase, KycCaseSchema } from '../kyc/schemas/kyc.schema';
+import { KycAdminService } from '../kyc/services/kyc-admin.service';
+import { Organization, OrganizationSchema } from '../organizations/schemas/organization.schema';
+import { AdminDashboardController } from './controllers/admin-dashboard.controller';
+import { AdminDashboardService } from './services/admin-dashboard.service';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: PriceIndex.name, schema: PriceIndexSchema },
-      { name: SettlementBatch.name, schema: SettlementBatchSchema },
+      { name: KycCase.name, schema: KycCaseSchema },
+      { name: Organization.name, schema: OrganizationSchema },
     ]),
-    KycModule,
-    SettlementsModule,
-    QuotesModule,
-    RfqModule,
   ],
-  controllers: [
-    KycAdminController,
-    PriceMonitorController,
-    SettlementsAdminController,
-  ],
-  providers: [
-    KycAdminService,
-    PriceMonitorService,
-    SettlementsAdminService,
-  ],
-  exports: [
-    KycAdminService,
-    PriceMonitorService,
-    SettlementsAdminService,
-  ],
+  controllers: [AdminDashboardController, KycController],
+  providers: [AdminDashboardService, KycAdminService],
+  exports: [AdminDashboardService, KycAdminService],
 })
 export class AdminModule {}

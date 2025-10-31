@@ -37,7 +37,7 @@ export class BankAccount {
   @Prop() bankName?: string;
   @Prop() accountHolderName?: string;
   @Prop() accountType?: string;
-  @Prop() pennyDropStatus?: string;
+  @Prop() pennyDropStatus?: string; // VERIFIED, FAILED, PENDING
   @Prop() pennyDropScore?: number;
   @Prop({ type: [BankDocument], default: [] }) documents?: BankDocument[];
 }
@@ -48,6 +48,7 @@ export class OrgKyc {
   @Prop() tradeName?: string;
   @Prop() gstin?: string;
   @Prop() pan?: string;
+  @Prop() cin?: string; // NEW: Added CIN field
   @Prop() registeredAddress?: string;
   @Prop() businessType?: string;
   @Prop() incorporationDate?: string;
@@ -121,11 +122,10 @@ export class Organization {
   @Prop({ default: 'DRAFT' })
   kycStatus!: string; // DRAFT, SUBMITTED, APPROVED, REJECTED
 
-  // NEW: Lock editing when submitted or approved
   @Prop({ default: false })
   isOnboardingLocked!: boolean;
 
-  // NEW: Rejection reason (if rejected)
+  // FIXED: Changed from kycRejectionReason to rejectionReason
   @Prop()
   rejectionReason?: string;
 
@@ -140,6 +140,10 @@ export class Organization {
 
   @Prop({ default: false })
   isVerified!: boolean;
+
+  // Timestamps (auto-generated)
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export const OrganizationSchema = SchemaFactory.createForClass(Organization);
