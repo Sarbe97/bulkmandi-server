@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { KycModule } from "../kyc/kyc.module";
+import { FileStorageService } from "../storage/services/file-storage.service";
 import { OrganizationsController } from "./organizations.controller";
 import { OrganizationsService } from "./organizations.service";
 import {
@@ -16,7 +17,7 @@ import {
     KycModule
   ],
   controllers: [OrganizationsController],
-  providers: [OrganizationsService],
+  providers: [OrganizationsService, FileStorageService],
   exports: [OrganizationsService, MongooseModule],
 })
 export class OrganizationsModule {}

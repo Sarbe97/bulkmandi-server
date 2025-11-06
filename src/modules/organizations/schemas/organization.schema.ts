@@ -1,6 +1,6 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
-import { UserRole } from 'src/common/enums';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document } from "mongoose";
+import { UserRole } from "src/common/enums";
 
 export type OrganizationDocument = Organization & Document;
 
@@ -22,46 +22,56 @@ export class Contact {
 }
 
 @Schema({ _id: false })
-export class BankDocument {
-  @Prop() type?: string;
-  @Prop() fileName?: string;
-  @Prop() fileUrl?: string;
-  @Prop({ type: Date }) uploadedAt?: Date;
-  @Prop() status?: string;
-}
-
-@Schema({ _id: false })
-export class BankAccount {
-  @Prop() accountNumber?: string;
-  @Prop() ifsc?: string;
-  @Prop() bankName?: string;
-  @Prop() accountHolderName?: string;
-  @Prop() accountType?: string;
-  @Prop() pennyDropStatus?: string; // VERIFIED, FAILED, PENDING
-  @Prop() pennyDropScore?: number;
-  @Prop({ type: [BankDocument], default: [] }) documents?: BankDocument[];
-}
-
-@Schema({ _id: false })
 export class OrgKyc {
   @Prop() legalName?: string;
   @Prop() tradeName?: string;
   @Prop() gstin?: string;
   @Prop() pan?: string;
-  @Prop() cin?: string; // NEW: Added CIN field
+  @Prop() cin?: string;
   @Prop() registeredAddress?: string;
   @Prop() businessType?: string;
   @Prop() incorporationDate?: string;
   @Prop({ type: [Address], default: [] }) plantLocations?: Address[];
   @Prop({ type: Contact }) primaryContact?: Contact;
-  @Prop({ type: Contact }) secondaryContact?: Contact;
+}
+///////////
+
+@Schema({ _id: false })
+export class DocumentUplod {
+  @Prop() docType?: string;
+  @Prop() fileName?: string;
+  @Prop() fileUrl?: string;
+  @Prop({ type: Date }) uploadedAt?: Date;
+  @Prop() status?: string; //['UPLOADED', 'PENDING', 'VERIFIED', 'REJECTED']
+}
+@Schema({ _id: false })
+export class Declarations {
+  @Prop({ default: false }) warrantyAssurance: boolean;
+  @Prop({ default: false }) termsAccepted: boolean;
+  @Prop({ default: false }) amlCompliance: boolean;
+}
+
+@Schema({ _id: false })
+export class BankAccount {
+  @Prop() accountNumber?: string;
+  @Prop() accountHolderName?: string;
+  @Prop() ifsc?: string;
+  @Prop() bankName?: string;
+  @Prop() branchName?: string;
+
+  @Prop() isPennyDropVerified?: boolean;
+  @Prop() pennyDropStatus?: string;
+  @Prop() pennyDropScore?: number;
+  @Prop() payoutMethod?: string;
+  @Prop({ type: [DocumentUplod], default: [] }) documents?: DocumentUplod[];
+  // @Prop({ type: Declarations, default: {} }) declarations?: Declarations;
 }
 
 @Schema({ _id: false })
 export class CatalogProduct {
   @Prop() category: string;
   @Prop() isSelected: boolean;
-  @Prop() grades: string[];
+  @Prop({ type: [String] }) grades: string[];
   @Prop() moqPerOrder: number;
   @Prop() stdLeadTime: number;
 }
@@ -73,12 +83,9 @@ export class PriceFloor {
 }
 
 @Schema({ _id: false })
-export class ComplianceDocument {
-  @Prop() type: string;
-  @Prop() fileName: string;
-  @Prop() fileUrl: string;
-  @Prop({ type: Date }) uploadedAt: Date;
-  @Prop() status: string;
+export class Compliance {
+  @Prop({ type: [DocumentUplod], default: [] }) documents?: DocumentUplod[];
+  @Prop({ type: Declarations, default: {} }) declarations?: Declarations;
 }
 
 @Schema({ _id: false })
@@ -110,22 +117,27 @@ export class Organization {
   @Prop({ type: [PriceFloor], default: [] })
   priceFloors?: PriceFloor[];
 
-  @Prop({ type: [ComplianceDocument], default: [] })
-  complianceDocuments?: ComplianceDocument[];
+  @Prop({ type: [DocumentUplod], default: [] })
+  complianceDocuments?: DocumentUplod[];
+
+  @Prop({ type: Compliance, default: {} })
+  compliance?: Compliance;
 
   @Prop({ type: LogisticsPreference })
   logisticsPreference?: LogisticsPreference;
 
-  @Prop({ default: [] })
-  completedSteps!: string[];
+  @Prop({ type: Declarations })
+  declarations?: Declarations;
 
-  @Prop({ default: 'DRAFT' })
+  @Prop({ default: [] })
+  completedSteps!: string[]; // ['orgKyc', 'bankDetails', 'docs', 'catalog']
+
+  @Prop({ default: "DRAFT" })
   kycStatus!: string; // DRAFT, SUBMITTED, APPROVED, REJECTED
 
   @Prop({ default: false })
   isOnboardingLocked!: boolean;
 
-  // FIXED: Changed from kycRejectionReason to rejectionReason
   @Prop()
   rejectionReason?: string;
 
@@ -135,13 +147,12 @@ export class Organization {
   @Prop({ default: null })
   kycApprovedBy?: string;
 
-  @Prop({ default: 'ACTIVE' })
+  @Prop({ default: "ACTIVE" })
   status!: string;
 
   @Prop({ default: false })
   isVerified!: boolean;
 
-  // Timestamps (auto-generated)
   createdAt?: Date;
   updatedAt?: Date;
 }

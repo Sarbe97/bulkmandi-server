@@ -1,9 +1,11 @@
-import { IsOptional, IsString } from "class-validator";
+import { IsString } from 'class-validator';
 
 export class BankDocumentDto {
-  @IsOptional() @IsString() type?: string;
-  @IsOptional() @IsString() fileName?: string;
-  @IsOptional() @IsString() fileUrl?: string;
-  @IsOptional() uploadedAt?: Date;
-  @IsOptional() @IsString() status?: string;
+  @IsString()
+  type: string; // CANCELLED_CHEQUE, BANK_LETTER
+
+  fileName: string; // Set automatically
+  fileUrl: string; // Set automatically
+  uploadedAt: Date; // Set automatically
+  status: string = 'UPLOADED'; // Default
 }

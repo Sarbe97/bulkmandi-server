@@ -38,64 +38,71 @@ export class AuthService {
     return null;
   }
 
- async login(loginDto: { email: string; password: string; ip?: string }) {
-  const user = await this.validateUser(loginDto.email, loginDto.password);
-  
-  if (!user) {
-    throw new UnauthorizedException('Invalid email or password');
-  }
+  async login(loginDto: { email: string; password: string; ip?: string }) {
+    const user = await this.validateUser(loginDto.email, loginDto.password);
 
-  const isAdmin = [UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role);
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
 
-  if (!isAdmin && !user.organizationId) {
-    throw new UnauthorizedException('User is not linked to an organization');
-  }
+    const isAdmin = [UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role);
 
-  // Update last login
-  await this.userModel.findByIdAndUpdate(user._id, {
-    lastLoginAt: new Date(),
-    lastLoginIp: loginDto.ip,
-  });
+    if (!isAdmin && !user.organizationId) {
+      throw new UnauthorizedException('User is not linked to an organization');
+    }
 
-  // Build JWT payload
-  const payload: any = {
-    userId: user._id.toString(), // IMPORTANT: Convert ObjectId to string
-    email: user.email,
-    role: user.role,
-    isAdmin,
-  };
+    // Update last login
+    await this.userModel.findByIdAndUpdate(user._id, {
+      lastLoginAt: new Date(),
+      lastLoginIp: loginDto.ip,
+    });
 
-  // Add organizationId for non-admin users
-  if (!isAdmin && user.organizationId) {
-    payload.organizationId = user.organizationId.toString(); // IMPORTANT: Convert to string
-  }
+    // ✅ FETCH ORGANIZATION NAME
+    let organizationName = null;
+    if (!isAdmin && user.organizationId) {
+      const org = await this.organizationModel.findById(user.organizationId);
+      organizationName = org?.legalName || null;
+    }
 
-  // Add permissions for admin users
-  if (isAdmin) {
-    payload.permissions = user.permissions || [];
-  }
-
-  const response: any = {
-    accessToken: this.jwtService.sign(payload),
-    user: {
-      id: user._id.toString(),
+    // Build JWT payload
+    const payload: any = {
+      userId: user._id.toString(), // IMPORTANT: Convert ObjectId to string
       email: user.email,
       role: user.role,
-      name: user.name,
-    },
-  };
+      isAdmin,
+    };
 
-  if (!isAdmin) {
-    response.user.organizationId = user.organizationId?.toString();
+    // Add organizationId for non-admin users
+    if (!isAdmin && user.organizationId) {
+      payload.organizationId = user.organizationId.toString(); // IMPORTANT: Convert to string
+    }
+
+    // Add permissions for admin users
+    if (isAdmin) {
+      payload.permissions = user.permissions || [];
+    }
+
+    const response: any = {
+      accessToken: this.jwtService.sign(payload),
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        role: user.role,
+        name: user.name,
+      },
+    };
+
+    if (!isAdmin) {
+      response.user.organizationId = user.organizationId?.toString();
+      response.user.organizationName = organizationName;
+    }
+
+    if (isAdmin) {
+      response.user.permissions = user.permissions;
+    }
+
+    return response;
   }
-
-  if (isAdmin) {
-    response.user.permissions = user.permissions;
-  }
-
-  return response;
-}
-
 
   async register(registerDto: {
     email: string;

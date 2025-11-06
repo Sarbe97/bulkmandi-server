@@ -25,6 +25,7 @@ export class User {
   @Prop({ type: Types.ObjectId, ref: "Organization", required: false })
   organizationId: Types.ObjectId; //
 
+
   // For ADMIN users only
   @Prop({ type: [String], default: [] })
   permissions: string[]; // ['KYC_APPROVE', 'DISPUTE_RESOLVE', etc.]

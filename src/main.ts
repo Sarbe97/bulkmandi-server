@@ -10,28 +10,34 @@ async function bootstrap(): Promise<void> {
     const app = await NestFactory.create(AppModule);
     const configService = app.get(ConfigService);
 
-    // Security
+    // ========== Security ==========
     // app.use(compression());
 
-    // CORS
+    // ========== CORS ==========
     app.enableCors({
       origin: process.env.FRONTEND_URL || "http://localhost:8080",
       credentials: true,
     });
 
-    // Global pipes
+    // ========== Global Pipes with ClassTransformer ==========
+    // ✅ CRITICAL: Remove forbidNonWhitelisted for file uploads
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
-        forbidNonWhitelisted: true,
+        forbidNonWhitelisted: false, // ✅ CHANGED: Allow unknown properties (like complianceDocs from multipart)
         transform: true,
+        transformOptions: {
+          enableImplicitConversion: true,
+        },
+        skipMissingProperties: false,
+        stopAtFirstError: false,
       })
     );
 
-    // API prefix
+    // ========== API Prefix ==========
     app.setGlobalPrefix("api/v1");
 
-    // Swagger documentation
+    // ========== Swagger Documentation ==========
     if (configService.get("NODE_ENV") !== "production") {
       const config = new DocumentBuilder()
         .setTitle("B2B Marketplace API")
@@ -47,6 +53,7 @@ async function bootstrap(): Promise<void> {
       console.log("✅ Swagger spec generated: swagger-spec.json");
     }
 
+    // ========== Start Server ==========
     const port = configService.get("PORT") || 3000;
     await app.listen(port);
 
@@ -54,6 +61,7 @@ async function bootstrap(): Promise<void> {
     console.log(
       `📚 Swagger docs available at: http://localhost:${port}/api/docs`
     );
+    console.log(`🔄 ClassTransformer enabled for @Transform decorators`);
   } catch (error) {
     console.error("Failed to start application:", error);
     process.exit(1);

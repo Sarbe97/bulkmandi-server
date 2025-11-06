@@ -101,12 +101,12 @@
         ]
       }
     },
-    "/api/v1/organizations/my-organization/onboarding/bank": {
-      "put": {
-        "operationId": "OrganizationsController_updateBankDetails",
+    "/api/v1/organizations/my-organization/onboarding/documents/upload": {
+      "post": {
+        "operationId": "OrganizationsController_uploadSingleDocument",
         "parameters": [],
         "responses": {
-          "200": {
+          "201": {
             "description": ""
           }
         },
@@ -115,15 +115,45 @@
             "bearer": []
           }
         ],
-        "summary": "Update bank account details",
+        "summary": "Upload single document - Phase 1 (Storage only, no DB)",
         "tags": [
           "Organizations - Seller Onboarding"
         ]
       }
     },
-    "/api/v1/organizations/my-organization/onboarding/docs": {
+    "/api/v1/organizations/my-organization/onboarding/documents/{docType}": {
+      "delete": {
+        "operationId": "OrganizationsController_deleteDocument",
+        "parameters": [
+          {
+            "name": "docType",
+            "required": true,
+            "in": "path",
+            "description": "Document type to delete",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete document - Phase 1 (Storage only, no DB)",
+        "tags": [
+          "Organizations - Seller Onboarding"
+        ]
+      }
+    },
+    "/api/v1/organizations/my-organization/onboarding/bank-details": {
       "put": {
-        "operationId": "OrganizationsController_updateComplianceDocuments",
+        "operationId": "OrganizationsController_updateBankDetailsWithDocuments",
         "parameters": [],
         "responses": {
           "200": {
@@ -135,7 +165,27 @@
             "bearer": []
           }
         ],
-        "summary": "Upload compliance documents",
+        "summary": "Save bank details + documents - Phase 2 (Persists to DB)",
+        "tags": [
+          "Organizations - Seller Onboarding"
+        ]
+      }
+    },
+    "/api/v1/organizations/my-organization/onboarding/compliance": {
+      "put": {
+        "operationId": "OrganizationsController_updateComplianceDocsWithDeclarations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save compliance docs + declarations - Phase 2 (Persists to DB)",
         "tags": [
           "Organizations - Seller Onboarding"
         ]
@@ -155,7 +205,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update product catalog and commercials",
+        "summary": "Update product catalog and pricing",
         "tags": [
           "Organizations - Seller Onboarding"
         ]
@@ -181,26 +231,6 @@
         ]
       }
     },
-    "/api/v1/organizations/my-organization/onboarding/review": {
-      "get": {
-        "operationId": "OrganizationsController_getOnboardingReviewSummary",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get onboarding review summary",
-        "tags": [
-          "Organizations - Seller Onboarding"
-        ]
-      }
-    },
     "/api/v1/organizations/my-organization/onboarding/submit": {
       "post": {
         "operationId": "OrganizationsController_submitOnboarding",
@@ -216,6 +246,66 @@
           }
         ],
         "summary": "Submit onboarding for admin review",
+        "tags": [
+          "Organizations - Seller Onboarding"
+        ]
+      }
+    },
+    "/api/v1/organizations/my-organization/documents/{fileName}": {
+      "get": {
+        "operationId": "OrganizationsController_downloadDocument",
+        "parameters": [
+          {
+            "name": "fileName",
+            "required": true,
+            "in": "path",
+            "description": "File name to download",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download document (with authorization check)",
+        "tags": [
+          "Organizations - Seller Onboarding"
+        ]
+      }
+    },
+    "/api/v1/organizations/my-organization/documents-preview/{fileName}": {
+      "get": {
+        "operationId": "OrganizationsController_previewDocument",
+        "parameters": [
+          {
+            "name": "fileName",
+            "required": true,
+            "in": "path",
+            "description": "File name to preview",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview document inline (with authorization check)",
         "tags": [
           "Organizations - Seller Onboarding"
         ]
