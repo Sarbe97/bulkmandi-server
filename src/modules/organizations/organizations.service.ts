@@ -1,26 +1,18 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { FileStorageService } from '../storage/services/file-storage.service';
-import {
-  DocumentUplod,
-  Organization,
-  OrganizationDocument,
-} from './schemas/organization.schema';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
+import { CustomLoggerService } from "src/core/logger/custom.logger.service";
+import { FileStorageService } from "../storage/services/file-storage.service";
+import { DocumentUplod, Organization, OrganizationDocument } from "./schemas/organization.schema";
 
-const requiredSteps = ['org-kyc', 'bank-details', 'compliance-docs', 'catalog-and-price'];
+const requiredSteps = ["org-kyc", "bank-details", "compliance-docs", "catalog-and-price"];
 
 interface FileUploadResponse {
   docType: string;
   fileName: string;
   fileUrl: string;
   uploadedAt: string;
-  status: 'UPLOADED';
+  status: "UPLOADED";
 }
 
 @Injectable()
@@ -28,27 +20,17 @@ export class OrganizationsService {
   constructor(
     @InjectModel(Organization.name)
     private orgModel: Model<OrganizationDocument>,
-    private fileStorageService: FileStorageService
+    private fileStorageService: FileStorageService,
+    private readonly logger: CustomLoggerService, // add this
   ) {}
 
-  /**
-   * ✅ Check if organization is editable
-   */
   private checkEditPermission(org: OrganizationDocument): void {
     if (org.isOnboardingLocked) {
-      throw new ForbiddenException(
-        `Cannot edit onboarding. Current status: ${org.kycStatus}. You can only edit when status is DRAFT or REJECTED.`
-      );
+      this.logger.log(`Forbidden edit attempt. Onboarding locked with status: ${org.kycStatus}`, "checkEditPermission");
+      throw new ForbiddenException(`Cannot edit onboarding. Current status: ${org.kycStatus}. You can only edit when status is DRAFT or REJECTED.`);
     }
   }
 
-  // ===========================
-  // STEP 1: UPDATE ORG KYC
-  // ===========================
-
-  /**
-   * ✅ Update Organization KYC Details (No files)
-   */
   async updateOrgKyc(
     orgId: string,
     kycData: {
@@ -62,17 +44,19 @@ export class OrganizationsService {
       incorporationDate?: string;
       plantLocations?: any[];
       primaryContact?: any;
-    }
+    },
   ): Promise<any> {
     try {
-      console.log(`📋 updateOrgKyc called for org: ${orgId}`);
+      this.logger.log(`Called updateOrgKyc for org: ${orgId}`, "updateOrgKyc");
 
       const org = await this.orgModel.findById(orgId);
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) {
+        this.logger.log(`Organization not found: ${orgId}`, "updateOrgKyc");
+        throw new NotFoundException("Organization not found");
+      }
 
       this.checkEditPermission(org);
 
-      // Update KYC data
       org.legalName = kycData.legalName || org.legalName;
       org.orgKyc = {
         legalName: kycData.legalName,
@@ -87,54 +71,39 @@ export class OrganizationsService {
         primaryContact: kycData.primaryContact,
       };
 
-      if (!org.completedSteps.includes('org-kyc')) {
-        org.completedSteps.push('org-kyc');
+      if (!org.completedSteps.includes("org-kyc")) {
+        org.completedSteps.push("org-kyc");
       }
 
       const savedOrg = await org.save();
-      console.log(`✅ KYC data updated`);
+      this.logger.log(`KYC data updated successfully for org: ${orgId}`, "updateOrgKyc");
 
       return this.formatOnboardingResponse(savedOrg);
     } catch (error) {
-      console.error('❌ Error updating KYC:', error.message);
+      this.logger.log(`Error updating KYC for org ${orgId}: ${error.message}`, "updateOrgKyc");
       throw error;
     }
   }
 
-  // ===========================
-  // PHASE 1: FILE UPLOAD (Storage Only)
-  // ===========================
-
-  /**
-   * ✅ PHASE 1: Upload Single Document (Storage Only - No DB Update)
-   * Returns file metadata for frontend to cache
-   */
-  async uploadSingleDocument(
-    orgId: string,
-    file: Express.Multer.File,
-    docType: string
-  ): Promise<DocumentUplod> {
+  async uploadSingleDocument(orgId: string, file: Express.Multer.File, docType: string): Promise<DocumentUplod> {
     try {
-      console.log(`📤 PHASE 1: Upload to storage (NO DB update)`);
-      console.log(`  Organization: ${orgId}`);
-      console.log(`  File: ${file.originalname} (${file.size} bytes)`);
-      console.log(`  DocType: ${docType}`);
+      this.logger.log(`Phase 1: Upload to storage (no DB) for org: ${orgId}`, "uploadSingleDocument");
+      this.logger.log(`File: ${file.originalname} (${file.size} bytes), DocType: ${docType}`, "uploadSingleDocument");
 
       if (!file.buffer || file.buffer.length === 0) {
-        throw new BadRequestException('File is empty');
+        this.logger.log(`File is empty in uploadSingleDocument for org: ${orgId}`, "uploadSingleDocument");
+        throw new BadRequestException("File is empty");
       }
 
-      // ✅ Determine folder based on docType prefix
       const folder =
-        docType.startsWith('GST_') ||
-        docType.startsWith('PAN_') ||
-        docType.startsWith('BUSINESS_') ||
-        docType.startsWith('FACTORY_') ||
-        docType.startsWith('QA_')
+        docType.startsWith("GST_") ||
+        docType.startsWith("PAN_") ||
+        docType.startsWith("BUSINESS_") ||
+        docType.startsWith("FACTORY_") ||
+        docType.startsWith("QA_")
           ? `documents/organizations/${orgId}/compliance-documents/${docType}`
           : `documents/organizations/${orgId}/bank-documents/${docType}`;
 
-      // ✅ Save ONLY to storage - NO database update
       const fileName = `${docType}_${Date.now()}_${file.originalname}`;
       const fileUrl = await this.fileStorageService.uploadFile({
         file: file.buffer,
@@ -143,51 +112,35 @@ export class OrganizationsService {
         folder,
       });
 
-      console.log(`✅ File saved to storage: ${fileUrl}`);
+      this.logger.log(`File saved to storage: ${fileUrl}`, "uploadSingleDocument");
 
-      // ✅ Return file metadata ONLY (NO DB persistence)
       return {
         docType,
         fileName: file.originalname,
         fileUrl,
         uploadedAt: new Date(),
-        status: 'UPLOADED',
+        status: "UPLOADED",
       };
     } catch (error) {
-      console.error('❌ Error in Phase 1 upload:', error.message);
+      this.logger.log(`Error in Phase 1 upload for org ${orgId}: ${error.message}`, "uploadSingleDocument");
       throw error;
     }
   }
 
-  /**
-   * ✅ PHASE 1: Delete Document (Storage Only - No DB Update)
-   */
   async deleteDocument(orgId: string, docType: string): Promise<{ message: string }> {
     try {
-      console.log(`🗑️ PHASE 1: Delete from storage (NO DB update)`);
-      console.log(`  Organization: ${orgId}`);
-      console.log(`  DocType: ${docType}`);
-
-      // ✅ In production, you'd track fileUrl in session/cache
-      // For now, frontend manages deletion from its state
+      this.logger.log(`Phase 1: Delete from storage (no DB) for org: ${orgId}`, "deleteDocument");
+      this.logger.log(`DocType: ${docType}`, "deleteDocument");
 
       return {
         message: `Document ${docType} deleted successfully`,
       };
     } catch (error) {
-      console.error('❌ Error in Phase 1 delete:', error.message);
+      this.logger.log(`Error in Phase 1 delete for org ${orgId}: ${error.message}`, "deleteDocument");
       throw error;
     }
   }
 
-  // ===========================
-  // PHASE 2: PERSIST TO DATABASE
-  // ===========================
-
-  /**
-   * ✅ PHASE 2: Update Bank Details + Documents (Persists to DB)
-   * Called when user submits the BankDetailsStep form
-   */
   async updateBankDetailsWithDocuments(
     orgId: string,
     data: {
@@ -198,33 +151,31 @@ export class OrganizationsService {
       pennyDropStatus?: string;
       pennyDropScore?: number;
       documents: DocumentUplod[];
-    }
+    },
   ): Promise<any> {
     try {
-      console.log(`💾 PHASE 2: Persist bank details + documents to DB`);
-      console.log(`  Organization: ${orgId}`);
-      console.log(`  Account: ${data.accountNumber}`);
-      console.log(`  Documents: ${data.documents.length}`);
+      this.logger.log(`Phase 2: Persist bank details + documents for org: ${orgId}`, "updateBankDetailsWithDocuments");
+      this.logger.log(`Account: ${data.accountNumber}, Documents count: ${data.documents.length}`, "updateBankDetailsWithDocuments");
 
       const org = await this.orgModel.findById(orgId);
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) {
+        this.logger.log(`Organization not found: ${orgId}`, "updateBankDetailsWithDocuments");
+        throw new NotFoundException("Organization not found");
+      }
 
       this.checkEditPermission(org);
 
-      // Initialize bank account if needed
       if (!org.primaryBankAccount) {
         org.primaryBankAccount = { documents: [] };
       }
 
-      // ✅ NOW persist bank account details to DB
       org.primaryBankAccount.accountNumber = data.accountNumber;
       org.primaryBankAccount.ifsc = data.ifsc;
       org.primaryBankAccount.bankName = data.bankName;
       org.primaryBankAccount.accountHolderName = data.accountHolderName;
-      org.primaryBankAccount.pennyDropStatus = data.pennyDropStatus || 'PENDING';
+      org.primaryBankAccount.pennyDropStatus = data.pennyDropStatus || "PENDING";
       org.primaryBankAccount.pennyDropScore = data.pennyDropScore || 0;
 
-      // ✅ NOW persist documents to DB (received from frontend)
       org.primaryBankAccount.documents = data.documents.map((doc) => ({
         docType: doc.docType,
         fileName: doc.fileName,
@@ -233,29 +184,24 @@ export class OrganizationsService {
         status: doc.status,
       }));
 
-      // Mark step as completed
-      if (!org.completedSteps.includes('bank-details')) {
-        org.completedSteps.push('bank-details');
+      if (!org.completedSteps.includes("bank-details")) {
+        org.completedSteps.push("bank-details");
       }
 
       const savedOrg = await org.save();
 
-      console.log(
-        `✅ Bank details + documents persisted to DB - ${savedOrg.primaryBankAccount.documents.length} docs`
+      this.logger.log(
+        `Bank details + documents persisted - ${savedOrg.primaryBankAccount.documents.length} docs for org: ${orgId}`,
+        "updateBankDetailsWithDocuments",
       );
 
       return this.formatOnboardingResponse(savedOrg);
     } catch (error) {
-      console.error('❌ Error in Phase 2 persist:', error.message);
+      this.logger.log(`Error in Phase 2 persist bank details for org ${orgId}: ${error.message}`, "updateBankDetailsWithDocuments");
       throw error;
     }
   }
 
-  /**
-   * ✅ PHASE 2: Update Compliance Documents + Declarations (Persists to DB)
-   * Called when user submits the ComplianceDocsStep form
-   * Documents and Declarations saved as ONE unified object
-   */
   async updateComplianceDocsWithDeclarations(
     orgId: string,
     data: {
@@ -263,29 +209,30 @@ export class OrganizationsService {
       termsAccepted: boolean;
       amlCompliance: boolean;
       documents: DocumentUplod[];
-    }
+    },
   ): Promise<any> {
     try {
-      console.log(`💾 PHASE 2: Persist compliance docs + declarations to DB`);
-      console.log(`  Organization: ${orgId}`);
-      console.log(`  Documents: ${data.documents.length}`);
+      this.logger.log(`Phase 2: Persist compliance docs + declarations for org: ${orgId}`, "updateComplianceDocsWithDeclarations");
+      this.logger.log(`Documents count: ${data.documents.length}`, "updateComplianceDocsWithDeclarations");
 
       const org = await this.orgModel.findById(orgId);
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) {
+        this.logger.log(`Organization not found: ${orgId}`, "updateComplianceDocsWithDeclarations");
+        throw new NotFoundException("Organization not found");
+      }
 
       this.checkEditPermission(org);
 
-      // Validate all declarations are true
       if (!data.warrantyAssurance || !data.termsAccepted || !data.amlCompliance) {
-        throw new BadRequestException('All declarations must be accepted');
+        this.logger.log(`Declarations not accepted for org: ${orgId}`, "updateComplianceDocsWithDeclarations");
+        throw new BadRequestException("All declarations must be accepted");
       }
 
-      // Validate at least one document is provided
       if (!data.documents || data.documents.length === 0) {
-        throw new BadRequestException('At least one compliance document is required');
+        this.logger.log(`No compliance documents provided for org: ${orgId}`, "updateComplianceDocsWithDeclarations");
+        throw new BadRequestException("At least one compliance document is required");
       }
 
-      // ✅ Create UNIFIED compliance object with documents AND declarations
       org.compliance = {
         documents: data.documents.map((doc) => ({
           docType: doc.docType,
@@ -298,48 +245,43 @@ export class OrganizationsService {
           warrantyAssurance: data.warrantyAssurance,
           termsAccepted: data.termsAccepted,
           amlCompliance: data.amlCompliance,
-          // acceptedAt: new Date(),
         },
       };
 
-      // Mark step as completed
-      if (!org.completedSteps.includes('compliance-docs')) {
-        org.completedSteps.push('compliance-docs');
+      if (!org.completedSteps.includes("compliance-docs")) {
+        org.completedSteps.push("compliance-docs");
       }
 
       const savedOrg = await org.save();
 
-      console.log(
-        `✅ Compliance docs + declarations persisted to DB - ${savedOrg.compliance.documents.length} docs`
+      this.logger.log(
+        `Compliance docs + declarations persisted - ${savedOrg.compliance.documents.length} docs for org: ${orgId}`,
+        "updateComplianceDocsWithDeclarations",
       );
 
       return this.formatOnboardingResponse(savedOrg);
     } catch (error) {
-      console.error('❌ Error in Phase 2 persist:', error.message);
+      this.logger.log(`Error persisting compliance docs for org ${orgId}: ${error.message}`, "updateComplianceDocsWithDeclarations");
       throw error;
     }
   }
 
-  // ===========================
-  // STEP 4: CATALOG & PRICING
-  // ===========================
-
-  /**
-   * ✅ Update Catalog & Pricing
-   */
   async updateCatalog(
     orgId: string,
     catalogData: {
       catalog?: any[];
       priceFloors?: any[];
       logisticsPreference?: any;
-    }
+    },
   ): Promise<any> {
     try {
-      console.log(`📋 updateCatalog called for org: ${orgId}`);
+      this.logger.log(`Called updateCatalog for org: ${orgId}`, "updateCatalog");
 
       const org = await this.orgModel.findById(orgId);
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) {
+        this.logger.log(`Organization not found: ${orgId}`, "updateCatalog");
+        throw new NotFoundException("Organization not found");
+      }
 
       this.checkEditPermission(org);
 
@@ -347,44 +289,40 @@ export class OrganizationsService {
       if (catalogData.priceFloors) org.priceFloors = catalogData.priceFloors;
       if (catalogData.logisticsPreference) org.logisticsPreference = catalogData.logisticsPreference;
 
-      if (!org.completedSteps.includes('catalog-and-price')) {
-        org.completedSteps.push('catalog-and-price');
+      if (!org.completedSteps.includes("catalog-and-price")) {
+        org.completedSteps.push("catalog-and-price");
       }
 
       const savedOrg = await org.save();
 
-      console.log(`✅ Catalog updated`);
+      this.logger.log(`Catalog updated for org: ${orgId}`, "updateCatalog");
 
       return this.formatOnboardingResponse(savedOrg);
     } catch (error) {
-      console.error('❌ Error updating catalog:', error.message);
+      this.logger.log(`Error updating catalog for org ${orgId}: ${error.message}`, "updateCatalog");
       throw error;
     }
   }
 
-  // ===========================
-  // GET ONBOARDING DATA
-  // ===========================
-
-  /**
-   * ✅ Get Full Onboarding Status with all steps
-   */
   async getOnboardingData(orgId: string): Promise<any> {
     try {
+      this.logger.log(`Fetching onboarding data for org: ${orgId}`, "getOnboardingData");
+
       const org = await this.orgModel.findById(orgId);
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) {
+        this.logger.log(`Organization not found: ${orgId}`, "getOnboardingData");
+        throw new NotFoundException("Organization not found");
+      }
 
       return this.formatOnboardingResponse(org);
     } catch (error) {
-      console.error('❌ Error fetching onboarding data:', error.message);
+      this.logger.log(`Error fetching onboarding data for org ${orgId}: ${error.message}`, "getOnboardingData");
       throw error;
     }
   }
 
-  /**
-   * ✅ Helper: Format onboarding response
-   */
   private formatOnboardingResponse(org: OrganizationDocument): any {
+    // Assuming no asynchronous operations here, so no logging needed
     return {
       organizationId: org._id.toString(),
       orgId: org.orgId,
@@ -417,145 +355,129 @@ export class OrganizationsService {
     };
   }
 
-  // ===========================
-  // SUBMIT ONBOARDING
-  // ===========================
-
-  /**
-   * ✅ Submit Onboarding for Admin Review
-   */
   async submitOnboarding(orgId: string): Promise<any> {
     try {
-      console.log(`📤 submitOnboarding called for org: ${orgId}`);
+      this.logger.log(`Called submitOnboarding for org: ${orgId}`, "submitOnboarding");
 
       const org = await this.orgModel.findById(orgId);
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) {
+        this.logger.log(`Organization not found: ${orgId}`, "submitOnboarding");
+        throw new NotFoundException("Organization not found");
+      }
 
       const allCompleted = requiredSteps.every((step) => org.completedSteps.includes(step));
 
       if (!allCompleted) {
         const missing = requiredSteps.filter((step) => !org.completedSteps.includes(step));
-        throw new BadRequestException(`Missing steps - ${missing.join(', ')}`);
+        this.logger.log(`Missing onboarding steps for org ${orgId}: ${missing.join(", ")}`, "submitOnboarding");
+        throw new BadRequestException(`Missing steps - ${missing.join(", ")}`);
       }
 
-      org.kycStatus = 'SUBMITTED';
+      org.kycStatus = "SUBMITTED";
       org.isOnboardingLocked = true;
 
       const savedOrg = await org.save();
 
-      console.log(`✅ Onboarding submitted for review`);
+      this.logger.log(`Onboarding submitted for review for org: ${orgId}`, "submitOnboarding");
 
       return {
-        message: 'Onboarding submitted for admin review',
+        message: "Onboarding submitted for admin review",
         organizationId: savedOrg._id.toString(),
         kycStatus: savedOrg.kycStatus,
       };
     } catch (error) {
-      console.error('❌ Error submitting onboarding:', error.message);
+      this.logger.log(`Error submitting onboarding for org ${orgId}: ${error.message}`, "submitOnboarding");
       throw error;
     }
   }
 
-  // ===========================
-  // ADMIN OPERATIONS
-  // ===========================
-
-  /**
-   * ✅ Admin: Update KYC Status
-   */
-  async updateKYCStatus(
-    orgId: string,
-    status: 'APPROVED' | 'REJECTED',
-    rejectionReason?: string
-  ): Promise<any> {
+  async updateKYCStatus(orgId: string, status: "APPROVED" | "REJECTED", rejectionReason?: string): Promise<any> {
     try {
-      console.log(`🔄 updateKYCStatus for org: ${orgId} to ${status}`);
+      this.logger.log(`Updating KYC status for org ${orgId} to ${status}`, "updateKYCStatus");
 
       const org = await this.orgModel.findById(orgId);
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) {
+        this.logger.log(`Organization not found: ${orgId}`, "updateKYCStatus");
+        throw new NotFoundException("Organization not found");
+      }
 
       org.kycStatus = status;
 
-      if (status === 'REJECTED') {
-        org.rejectionReason = rejectionReason || 'No reason provided';
+      if (status === "REJECTED") {
+        org.rejectionReason = rejectionReason || "No reason provided";
         org.isOnboardingLocked = false;
-      } else if (status === 'APPROVED') {
+      } else if (status === "APPROVED") {
         org.kycApprovedAt = new Date();
         org.isOnboardingLocked = true;
       }
 
       const savedOrg = await org.save();
 
-      console.log(`✅ KYC status updated to ${status}`);
+      this.logger.log(`KYC status updated to ${status} for org: ${orgId}`, "updateKYCStatus");
 
       return {
-        message: 'KYC status updated',
+        message: "KYC status updated",
         organizationId: savedOrg._id.toString(),
         kycStatus: savedOrg.kycStatus,
       };
     } catch (error) {
-      console.error('❌ Error updating KYC status:', error.message);
+      this.logger.log(`Error updating KYC status for org ${orgId}: ${error.message}`, "updateKYCStatus");
       throw error;
     }
   }
 
-  // ===========================
-  // CRUD OPERATIONS
-  // ===========================
-
-  /**
-   * ✅ Create Organization
-   */
   async createOrganization(data: any): Promise<OrganizationDocument> {
     try {
-      console.log(`✏️ Creating organization...`);
+      this.logger.log("Creating organization", "createOrganization");
 
       const org = new this.orgModel({
         ...data,
-        kycStatus: 'DRAFT',
+        kycStatus: "DRAFT",
         isOnboardingLocked: false,
         completedSteps: [],
       });
 
       const savedOrg = await org.save();
 
-      console.log(`✅ Organization created: ${savedOrg._id}`);
+      this.logger.log(`Organization created with id ${savedOrg._id}`, "createOrganization");
       return savedOrg;
     } catch (error) {
-      console.error('❌ Error creating organization:', error.message);
+      this.logger.log(`Error creating organization: ${error.message}`, "createOrganization");
       throw error;
     }
   }
 
-  /**
-   * ✅ Get Organization
-   */
   async getOrganization(orgId: string): Promise<OrganizationDocument> {
     try {
+      this.logger.log(`Fetching organization with id ${orgId}`, "getOrganization");
+
       const org = await this.orgModel.findById(orgId);
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) {
+        this.logger.log(`Organization not found: ${orgId}`, "getOrganization");
+        throw new NotFoundException("Organization not found");
+      }
       return org;
     } catch (error) {
-      console.error('❌ Error fetching organization:', error.message);
+      this.logger.log(`Error fetching organization ${orgId}: ${error.message}`, "getOrganization");
       throw error;
     }
   }
 
-  /**
-   * ✅ Delete Organization
-   */
   async deleteOrganization(orgId: string): Promise<{ message: string }> {
     try {
-      console.log(`🗑️ Deleting organization: ${orgId}`);
+      this.logger.log(`Deleting organization with id ${orgId}`, "deleteOrganization");
 
       const org = await this.orgModel.findByIdAndDelete(orgId);
 
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) {
+        this.logger.log(`Organization not found: ${orgId}`, "deleteOrganization");
+        throw new NotFoundException("Organization not found");
+      }
 
-      console.log(`✅ Organization deleted`);
-      return { message: 'Organization deleted successfully' };
+      this.logger.log(`Organization deleted with id ${orgId}`, "deleteOrganization");
+      return { message: "Organization deleted successfully" };
     } catch (error) {
-      console.error('❌ Error deleting organization:', error.message);
+      this.logger.log(`Error deleting organization ${orgId}: ${error.message}`, "deleteOrganization");
       throw error;
     }
   }

@@ -8,6 +8,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 
 // New modules
+import { CoreModule } from './core/core.module';
 import { ThreePLModule } from './modules/3pl/3pl.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuditModule } from './modules/audit/audit.module';
@@ -37,7 +38,7 @@ import { ShipmentsModule } from './modules/shipments/shipments.module';
     
     // Keep existing
     AuthModule,
-    
+    CoreModule,
     // Add all new modules
     OrganizationsModule,
     KycModule,
