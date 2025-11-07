@@ -14,10 +14,26 @@ async function bootstrap(): Promise<void> {
     // app.use(compression());
 
     // ========== CORS ==========
-    app.enableCors({
-      origin: process.env.FRONTEND_URL || "http://localhost:8080",
+    // cors.options.ts
+    const corsOptions = {
+      origin: function (origin: string, callback: Function) {
+        const whitelist = ["http://localhost:8080", process.env.FRONTEND_URL].filter(Boolean);
+
+        // allow postman / mobile apps / curl (no origin header)
+        if (!origin) return callback(null, true);
+
+        if (whitelist.includes(origin)) return callback(null, true);
+
+        return callback(new Error(`CORS blocked: ${origin}`));
+      },
       credentials: true,
-    });
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+      exposedHeaders: ["Content-Disposition"],
+      maxAge: 86400,
+    };
+
+    app.enableCors(corsOptions);
 
     // ========== Global Pipes with ClassTransformer ==========
     // ✅ CRITICAL: Remove forbidNonWhitelisted for file uploads
@@ -31,7 +47,7 @@ async function bootstrap(): Promise<void> {
         },
         skipMissingProperties: false,
         stopAtFirstError: false,
-      })
+      }),
     );
 
     // ========== API Prefix ==========
@@ -58,9 +74,7 @@ async function bootstrap(): Promise<void> {
     await app.listen(port);
 
     console.log(`🚀 Application is running on: http://localhost:${port}`);
-    console.log(
-      `📚 Swagger docs available at: http://localhost:${port}/api/docs`
-    );
+    console.log(`📚 Swagger docs available at: http://localhost:${port}/api/docs`);
     console.log(`🔄 ClassTransformer enabled for @Transform decorators`);
   } catch (error) {
     console.error("Failed to start application:", error);
