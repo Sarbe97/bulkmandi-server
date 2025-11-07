@@ -208,7 +208,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash('qwerty123', 10);
 
     const admin = new this.userModel({
-      email: 'admin@test.com',
+      email: 'admin@bulkmandi.com',
       password: hashedPassword,
       name: 'Super Admin',
       role: UserRole.ADMIN,

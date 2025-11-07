@@ -95,15 +95,16 @@ export class OrganizationsService {
         throw new BadRequestException("File is empty");
       }
 
-      const folder =
-        docType.startsWith("GST_") ||
-        docType.startsWith("PAN_") ||
-        docType.startsWith("BUSINESS_") ||
-        docType.startsWith("FACTORY_") ||
-        docType.startsWith("QA_")
-          ? `documents/organizations/${orgId}/compliance-documents/${docType}`
-          : `documents/organizations/${orgId}/bank-documents/${docType}`;
-
+      // const folder =
+      //   docType.startsWith("GST_") ||
+      //   docType.startsWith("PAN_") ||
+      //   docType.startsWith("BUSINESS_") ||
+      //   docType.startsWith("FACTORY_") ||
+      //   docType.startsWith("QA_")
+      //     ? `documents/organizations/${orgId}/compliance-documents/${docType}`
+      //     : `documents/organizations/${orgId}/bank-documents/${docType}`;
+      
+      const folder = `documents/organizations/${orgId}`;
       const fileName = `${docType}_${Date.now()}_${file.originalname}`;
       const fileUrl = await this.fileStorageService.uploadFile({
         file: file.buffer,
