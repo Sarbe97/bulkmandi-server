@@ -21,6 +21,10 @@ export class OrgKycDto {
   pan?: string;
 
   @IsOptional()
+  @ValidateNested()
+  cin?: string;
+
+  @IsOptional()
   @IsString()
   registeredAddress?: string;
 
@@ -43,8 +47,5 @@ export class OrgKycDto {
   @Type(() => ContactDto)
   primaryContact?: ContactDto;
 
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => ContactDto)
-  secondaryContact?: ContactDto;
+  
 }

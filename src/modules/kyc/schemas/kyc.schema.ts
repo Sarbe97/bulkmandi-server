@@ -11,8 +11,8 @@ export class KycCase {
   @Prop({ required: true })
   submissionNumber: string; // KYC-ORG_ID-001
 
-  @Prop({ default: 'SUBMITTED' })
-  status: string; // SUBMITTED, APPROVED, REJECTED, RESUBMITTED, INFO_REQUESTED
+  @Prop({ default: 'DRAFT' })
+  status: string; // DRAFT, SUBMITTED, APPROVED, REJECTED, RESUBMITTED, REVISION_REQUESTED
 
   // Snapshot of organization data at time of submission
   @Prop({ type: Object })

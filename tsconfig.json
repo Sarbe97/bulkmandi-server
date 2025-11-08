@@ -24,12 +24,13 @@
     "strictPropertyInitialization": false,
     "allowJs": true,
     "resolveJsonModule": true,
+
+    "paths": {
+      "@common/*": ["src/common/*"],
+      "@modules/*": ["src/modules/*"],
+      "@core/*": ["src/core/*"]
+    }
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

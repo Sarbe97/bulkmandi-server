@@ -398,7 +398,8 @@
                 "SUBMITTED",
                 "APPROVED",
                 "REJECTED",
-                "INFO_REQUESTED"
+                "INFO_REQUESTED",
+                "REVISION_REQUESTED"
               ],
               "type": "string"
             }

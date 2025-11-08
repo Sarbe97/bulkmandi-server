@@ -1,9 +1,9 @@
+import { CustomLoggerService } from "@core/logger/custom.logger.service";
+import { Organization, OrganizationDocument } from "@modules/organizations/schemas/organization.schema";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, PipelineStage, Types } from "mongoose";
-import { CustomLoggerService } from "src/core/logger/custom.logger.service";
-import { Organization, OrganizationDocument } from "../../organizations/schemas/organization.schema";
-import { KYCHistoryItem } from "../dto/kyc-history.dto";
+import { KYCStatus } from "../kyc-status.constants";
 import { KycCase, KycCaseDocument } from "../schemas/kyc.schema";
 
 @Injectable()
@@ -14,10 +14,55 @@ export class KycAdminService {
     private readonly logger: CustomLoggerService,
   ) {}
 
+  // create KYC case on submission
+  async createKycCaseOnSubmission(orgId: string) {
+    this.logger.log(`createKycCaseOnSubmission called for orgId: ${orgId}`, "KYC");
+
+    const org = await this.orgModel.findById(orgId);
+    if (!org) {
+      this.logger.warn(`Organization not found for createKycCaseOnSubmission, orgId: ${orgId}`, "KYC");
+      throw new NotFoundException("Organization not found");
+    }
+
+    const count = await this.kycCaseModel.countDocuments({ organizationId: orgId });
+    this.logger.log(`Existing submissions count for orgId ${orgId}: ${count}`, "KYC");
+
+    const submissionAttempt = count + 1;
+    const submissionNumber = `KYC-${orgId}-${String(submissionAttempt).padStart(3, "0")}`;
+    this.logger.log(`Generated submissionNumber: ${submissionNumber}`, "KYC");
+
+    const kycCase = new this.kycCaseModel({
+      organizationId: new Types.ObjectId(orgId),
+      submissionNumber,
+      status: KYCStatus.SUBMITTED,
+      submittedData: {
+        orgKyc: org.orgKyc,
+        primaryBankAccount: org.primaryBankAccount,
+        complianceDocuments: org.complianceDocuments,
+        catalog: org.catalog,
+        priceFloors: org.priceFloors,
+        logisticsPreference: org.logisticsPreference,
+      },
+      submissionAttempt,
+      activityLog: [
+        {
+          action: KYCStatus.SUBMITTED,
+          timestamp: new Date(),
+          performedBy: orgId,
+          remarks: "Initial submission",
+        },
+      ],
+    });
+
+    this.logger.log(`Saving new KYC case for orgId: ${orgId}`, "KYC");
+    return kycCase.save();
+  }
   /**
    * Get KYC verification queue with filters
    */
   async getKycQueue(filters?: { status?: string; role?: string; search?: string; page?: number; limit?: number }) {
+    this.logger.log(`getKycQueue called with filters: ${JSON.stringify(filters)}`, "KYC");
+
     const page = Number(filters?.page) || 1;
     const limit = Number(filters?.limit) || 20;
     const skip = (page - 1) * limit;
@@ -25,12 +70,12 @@ export class KycAdminService {
     const matchStage: Record<string, any> = {};
     if (filters?.status && filters.status !== "ALL") {
       matchStage.status = filters.status;
+      this.logger.log(`Filtering by status: ${filters.status}`, "KYC");
     }
 
     const pipeline: PipelineStage[] = [
       { $match: matchStage },
       { $sort: { createdAt: -1 } },
-
       // pick latest case per org
       {
         $group: {
@@ -42,7 +87,11 @@ export class KycAdminService {
       { $limit: limit },
     ];
 
+    this.logger.log(`Aggregation pipeline constructed: ${JSON.stringify(pipeline)}`, "KYC");
+
     const groupedResults = await this.kycCaseModel.aggregate(pipeline).exec();
+    this.logger.log(`Aggregated ${groupedResults.length} groups from pipeline`, "KYC");
+
     const latestCaseIds = groupedResults.map((g) => g.latestCaseId);
 
     let cases = await this.kycCaseModel
@@ -50,19 +99,23 @@ export class KycAdminService {
       .populate("organizationId")
       .lean()
       .exec();
+    this.logger.log(`Fetched ${cases.length} KYC cases from database`, "KYC");
 
     // role filter if required
     if (filters?.role && filters.role !== "ALL") {
       cases = cases.filter((c) => (c.organizationId as any)?.role === filters.role);
+      this.logger.log(`Filtered cases by role: ${filters.role}, remaining count: ${cases.length}`, "KYC");
     }
 
     // search filter if required
     if (filters?.search) {
       const searchLower = filters.search.toLowerCase();
       cases = cases.filter((c) => (c.organizationId as any)?.legalName?.toLowerCase().includes(searchLower));
+      this.logger.log(`Filtered cases by search term: ${filters.search}, remaining count: ${cases.length}`, "KYC");
     }
 
     const totalOrgs = await this.orgModel.countDocuments(filters?.role && filters.role !== "ALL" ? { role: filters.role } : {});
+    this.logger.log(`Total organizations count for filters: ${totalOrgs}`, "KYC");
 
     const items = cases.map((kycCase) => {
       const org = kycCase.organizationId as any;
@@ -84,6 +137,8 @@ export class KycAdminService {
       };
     });
 
+    this.logger.log(`Returning ${items.length} KYC queue items`, "KYC");
+
     return {
       items,
       pagination: {
@@ -96,9 +151,11 @@ export class KycAdminService {
   }
 
   async getKycCaseDetail(caseId: string) {
-    const kycCase = await this.kycCaseModel.findById(caseId).populate("organizationId").lean();
+    this.logger.log(`getKycCaseDetail called with caseId: ${caseId}`, "KYC");
 
+    const kycCase = await this.kycCaseModel.findById(caseId).populate("organizationId").lean();
     if (!kycCase) {
+      this.logger.warn(`KYC case not found for caseId: ${caseId}`, "KYC");
       throw new NotFoundException("KYC case not found");
     }
 
@@ -112,7 +169,11 @@ export class KycAdminService {
       addressVerified: !!org.orgKyc?.registeredAddress,
     };
 
+    this.logger.log(`Auto checks completed for caseId: ${caseId}`, "KYC");
+
     const riskAssessment = this.assessRisk(org);
+
+    this.logger.log(`Risk assessment done for caseId: ${caseId}, level: ${riskAssessment.level}`, "KYC");
 
     return {
       case: {
@@ -168,21 +229,26 @@ export class KycAdminService {
    * Approve KYC case
    */
   async approveKycCase(caseId: string, adminId: string, remarks?: string) {
+    this.logger.log(`approveKycCase called for caseId: ${caseId} by admin: ${adminId}`, "KYC");
+
     const kycCase = await this.kycCaseModel.findById(caseId);
     if (!kycCase) {
+      this.logger.warn(`KYC case not found for approval, caseId: ${caseId}`, "KYC");
       throw new NotFoundException("KYC case not found");
     }
 
-    if (kycCase.status !== "SUBMITTED") {
+    if (kycCase.status !== KYCStatus.SUBMITTED) {
+      this.logger.warn(`Attempt to approve KYC case with invalid status: ${kycCase.status}`, "KYC");
       throw new BadRequestException("Only submitted cases can be approved");
     }
 
     const org = await this.orgModel.findById(kycCase.organizationId);
     if (!org) {
+      this.logger.warn(`Organization not found for caseId: ${caseId}`, "KYC");
       throw new NotFoundException("Organization not found");
     }
 
-    kycCase.status = "APPROVED";
+    kycCase.status = KYCStatus.APPROVED;
     kycCase.reviewedBy = adminId;
     kycCase.reviewedAt = new Date();
     kycCase.activityLog.push({
@@ -192,6 +258,7 @@ export class KycAdminService {
       remarks: remarks || "KYC approved by admin",
     });
     await kycCase.save();
+    this.logger.log(`KYC case approved and saved, caseId: ${caseId}`, "KYC");
 
     org.kycStatus = "APPROVED";
     org.isVerified = true;
@@ -200,6 +267,7 @@ export class KycAdminService {
     org.kycApprovedBy = adminId;
     org.rejectionReason = undefined; // Clear any previous rejection
     await org.save();
+    this.logger.log(`Organization updated after KYC approval, orgId: ${org._id}`, "KYC");
 
     return {
       message: "KYC case approved successfully",
@@ -220,25 +288,31 @@ export class KycAdminService {
    * Reject KYC case
    */
   async rejectKycCase(caseId: string, adminId: string, rejectionReason: string) {
+    this.logger.log(`rejectKycCase called for caseId: ${caseId} by admin: ${adminId}`, "KYC");
+
     if (!rejectionReason || rejectionReason.trim().length === 0) {
+      this.logger.warn("Rejection reason missing", "KYC");
       throw new BadRequestException("Rejection reason is required");
     }
 
     const kycCase = await this.kycCaseModel.findById(caseId);
     if (!kycCase) {
+      this.logger.warn(`KYC case not found for rejection, caseId: ${caseId}`, "KYC");
       throw new NotFoundException("KYC case not found");
     }
 
-    if (kycCase.status !== "SUBMITTED") {
+    if (kycCase.status !== KYCStatus.SUBMITTED) {
+      this.logger.warn(`Attempt to reject KYC case with invalid status: ${kycCase.status}`, "KYC");
       throw new BadRequestException("Only submitted cases can be rejected");
     }
 
     const org = await this.orgModel.findById(kycCase.organizationId);
     if (!org) {
+      this.logger.warn(`Organization not found for caseId: ${caseId}`, "KYC");
       throw new NotFoundException("Organization not found");
     }
 
-    kycCase.status = "REJECTED";
+    kycCase.status = KYCStatus.REJECTED;
     kycCase.rejectionReason = rejectionReason;
     kycCase.reviewedBy = adminId;
     kycCase.reviewedAt = new Date();
@@ -249,13 +323,14 @@ export class KycAdminService {
       remarks: rejectionReason,
     });
     await kycCase.save();
+    this.logger.log(`KYC case rejected and saved, caseId: ${caseId}`, "KYC");
 
-    // FIXED: Use rejectionReason instead of kycRejectionReason
     org.kycStatus = "REJECTED";
     org.rejectionReason = rejectionReason;
     org.isOnboardingLocked = false;
     org.isVerified = false;
     await org.save();
+    this.logger.log(`Organization updated after KYC rejection, orgId: ${org._id}`, "KYC");
 
     return {
       message: "KYC case rejected successfully",
@@ -274,27 +349,38 @@ export class KycAdminService {
   }
 
   async unlockForUpdate(caseId: string, adminId: string, remarks: string) {
+    this.logger.log(`unlockForUpdate called for caseId: ${caseId} by admin: ${adminId}`, "KYC");
+
     const kycCase = await this.kycCaseModel.findById(caseId);
-    if (!kycCase) throw new NotFoundException("KYC case not found");
+    if (!kycCase) {
+      this.logger.warn(`KYC case not found for unlocking, caseId: ${caseId}`, "KYC");
+      throw new NotFoundException("KYC case not found");
+    }
 
     const org = await this.orgModel.findById(kycCase.organizationId);
-    if (!org) throw new NotFoundException("Organization not found");
+    if (!org) {
+      this.logger.warn(`Organization not found for unlocking, caseId: ${caseId}`, "KYC");
+      throw new NotFoundException("Organization not found");
+    }
 
-    if (org.kycStatus !== "APPROVED") {
+    if (org.kycStatus !== KYCStatus.APPROVED) {
+      this.logger.warn(`Cannot unlock KYC with status: ${org.kycStatus}`, "KYC");
       throw new BadRequestException("Can only unlock approved KYC");
     }
 
     kycCase.activityLog.push({
-      action: "UNLOCKED_FOR_UPDATE",
+      action: KYCStatus.REVISION_REQUESTED,
       timestamp: new Date(),
       performedBy: adminId,
-      remarks: remarks || "Unlocked for updates by admin",
+      remarks: remarks || "Revision Requested by admin",
     });
     await kycCase.save();
+    this.logger.log(`KYC case unlocked for update, caseId: ${caseId}`, "KYC");
 
     org.isOnboardingLocked = false;
-    org.kycStatus = "UPDATE_IN_PROGRESS";
+    org.kycStatus = KYCStatus.REVISION_REQUESTED;
     await org.save();
+    this.logger.log(`Organization status updated to REVISION_REQUESTED, orgId: ${org._id}`, "KYC");
 
     return {
       message: "Organization unlocked for updates",
@@ -307,17 +393,21 @@ export class KycAdminService {
    * Request more information
    */
   async requestMoreInfo(caseId: string, adminId: string, message: string, fields: string[]) {
+    this.logger.log(`requestMoreInfo called for caseId: ${caseId} by admin: ${adminId} with fields: ${fields.join(", ")}`, "KYC");
+
     const kycCase = await this.kycCaseModel.findById(caseId);
     if (!kycCase) {
+      this.logger.warn(`KYC case not found for info request, caseId: ${caseId}`, "KYC");
       throw new NotFoundException("KYC case not found");
     }
 
     const org = await this.orgModel.findById(kycCase.organizationId);
     if (!org) {
+      this.logger.warn(`Organization not found for info request, caseId: ${caseId}`, "KYC");
       throw new NotFoundException("Organization not found");
     }
 
-    kycCase.status = "INFO_REQUESTED";
+    kycCase.status = KYCStatus.INFO_REQUESTED;
     kycCase.activityLog.push({
       action: "INFO_REQUESTED",
       timestamp: new Date(),
@@ -325,9 +415,12 @@ export class KycAdminService {
       remarks: `Fields: ${fields.join(", ")}. Message: ${message}`,
     });
     await kycCase.save();
+    this.logger.log(`Information requested saved for caseId: ${caseId}`, "KYC");
 
     org.isOnboardingLocked = false;
+    org.kycStatus = KYCStatus.INFO_REQUESTED;
     await org.save();
+    this.logger.log(`Organization unlocked after info request, orgId: ${org._id}`, "KYC");
 
     return {
       message: "Information request sent to seller",
@@ -335,25 +428,16 @@ export class KycAdminService {
       adminMessage: message,
     };
   }
-  async getKycHistory(orgId: string): Promise<KYCHistoryItem[]> {
-    const cases = await this.kycCaseModel.find({ organizationId: orgId }).sort({ submissionAttempt: -1 }).lean();
 
-    return cases.map((c) => ({
-      caseId: c._id.toString(),
-      submissionNumber: c.submissionNumber,
-      status: c.status,
-      submissionAttempt: c.submissionAttempt,
-      submittedAt: c.createdAt,
-      reviewedAt: c.reviewedAt,
-      rejectionReason: c.rejectionReason,
-    }));
-  }
   /**
    * Add to watchlist
    */
   async addToWatchlist(caseId: string, adminId: string, reason: string, tags: string[]) {
+    this.logger.log(`addToWatchlist called for caseId: ${caseId} by admin: ${adminId}`, "KYC");
+
     const kycCase = await this.kycCaseModel.findById(caseId);
     if (!kycCase) {
+      this.logger.warn(`KYC case not found for watchlist addition, caseId: ${caseId}`, "KYC");
       throw new NotFoundException("KYC case not found");
     }
 
@@ -365,6 +449,8 @@ export class KycAdminService {
     });
     await kycCase.save();
 
+    this.logger.log(`KYC case added to watchlist, caseId: ${caseId}`, "KYC");
+
     return {
       message: "Organization added to watchlist",
       reason,
@@ -373,35 +459,19 @@ export class KycAdminService {
   }
 
   /**
-   * Get KYC history
+   * Get KYC case history - already logged internally
    */
-
   async getKycCaseHistory(orgId: string) {
-    this.logger.log(`getKycCaseHistory called with orgId = ${orgId}`, "KYC");
+    this.logger.log(`getKycCaseHistory called for orgId: ${orgId}`);
 
     const orgObjId = new Types.ObjectId(orgId);
-    this.logger.log(`Converted orgId to ObjectId = ${orgObjId}`, "KYC");
 
-    const latestCase = await this.kycCaseModel.findOne({ organizationId: orgObjId }).sort({ createdAt: -1 }).lean();
-
-    this.logger.log(`latestCase result = ${latestCase?._id}`, "KYC");
-
-    if (!latestCase) {
-      this.logger.warn(`No latest case found for org = ${orgId}`, "KYC");
-      return [];
-    }
-
-    const oldCases = await this.kycCaseModel
-      .find({
-        organizationId: orgObjId,
-        _id: { $ne: latestCase._id },
-      })
-      .sort({ createdAt: -1 })
+    const cases = await this.kycCaseModel
+      .find({ organizationId: orgObjId })
+      .sort({ createdAt: -1 }) // newest first
       .lean();
 
-    this.logger.log(`oldCases count = ${oldCases.length}`, "KYC");
-
-    return oldCases.map((c) => ({
+    return cases.map((c) => ({
       caseId: c._id.toString(),
       submissionNumber: c.submissionNumber,
       status: c.status,
@@ -419,6 +489,8 @@ export class KycAdminService {
    * Purpose: Evaluate multiple risk factors, not just penny drop
    */
   private assessRisk(org: any): { level: string; score: number; remarks: string } {
+    this.logger.log("assessRisk called", "KYC");
+
     let riskScore = 100; // Start with perfect score
     const issues: string[] = [];
 
@@ -466,6 +538,8 @@ export class KycAdminService {
 
     const remarks = issues.length > 0 ? issues.join("; ") : "All checks passed";
 
+    this.logger.log(`Risk assessment result: level=${level}, score=${riskScore}, remarks=${remarks}`, "KYC");
+
     return { level, score: riskScore, remarks };
   }
 
@@ -475,27 +549,40 @@ export class KycAdminService {
    */
   private calculateAge(submittedAt?: Date): string {
     if (!submittedAt) return "00:00";
-
     const now = new Date();
     const diff = now.getTime() - new Date(submittedAt).getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    const age = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    this.logger.log(`Calculated age: ${age}`, "KYC");
+    return age;
   }
 
   private validateGSTIN(gstin?: string): boolean {
-    if (!gstin) return false;
-    return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstin);
+    if (!gstin) {
+      this.logger.log("GSTIN validation failed: empty", "KYC");
+      return false;
+    }
+    const valid = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstin);
+    this.logger.log(`GSTIN validation result for ${gstin}: ${valid}`, "KYC");
+    return valid;
   }
 
   private validatePAN(pan?: string): boolean {
-    if (!pan) return false;
-    return /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan);
+    if (!pan) {
+      this.logger.log("PAN validation failed: empty", "KYC");
+      return false;
+    }
+    const valid = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan);
+    this.logger.log(`PAN validation result for ${pan}: ${valid}`, "KYC");
+    return valid;
   }
 
   private checkDocumentsComplete(org: any): boolean {
     const requiredDocs = ["GST_CERTIFICATE", "PAN_CERTIFICATE"];
     const uploadedTypes = (org.complianceDocuments || []).map((d: any) => d.type);
-    return requiredDocs.every((type) => uploadedTypes.includes(type));
+    const complete = requiredDocs.every((type) => uploadedTypes.includes(type));
+    this.logger.log(`Documents completeness check: ${complete}`, "KYC");
+    return complete;
   }
 }

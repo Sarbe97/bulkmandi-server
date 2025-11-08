@@ -1,9 +1,12 @@
+import { KYCStatus } from "@modules/kyc/kyc-status.constants";
+import { KycAdminService } from "@modules/kyc/services/kyc-admin.service";
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { CustomLoggerService } from "src/core/logger/custom.logger.service";
-import { KycCaseService } from "../kyc/services/kyc.service";
 import { FileStorageService } from "../storage/services/file-storage.service";
+import { BankDetailsDto } from "./dto/bank-details.dto";
+import { OrgKycDto } from "./dto/org-kyc.dto";
 import { DocumentUplod, Organization, OrganizationDocument } from "./schemas/organization.schema";
 
 const requiredSteps = ["org-kyc", "bank-details", "compliance-docs", "catalog-and-price"];
@@ -14,7 +17,7 @@ export class OrganizationsService {
     @InjectModel(Organization.name)
     private orgModel: Model<OrganizationDocument>,
 
-    private kycCaseService: KycCaseService,
+    private kycCaseService: KycAdminService,
     private fileStorageService: FileStorageService,
     private readonly logger: CustomLoggerService, // add this
   ) {}
@@ -26,21 +29,7 @@ export class OrganizationsService {
     }
   }
 
-  async updateOrgKyc(
-    orgId: string,
-    kycData: {
-      legalName?: string;
-      tradeName?: string;
-      gstin?: string;
-      pan?: string;
-      cin?: string;
-      registeredAddress?: string;
-      businessType?: string;
-      incorporationDate?: string;
-      plantLocations?: any[];
-      primaryContact?: any;
-    },
-  ): Promise<any> {
+  async updateOrgKyc(orgId: string, kycData: OrgKycDto): Promise<any> {
     try {
       this.logger.log(`Called updateOrgKyc for org: ${orgId}`, "updateOrgKyc");
 
@@ -130,15 +119,7 @@ export class OrganizationsService {
 
   async updateBankDetailsWithDocuments(
     orgId: string,
-    data: {
-      accountNumber: string;
-      ifsc: string;
-      bankName: string;
-      accountHolderName: string;
-      pennyDropStatus?: string;
-      pennyDropScore?: number;
-      documents: DocumentUplod[];
-    },
+    data: BankDetailsDto,
   ): Promise<any> {
     try {
       this.logger.log(`Phase 2: Persist bank details + documents for org: ${orgId}`, "updateBankDetailsWithDocuments");
@@ -484,11 +465,11 @@ export class OrganizationsService {
     }
 
     // ✅ VALIDATION STEP 2: KYC must be APPROVED to request update
-    if (org.kycStatus !== "APPROVED") {
+    if (org.kycStatus !== KYCStatus.APPROVED) {
       this.logger.log(`Invalid KYC status ${org.kycStatus} for org ${orgId}. Must be APPROVED`, "requestKycUpdate");
       throw new BadRequestException(`Cannot request update. Current KYC status is ${org.kycStatus}. Only APPROVED KYC can be updated.`);
     }
-    org.kycStatus = "UPDATE_IN_PROGRESS";
+    org.kycStatus = KYCStatus.REVISION_REQUESTED;
     org.isOnboardingLocked = false;
     org.updateRequestedAt = new Date();
     org.updateReason = data.reason;
@@ -497,8 +478,8 @@ export class OrganizationsService {
 
     // ✅ RESPONSE: Return success with request details
     return {
-      message: "Update request sent. You can now edit and resubmit.",
-      kycStatus: "UPDATE_IN_PROGRESS",
+      message: "Revision request sent. You can now edit and resubmit.",
+      kycStatus: KYCStatus.REVISION_REQUESTED,
       isOnboardingLocked: false,
     };
   }
