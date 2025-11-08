@@ -7,6 +7,7 @@ import {
 import { KycController } from './kyc.controller';
 import { KycCase, KycCaseSchema } from './schemas/kyc.schema';
 import { KycAdminService } from './services/kyc-admin.service';
+import { KycHelperService } from './services/kyc.helper.service';
 import { KycCaseService } from './services/kyc.service';
 
 @Module({
@@ -17,7 +18,7 @@ import { KycCaseService } from './services/kyc.service';
     ]),
   ],
   controllers: [KycController],
-  providers: [KycCaseService, KycAdminService],
+  providers: [KycCaseService, KycAdminService,KycHelperService],
   exports: [KycCaseService, KycAdminService, MongooseModule],
 })
 export class KycModule {}

@@ -325,28 +325,6 @@
         ]
       }
     },
-    "/api/v1/organizations/my-organization/request-kyc-update": {
-      "post": {
-        "description": "Seller can request to update specific fields after KYC is approved",
-        "operationId": "OrganizationsController_requestKycUpdate",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Request permission to update approved KYC",
-        "tags": [
-          "Organizations - Seller Onboarding",
-          "Organizations - KYC Management"
-        ]
-      }
-    },
     "/api/v1/admin/kyc/queue": {
       "get": {
         "operationId": "KycController_getQueue",

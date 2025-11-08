@@ -261,26 +261,26 @@ export class OrganizationsController {
     }
   }
 
-  @Post("my-organization/request-kyc-update")
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({
-    summary: "Request permission to update approved KYC",
-    description: "Seller can request to update specific fields after KYC is approved",
-  })
-  @ApiTags("Organizations - KYC Management")
-  async requestKycUpdate(
-    @CurrentUser() user: any,
-    @Body()
-    body: {
-      reason: string; 
-    },
-  ): Promise<any> {
-    this.logger.log("Called requestKycUpdate endpoint", "requestKycUpdate");
+  // @Post("my-organization/request-kyc-update")
+  // @UseGuards(JwtAuthGuard)
+  // @ApiOperation({
+  //   summary: "Request permission to update approved KYC",
+  //   description: "Seller can request to update specific fields after KYC is approved",
+  // })
+  // @ApiTags("Organizations - KYC Management")
+  // async requestKycUpdate(
+  //   @CurrentUser() user: any,
+  //   @Body()
+  //   body: {
+  //     reason: string; 
+  //   },
+  // ): Promise<any> {
+  //   this.logger.log("Called requestKycUpdate endpoint", "requestKycUpdate");
 
-    const orgId = this.getOrganizationId(user);
+  //   const orgId = this.getOrganizationId(user);
 
-    this.logger.log(`Requesting KYC update for org ${orgId}`, "requestKycUpdate");
+  //   this.logger.log(`Requesting KYC update for org ${orgId}`, "requestKycUpdate");
 
-    return this.organizationsService.requestKycUpdate(orgId, body);
-  }
+  //   return this.organizationsService.requestKycUpdate(orgId, body);
+  // }
 }

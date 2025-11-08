@@ -1,17 +1,17 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document, Types } from "mongoose";
 
 export type KycCaseDocument = KycCase & Document;
 
 @Schema({ timestamps: true })
 export class KycCase {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Organization' })
+  @Prop({ required: true, type: Types.ObjectId, ref: "Organization" })
   organizationId: Types.ObjectId;
 
   @Prop({ required: true })
   submissionNumber: string; // KYC-ORG_ID-001
 
-  @Prop({ default: 'DRAFT' })
+  @Prop({ default: "DRAFT" })
   status: string; // DRAFT, SUBMITTED, APPROVED, REJECTED, RESUBMITTED, REVISION_REQUESTED
 
   // Snapshot of organization data at time of submission
@@ -37,6 +37,9 @@ export class KycCase {
 
   @Prop({ default: 0 })
   submissionAttempt: number; // Track resubmission attempts
+
+  @Prop()
+  submittedAt?: Date;
 
   @Prop({ default: [] })
   activityLog: Array<{

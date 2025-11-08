@@ -17,7 +17,7 @@ export class OrganizationsService {
     @InjectModel(Organization.name)
     private orgModel: Model<OrganizationDocument>,
 
-    private kycCaseService: KycAdminService,
+    private kycAdminService: KycAdminService,
     private fileStorageService: FileStorageService,
     private readonly logger: CustomLoggerService, // add this
   ) {}
@@ -117,10 +117,7 @@ export class OrganizationsService {
     }
   }
 
-  async updateBankDetailsWithDocuments(
-    orgId: string,
-    data: BankDetailsDto,
-  ): Promise<any> {
+  async updateBankDetailsWithDocuments(orgId: string, data: BankDetailsDto): Promise<any> {
     try {
       this.logger.log(`Phase 2: Persist bank details + documents for org: ${orgId}`, "updateBankDetailsWithDocuments");
       this.logger.log(`Account: ${data.accountNumber}, Documents count: ${data.documents.length}`, "updateBankDetailsWithDocuments");
@@ -323,13 +320,68 @@ export class OrganizationsService {
     };
   }
 
-  async submitOnboarding(orgId: string): Promise<any> {
+  async submitOnboarding(orgId: string, newData?: any) {
+    this.logger.log(`submitOnboarding called for org: ${orgId}`);
+
+    // Fetch organization and latest KYC case
+    const org = await this.orgModel.findById(orgId);
+    if (!org) {
+      this.logger.log(`Organization not found: ${orgId}`);
+      throw new Error("Organization not found");
+    }
+
+    this.logger.log(`Fetched organization. Current status=${org.kycStatus}, isLocked=${org.isOnboardingLocked}`);
+
+    const latestKycCase = await this.kycAdminService.getLatestKycCase(orgId);
+
+    this.logger.log(`Latest KYC Case fetched: ${latestKycCase ? latestKycCase.status : "NONE"}`);
+
+    if (!latestKycCase || latestKycCase.status === KYCStatus.DRAFT || latestKycCase.status === KYCStatus.REJECTED) {
+      this.logger.log(`Creating NEW KYC case submission`);
+
+      const createdCase = await this.kycAdminService.createKycCaseOnSubmission(orgId);
+
+      org.kycStatus = KYCStatus.SUBMITTED;
+      org.isOnboardingLocked = true;
+      await org.save();
+
+      this.logger.log(`Submission completed → new case created: ${createdCase.id}`);
+      return createdCase;
+    } else if (latestKycCase.status === KYCStatus.INFO_REQUESTED) {
+      this.logger.log(`INFO_REQUESTED → updating EXISTING KYC case: ${latestKycCase.id}`);
+
+      const updatedCase = await this.kycAdminService.updateKycCase(latestKycCase.id);
+
+      org.kycStatus = KYCStatus.SUBMITTED;
+      org.isOnboardingLocked = true;
+      await org.save();
+
+      this.logger.log(`Submission completed → existing case updated`);
+      return updatedCase;
+    } else if (latestKycCase.status === KYCStatus.REVISION_REQUESTED) {
+      this.logger.log(`REVISION_REQUESTED → creating NEW case`);
+
+      const createdCase = await this.kycAdminService.createKycCaseOnSubmission(orgId);
+
+      org.kycStatus = KYCStatus.SUBMITTED;
+      org.isOnboardingLocked = true;
+      await org.save();
+
+      this.logger.log(`Submission completed → revision new case created: ${createdCase.id}`);
+      return createdCase;
+    }
+
+    this.logger.log(`Invalid state encountered latestCase.status=${latestKycCase?.status}`);
+    throw new Error("Invalid KYC submission state");
+  }
+
+  async submitOnboarding1(orgId: string): Promise<any> {
     try {
-      this.logger.log(`Called submitOnboarding for org: ${orgId}`, "submitOnboarding");
+      this.logger.log(`Called submitOnboarding for org: ${orgId}`);
 
       const org = await this.orgModel.findById(orgId);
       if (!org) {
-        this.logger.log(`Organization not found: ${orgId}`, "submitOnboarding");
+        this.logger.log(`Organization not found: ${orgId}`);
         throw new NotFoundException("Organization not found");
       }
 
@@ -337,19 +389,19 @@ export class OrganizationsService {
 
       if (!allCompleted) {
         const missing = requiredSteps.filter((step) => !org.completedSteps.includes(step));
-        this.logger.log(`Missing onboarding steps for org ${orgId}: ${missing.join(", ")}`, "submitOnboarding");
+        this.logger.log(`Missing onboarding steps for org ${orgId}: ${missing.join(", ")}`);
         throw new BadRequestException(`Missing steps - ${missing.join(", ")}`);
       }
 
       // CREATE NEW KYC CASE (with snapshot and attempt increment)
-      const kycCase = await this.kycCaseService.createKycCaseOnSubmission(orgId);
+      const kycCase = await this.kycAdminService.createKycCaseOnSubmission(orgId);
 
       org.kycStatus = "SUBMITTED";
       org.isOnboardingLocked = true;
 
       const savedOrg = await org.save();
 
-      this.logger.log(`Onboarding submitted for review for org: ${orgId}`, "submitOnboarding");
+      this.logger.log(`Onboarding submitted for review for org: ${orgId}`);
 
       return {
         message: "Onboarding submitted for admin review",
@@ -357,130 +409,131 @@ export class OrganizationsService {
         kycStatus: savedOrg.kycStatus,
       };
     } catch (error) {
-      this.logger.log(`Error submitting onboarding for org ${orgId}: ${error.message}`, "submitOnboarding");
+      this.logger.log(`Error submitting onboarding for org ${orgId}: ${error.message}`);
       throw error;
     }
   }
 
-  async updateKYCStatus(orgId: string, status: "APPROVED" | "REJECTED", rejectionReason?: string): Promise<any> {
-    try {
-      this.logger.log(`Updating KYC status for org ${orgId} to ${status}`, "updateKYCStatus");
+  // async updateKYCStatus(orgId: string, status: "APPROVED" | "REJECTED", rejectionReason?: string): Promise<any> {
+  //   try {
+  //     this.logger.log(`Updating KYC status for org ${orgId} to ${status}`, "updateKYCStatus");
 
-      const org = await this.orgModel.findById(orgId);
-      if (!org) {
-        this.logger.log(`Organization not found: ${orgId}`, "updateKYCStatus");
-        throw new NotFoundException("Organization not found");
-      }
+  //     const org = await this.orgModel.findById(orgId);
+  //     if (!org) {
+  //       this.logger.log(`Organization not found: ${orgId}`, "updateKYCStatus");
+  //       throw new NotFoundException("Organization not found");
+  //     }
 
-      org.kycStatus = status;
+  //     org.kycStatus = status;
 
-      if (status === "REJECTED") {
-        org.rejectionReason = rejectionReason || "No reason provided";
-        org.isOnboardingLocked = false;
-      } else if (status === "APPROVED") {
-        org.kycApprovedAt = new Date();
-        org.isOnboardingLocked = true;
-      }
+  //     if (status === "REJECTED") {
+  //       org.rejectionReason = rejectionReason || "No reason provided";
+  //       org.isOnboardingLocked = false;
+  //     } else if (status === "APPROVED") {
+  //       org.kycApprovedAt = new Date();
+  //       org.isOnboardingLocked = true;
+  //     }
 
-      const savedOrg = await org.save();
+  //     const savedOrg = await org.save();
 
-      this.logger.log(`KYC status updated to ${status} for org: ${orgId}`, "updateKYCStatus");
+  //     this.logger.log(`KYC status updated to ${status} for org: ${orgId}`, "updateKYCStatus");
 
-      return {
-        message: "KYC status updated",
-        organizationId: savedOrg._id.toString(),
-        kycStatus: savedOrg.kycStatus,
-      };
-    } catch (error) {
-      this.logger.log(`Error updating KYC status for org ${orgId}: ${error.message}`, "updateKYCStatus");
-      throw error;
-    }
-  }
+  //     return {
+  //       message: "KYC status updated",
+  //       organizationId: savedOrg._id.toString(),
+  //       kycStatus: savedOrg.kycStatus,
+  //     };
+  //   } catch (error) {
+  //     this.logger.log(`Error updating KYC status for org ${orgId}: ${error.message}`, "updateKYCStatus");
+  //     throw error;
+  //   }
+  // }
 
-  async createOrganization(data: any): Promise<OrganizationDocument> {
-    try {
-      this.logger.log("Creating organization", "createOrganization");
+  // async createOrganization(data: any): Promise<OrganizationDocument> {
+  //   try {
+  //     this.logger.log("Creating organization", "createOrganization");
 
-      const org = new this.orgModel({
-        ...data,
-        kycStatus: "DRAFT",
-        isOnboardingLocked: false,
-        completedSteps: [],
-      });
+  //     const org = new this.orgModel({
+  //       ...data,
+  //       kycStatus: "DRAFT",
+  //       isOnboardingLocked: false,
+  //       completedSteps: [],
+  //     });
 
-      const savedOrg = await org.save();
+  //     const savedOrg = await org.save();
 
-      this.logger.log(`Organization created with id ${savedOrg._id}`, "createOrganization");
-      return savedOrg;
-    } catch (error) {
-      this.logger.log(`Error creating organization: ${error.message}`, "createOrganization");
-      throw error;
-    }
-  }
+  //     this.logger.log(`Organization created with id ${savedOrg._id}`, "createOrganization");
+  //     return savedOrg;
+  //   } catch (error) {
+  //     this.logger.log(`Error creating organization: ${error.message}`, "createOrganization");
+  //     throw error;
+  //   }
+  // }
 
-  async getOrganization(orgId: string): Promise<OrganizationDocument> {
-    try {
-      this.logger.log(`Fetching organization with id ${orgId}`, "getOrganization");
+  // async getOrganization(orgId: string): Promise<OrganizationDocument> {
+  //   try {
+  //     this.logger.log(`Fetching organization with id ${orgId}`, "getOrganization");
 
-      const org = await this.orgModel.findById(orgId);
-      if (!org) {
-        this.logger.log(`Organization not found: ${orgId}`, "getOrganization");
-        throw new NotFoundException("Organization not found");
-      }
-      return org;
-    } catch (error) {
-      this.logger.log(`Error fetching organization ${orgId}: ${error.message}`, "getOrganization");
-      throw error;
-    }
-  }
+  //     const org = await this.orgModel.findById(orgId);
+  //     if (!org) {
+  //       this.logger.log(`Organization not found: ${orgId}`, "getOrganization");
+  //       throw new NotFoundException("Organization not found");
+  //     }
+  //     return org;
+  //   } catch (error) {
+  //     this.logger.log(`Error fetching organization ${orgId}: ${error.message}`, "getOrganization");
+  //     throw error;
+  //   }
+  // }
 
-  async deleteOrganization(orgId: string): Promise<{ message: string }> {
-    try {
-      this.logger.log(`Deleting organization with id ${orgId}`, "deleteOrganization");
+  // async deleteOrganization(orgId: string): Promise<{ message: string }> {
+  //   try {
+  //     this.logger.log(`Deleting organization with id ${orgId}`, "deleteOrganization");
 
-      const org = await this.orgModel.findByIdAndDelete(orgId);
+  //     const org = await this.orgModel.findByIdAndDelete(orgId);
 
-      if (!org) {
-        this.logger.log(`Organization not found: ${orgId}`, "deleteOrganization");
-        throw new NotFoundException("Organization not found");
-      }
+  //     if (!org) {
+  //       this.logger.log(`Organization not found: ${orgId}`, "deleteOrganization");
+  //       throw new NotFoundException("Organization not found");
+  //     }
 
-      this.logger.log(`Organization deleted with id ${orgId}`, "deleteOrganization");
-      return { message: "Organization deleted successfully" };
-    } catch (error) {
-      this.logger.log(`Error deleting organization ${orgId}: ${error.message}`, "deleteOrganization");
-      throw error;
-    }
-  }
+  //     this.logger.log(`Organization deleted with id ${orgId}`, "deleteOrganization");
+  //     return { message: "Organization deleted successfully" };
+  //   } catch (error) {
+  //     this.logger.log(`Error deleting organization ${orgId}: ${error.message}`, "deleteOrganization");
+  //     throw error;
+  //   }
+  // }
 
   // organizations.service.ts
-  async requestKycUpdate(orgId: string, data: { reason: string }): Promise<any> {
-    this.logger.log(`Called requestKycUpdate for org ${orgId}`, "requestKycUpdate");
+  
+  // async requestKycUpdate(orgId: string, data: { reason: string }): Promise<any> {
+  //   this.logger.log(`Called requestKycUpdate for org ${orgId}`, "requestKycUpdate");
 
-    // ✅ VALIDATION STEP 1: Organization exists
-    const org = await this.orgModel.findById(orgId);
-    if (!org) {
-      this.logger.log(`Organization not found for orgId ${orgId}`, "requestKycUpdate");
-      throw new NotFoundException("Organization not found");
-    }
+  //   // ✅ VALIDATION STEP 1: Organization exists
+  //   const org = await this.orgModel.findById(orgId);
+  //   if (!org) {
+  //     this.logger.log(`Organization not found for orgId ${orgId}`, "requestKycUpdate");
+  //     throw new NotFoundException("Organization not found");
+  //   }
 
-    // ✅ VALIDATION STEP 2: KYC must be APPROVED to request update
-    if (org.kycStatus !== KYCStatus.APPROVED) {
-      this.logger.log(`Invalid KYC status ${org.kycStatus} for org ${orgId}. Must be APPROVED`, "requestKycUpdate");
-      throw new BadRequestException(`Cannot request update. Current KYC status is ${org.kycStatus}. Only APPROVED KYC can be updated.`);
-    }
-    org.kycStatus = KYCStatus.REVISION_REQUESTED;
-    org.isOnboardingLocked = false;
-    org.updateRequestedAt = new Date();
-    org.updateReason = data.reason;
+  //   // ✅ VALIDATION STEP 2: KYC must be APPROVED to request update
+  //   if (org.kycStatus !== KYCStatus.APPROVED) {
+  //     this.logger.log(`Invalid KYC status ${org.kycStatus} for org ${orgId}. Must be APPROVED`, "requestKycUpdate");
+  //     throw new BadRequestException(`Cannot request update. Current KYC status is ${org.kycStatus}. Only APPROVED KYC can be updated.`);
+  //   }
+  //   org.kycStatus = KYCStatus.REVISION_REQUESTED;
+  //   org.isOnboardingLocked = false;
+  //   org.updateRequestedAt = new Date();
+  //   org.updateReason = data.reason;
 
-    await org.save();
+  //   await org.save();
 
-    // ✅ RESPONSE: Return success with request details
-    return {
-      message: "Revision request sent. You can now edit and resubmit.",
-      kycStatus: KYCStatus.REVISION_REQUESTED,
-      isOnboardingLocked: false,
-    };
-  }
+  //   // ✅ RESPONSE: Return success with request details
+  //   return {
+  //     message: "Revision request sent. You can now edit and resubmit.",
+  //     kycStatus: KYCStatus.REVISION_REQUESTED,
+  //     isOnboardingLocked: false,
+  //   };
+  // }
 }
