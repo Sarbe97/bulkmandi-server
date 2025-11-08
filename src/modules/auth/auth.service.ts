@@ -1,18 +1,11 @@
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { InjectModel } from '@nestjs/mongoose';
-import * as bcrypt from 'bcrypt';
-import { Model } from 'mongoose';
-import { UserRole } from 'src/common/enums';
-import {
-  Organization,
-  OrganizationDocument,
-} from '../organizations/schemas/organization.schema';
-import { User, UserDocument } from '../users/schemas/user.schema';
+import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { InjectModel } from "@nestjs/mongoose";
+import * as bcrypt from "bcrypt";
+import { Model } from "mongoose";
+import { UserRole } from "src/common/enums";
+import { Organization, OrganizationDocument } from "../organizations/schemas/organization.schema";
+import { User, UserDocument } from "../users/schemas/user.schema";
 
 @Injectable()
 export class AuthService {
@@ -42,13 +35,13 @@ export class AuthService {
     const user = await this.validateUser(loginDto.email, loginDto.password);
 
     if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException("Invalid email or password");
     }
 
     const isAdmin = [UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role);
 
     if (!isAdmin && !user.organizationId) {
-      throw new UnauthorizedException('User is not linked to an organization');
+      throw new UnauthorizedException("User is not linked to an organization");
     }
 
     // Update last login
@@ -82,8 +75,19 @@ export class AuthService {
       payload.permissions = user.permissions || [];
     }
 
+    // Generate access token with shorter expiry
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: "15m", // Adjust as needed
+    });
+
+    // Generate refresh token with longer expiry
+    const refreshToken = this.jwtService.sign(payload, {
+      expiresIn: "7d", // Adjust as needed
+    });
+
     const response: any = {
-      accessToken: this.jwtService.sign(payload),
+      accessToken,
+      refreshToken,
       user: {
         id: user._id.toString(),
         email: user.email,
@@ -104,20 +108,12 @@ export class AuthService {
     return response;
   }
 
-  async register(registerDto: {
-    email: string;
-    password: string;
-    mobile: string;
-    role: string;
-    organizationName: string;
-  }) {
+  async register(registerDto: { email: string; password: string; mobile: string; role: string; organizationName: string }) {
     const { email, password, mobile, role, organizationName } = registerDto;
 
     // Prevent admin registration via public API
     if ([UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(role as UserRole)) {
-      throw new ConflictException(
-        'Admin registration not allowed through this endpoint',
-      );
+      throw new ConflictException("Admin registration not allowed through this endpoint");
     }
 
     // Check for duplicate email
@@ -125,22 +121,18 @@ export class AuthService {
       email: email.toLowerCase(),
     });
     if (existingEmail) {
-      throw new ConflictException(
-        'Email already exists. Please use a different email or login.',
-      );
+      throw new ConflictException("Email already exists. Please use a different email or login.");
     }
 
     // Check for duplicate mobile
     const existingMobile = await this.userModel.findOne({ mobile });
     if (existingMobile) {
-      throw new ConflictException(
-        'Mobile number already exists. Please use a different mobile number.',
-      );
+      throw new ConflictException("Mobile number already exists. Please use a different mobile number.");
     }
 
     // Generate unique orgId
     const orgCount = await this.organizationModel.countDocuments();
-    const orgId = `ORG-${String(orgCount + 1).padStart(6, '0')}`;
+    const orgId = `ORG-${String(orgCount + 1).padStart(6, "0")}`;
 
     // Create organization
     const organization = new this.organizationModel({
@@ -148,8 +140,8 @@ export class AuthService {
       legalName: organizationName,
       role,
       completedSteps: [],
-      kycStatus: 'DRAFT',
-      status: 'ACTIVE',
+      kycStatus: "DRAFT",
+      status: "ACTIVE",
       isVerified: false,
     });
     const savedOrg = await organization.save();
@@ -190,29 +182,49 @@ export class AuthService {
     };
   }
 
+  async refreshAccessToken(refreshToken: string) {
+  try {
+    const payload = this.jwtService.verify(refreshToken);
+    
+    // Optional: Check if refresh token is revoked or invalidated here
+
+    // Remove fields that should not be re-signed if any
+    const { iat, exp, nbf, ...rest } = payload;
+
+    // Generate and return new access token with shorter expiry
+    const accessToken = this.jwtService.sign(rest, {
+      expiresIn: '15m', // Same expiry as in login
+    });
+
+    return { accessToken };
+  } catch (err) {
+    throw new UnauthorizedException('Invalid refresh token');
+  }
+}
+
   // ADMIN ONLY: Create first admin user
   async seedFirstAdmin() {
     // Check if any admin already exists
     const existingAdmin = await this.userModel.findOne({
-      role: { $in: ['ADMIN', 'SUPER_ADMIN'] },
+      role: { $in: ["ADMIN", "SUPER_ADMIN"] },
     });
 
     if (existingAdmin) {
       return {
-        message: 'Admin user already exists',
+        message: "Admin user already exists",
         email: existingAdmin.email,
       };
     }
 
     // Create first admin with dummy data
-    const hashedPassword = await bcrypt.hash('qwerty123', 10);
+    const hashedPassword = await bcrypt.hash("qwerty123", 10);
 
     const admin = new this.userModel({
-      email: 'admin@bulkmandi.com',
+      email: "admin@bulkmandi.com",
       password: hashedPassword,
-      name: 'Super Admin',
+      name: "Super Admin",
       role: UserRole.ADMIN,
-      permissions: ['*'], // All permissions
+      permissions: ["*"], // All permissions
       organizationId: null,
       isActive: true,
     });
@@ -220,15 +232,15 @@ export class AuthService {
     await admin.save();
 
     return {
-      message: 'First admin created successfully',
+      message: "First admin created successfully",
       admin: {
         email: admin.email,
         name: admin.name,
         role: admin.role,
       },
       credentials: {
-        email: 'admin@bulkmandi.com',
-        password: 'Admin@123',
+        email: "admin@bulkmandi.com",
+        password: "Admin@123",
       },
     };
   }

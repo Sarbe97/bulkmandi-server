@@ -67,6 +67,20 @@
         ]
       }
     },
+    "/api/v1/auth/refresh-token": {
+      "post": {
+        "operationId": "AuthController_refreshToken",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/api/v1/auth/admin/create": {
       "get": {
         "operationId": "AuthController_createAdmin",
@@ -308,6 +322,28 @@
         "summary": "Preview document inline (with authorization check)",
         "tags": [
           "Organizations - Seller Onboarding"
+        ]
+      }
+    },
+    "/api/v1/organizations/my-organization/request-kyc-update": {
+      "post": {
+        "description": "Seller can request to update specific fields after KYC is approved",
+        "operationId": "OrganizationsController_requestKycUpdate",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Request permission to update approved KYC",
+        "tags": [
+          "Organizations - Seller Onboarding",
+          "Organizations - KYC Management"
         ]
       }
     },
@@ -559,6 +595,35 @@
           }
         ],
         "summary": "Get KYC case history for organization",
+        "tags": [
+          "Admin KYC Management"
+        ]
+      }
+    },
+    "/api/v1/admin/kyc/case/{caseId}/unlock-for-update": {
+      "post": {
+        "operationId": "KycController_unlockForUpdate",
+        "parameters": [
+          {
+            "name": "caseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unlock approved KYC for seller updates",
         "tags": [
           "Admin KYC Management"
         ]

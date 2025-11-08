@@ -86,4 +86,17 @@ export class KycController {
   async getCaseHistory(@Param('orgId') orgId: string) {
     return this.kycAdminService.getKycCaseHistory(orgId);
   }
+
+
+  // kyc.controller.ts
+@Post('case/:caseId/unlock-for-update')
+@ApiOperation({ summary: 'Unlock approved KYC for seller updates' })
+async unlockForUpdate(
+  @Param('caseId') caseId: string,
+  @CurrentUser() user: any,
+  @Body() body: { remarks?: string },
+) {
+  return this.kycAdminService.unlockForUpdate(caseId, user.userId, body.remarks);
+}
+
 }

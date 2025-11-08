@@ -2,24 +2,19 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { CustomLoggerService } from "src/core/logger/custom.logger.service";
+import { KycCaseService } from "../kyc/services/kyc.service";
 import { FileStorageService } from "../storage/services/file-storage.service";
 import { DocumentUplod, Organization, OrganizationDocument } from "./schemas/organization.schema";
 
 const requiredSteps = ["org-kyc", "bank-details", "compliance-docs", "catalog-and-price"];
-
-interface FileUploadResponse {
-  docType: string;
-  fileName: string;
-  fileUrl: string;
-  uploadedAt: string;
-  status: "UPLOADED";
-}
 
 @Injectable()
 export class OrganizationsService {
   constructor(
     @InjectModel(Organization.name)
     private orgModel: Model<OrganizationDocument>,
+
+    private kycCaseService: KycCaseService,
     private fileStorageService: FileStorageService,
     private readonly logger: CustomLoggerService, // add this
   ) {}
@@ -95,15 +90,6 @@ export class OrganizationsService {
         throw new BadRequestException("File is empty");
       }
 
-      // const folder =
-      //   docType.startsWith("GST_") ||
-      //   docType.startsWith("PAN_") ||
-      //   docType.startsWith("BUSINESS_") ||
-      //   docType.startsWith("FACTORY_") ||
-      //   docType.startsWith("QA_")
-      //     ? `documents/organizations/${orgId}/compliance-documents/${docType}`
-      //     : `documents/organizations/${orgId}/bank-documents/${docType}`;
-      
       const folder = `documents/organizations/${orgId}`;
       const fileName = `${docType}_${Date.now()}_${file.originalname}`;
       const fileUrl = await this.fileStorageService.uploadFile({
@@ -374,6 +360,9 @@ export class OrganizationsService {
         throw new BadRequestException(`Missing steps - ${missing.join(", ")}`);
       }
 
+      // CREATE NEW KYC CASE (with snapshot and attempt increment)
+      const kycCase = await this.kycCaseService.createKycCaseOnSubmission(orgId);
+
       org.kycStatus = "SUBMITTED";
       org.isOnboardingLocked = true;
 
@@ -481,5 +470,36 @@ export class OrganizationsService {
       this.logger.log(`Error deleting organization ${orgId}: ${error.message}`, "deleteOrganization");
       throw error;
     }
+  }
+
+  // organizations.service.ts
+  async requestKycUpdate(orgId: string, data: { reason: string }): Promise<any> {
+    this.logger.log(`Called requestKycUpdate for org ${orgId}`, "requestKycUpdate");
+
+    // ✅ VALIDATION STEP 1: Organization exists
+    const org = await this.orgModel.findById(orgId);
+    if (!org) {
+      this.logger.log(`Organization not found for orgId ${orgId}`, "requestKycUpdate");
+      throw new NotFoundException("Organization not found");
+    }
+
+    // ✅ VALIDATION STEP 2: KYC must be APPROVED to request update
+    if (org.kycStatus !== "APPROVED") {
+      this.logger.log(`Invalid KYC status ${org.kycStatus} for org ${orgId}. Must be APPROVED`, "requestKycUpdate");
+      throw new BadRequestException(`Cannot request update. Current KYC status is ${org.kycStatus}. Only APPROVED KYC can be updated.`);
+    }
+    org.kycStatus = "UPDATE_IN_PROGRESS";
+    org.isOnboardingLocked = false;
+    org.updateRequestedAt = new Date();
+    org.updateReason = data.reason;
+
+    await org.save();
+
+    // ✅ RESPONSE: Return success with request details
+    return {
+      message: "Update request sent. You can now edit and resubmit.",
+      kycStatus: "UPDATE_IN_PROGRESS",
+      isOnboardingLocked: false,
+    };
   }
 }

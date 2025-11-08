@@ -82,10 +82,7 @@ export class OrganizationsController {
   async uploadSingleDocument(@CurrentUser() user: any, @Body() body: { docType: string }, @UploadedFile() file?: Express.Multer.File) {
     this.logger.log("Called uploadSingleDocument", "uploadSingleDocument");
     const orgId = this.getOrganizationId(user);
-    this.logger.log(
-      `Uploading document for orgId ${orgId}, docType: ${body.docType}, fileName: ${file?.originalname}`,
-      "uploadSingleDocument",
-    );
+    this.logger.log(`Uploading document for orgId ${orgId}, docType: ${body.docType}, fileName: ${file?.originalname}`, "uploadSingleDocument");
 
     if (!file) {
       this.logger.log("File missing in uploadSingleDocument", "uploadSingleDocument");
@@ -262,5 +259,28 @@ export class OrganizationsController {
       this.logger.log(`Error previewing file ${fileName}: ${error.message}`, "previewDocument");
       throw new ForbiddenException(error.message);
     }
+  }
+
+  @Post("my-organization/request-kyc-update")
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: "Request permission to update approved KYC",
+    description: "Seller can request to update specific fields after KYC is approved",
+  })
+  @ApiTags("Organizations - KYC Management")
+  async requestKycUpdate(
+    @CurrentUser() user: any,
+    @Body()
+    body: {
+      reason: string; 
+    },
+  ): Promise<any> {
+    this.logger.log("Called requestKycUpdate endpoint", "requestKycUpdate");
+
+    const orgId = this.getOrganizationId(user);
+
+    this.logger.log(`Requesting KYC update for org ${orgId}`, "requestKycUpdate");
+
+    return this.organizationsService.requestKycUpdate(orgId, body);
   }
 }

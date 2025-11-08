@@ -147,6 +147,12 @@ export class Organization {
   @Prop({ default: null })
   kycApprovedBy?: string;
 
+  @Prop()
+  updateReason?: string; // ✅ Just store the reason
+
+  @Prop({ type: Date })
+  updateRequestedAt?: Date;
+
   @Prop({ default: "ACTIVE" })
   status!: string;
 

@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { Organization, OrganizationDocument } from 'src/modules/organizations/schemas/organization.schema';
-import { KycCase, KycCaseDocument } from '../schemas/kyc.schema';
- 
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model, Types } from "mongoose";
+import { Organization, OrganizationDocument } from "src/modules/organizations/schemas/organization.schema";
+import { KycCase, KycCaseDocument } from "../schemas/kyc.schema";
+
 @Injectable()
 export class KycCaseService {
   constructor(
@@ -13,19 +13,18 @@ export class KycCaseService {
 
   async createKycCaseOnSubmission(orgId: string) {
     const org = await this.orgModel.findById(orgId);
-    if (!org) throw new NotFoundException('Organization not found');
+    if (!org) throw new NotFoundException("Organization not found");
 
-    const latestCase = await this.kycCaseModel
-      .findOne({ organizationId: orgId })
-      .sort({ submissionAttempt: -1 });
+    // Count existing submissions for org
+    const count = await this.kycCaseModel.countDocuments({ organizationId: orgId });
 
-    const submissionAttempt = (latestCase?.submissionAttempt || 0) + 1;
-    const submissionNumber = `KYC-${orgId}-${String(submissionAttempt).padStart(3, '0')}`;
+    const submissionAttempt = count + 1;
+    const submissionNumber = `KYC-${orgId}-${String(submissionAttempt).padStart(3, "0")}`;
 
     const kycCase = new this.kycCaseModel({
       organizationId: new Types.ObjectId(orgId),
       submissionNumber,
-      status: 'SUBMITTED',
+      status: "SUBMITTED",
       submittedData: {
         orgKyc: org.orgKyc,
         primaryBankAccount: org.primaryBankAccount,
@@ -37,10 +36,10 @@ export class KycCaseService {
       submissionAttempt,
       activityLog: [
         {
-          action: 'SUBMITTED',
+          action: "SUBMITTED",
           timestamp: new Date(),
           performedBy: orgId,
-          remarks: 'Initial submission',
+          remarks: "Initial submission",
         },
       ],
     });
@@ -50,23 +49,23 @@ export class KycCaseService {
 
   async approveKycCase(kycCaseId: string, adminId: string, remarks?: string) {
     const kycCase = await this.kycCaseModel.findById(kycCaseId);
-    if (!kycCase) throw new NotFoundException('KycCase not found');
+    if (!kycCase) throw new NotFoundException("KycCase not found");
 
     const org = await this.orgModel.findById(kycCase.organizationId);
-    if (!org) throw new NotFoundException('Organization not found');
+    if (!org) throw new NotFoundException("Organization not found");
 
-    kycCase.status = 'APPROVED';
+    kycCase.status = "APPROVED";
     kycCase.reviewedBy = adminId;
     kycCase.reviewedAt = new Date();
     kycCase.activityLog.push({
-      action: 'APPROVED',
+      action: "APPROVED",
       timestamp: new Date(),
       performedBy: adminId,
-      remarks: remarks || 'Approved by admin',
+      remarks: remarks || "Approved by admin",
     });
     await kycCase.save();
 
-    org.kycStatus = 'APPROVED';
+    org.kycStatus = "APPROVED";
     org.kycApprovedAt = new Date();
     org.kycApprovedBy = adminId;
     org.isVerified = true;
@@ -78,24 +77,24 @@ export class KycCaseService {
 
   async rejectKycCase(kycCaseId: string, adminId: string, rejectionReason: string) {
     const kycCase = await this.kycCaseModel.findById(kycCaseId);
-    if (!kycCase) throw new NotFoundException('KycCase not found');
+    if (!kycCase) throw new NotFoundException("KycCase not found");
 
     const org = await this.orgModel.findById(kycCase.organizationId);
-    if (!org) throw new NotFoundException('Organization not found');
+    if (!org) throw new NotFoundException("Organization not found");
 
-    kycCase.status = 'REJECTED';
+    kycCase.status = "REJECTED";
     kycCase.rejectionReason = rejectionReason;
     kycCase.reviewedBy = adminId;
     kycCase.reviewedAt = new Date();
     kycCase.activityLog.push({
-      action: 'REJECTED',
+      action: "REJECTED",
       timestamp: new Date(),
       performedBy: adminId,
       remarks: rejectionReason,
     });
     await kycCase.save();
 
-    org.kycStatus = 'REJECTED';
+    org.kycStatus = "REJECTED";
     org.isOnboardingLocked = false;
     org.rejectionReason = rejectionReason;
     await org.save();
@@ -114,26 +113,26 @@ export class KycCaseService {
   // NEW: Methods that were missing from your KycService
   async submitKYC(orgId: string, dto: any) {
     const org = await this.orgModel.findById(orgId);
-    if (!org) throw new NotFoundException('Organization not found');
+    if (!org) throw new NotFoundException("Organization not found");
     return org;
   }
 
   async getKYCByOrgId(orgId: string) {
     const org = await this.orgModel.findById(orgId);
-    if (!org) throw new NotFoundException('Organization not found');
+    if (!org) throw new NotFoundException("Organization not found");
     return org;
   }
 
   async updateStep(orgId: string, stepName: string, stepData: any) {
     const org = await this.orgModel.findById(orgId);
-    if (!org) throw new NotFoundException('Organization not found');
+    if (!org) throw new NotFoundException("Organization not found");
     org[stepName] = stepData;
     return org.save();
   }
 
   async getKYCByCaseId(caseId: string) {
-    const kycCase = await this.kycCaseModel.findById(caseId).populate('organizationId');
-    if (!kycCase) throw new NotFoundException('KycCase not found');
+    const kycCase = await this.kycCaseModel.findById(caseId).populate("organizationId");
+    if (!kycCase) throw new NotFoundException("KycCase not found");
     return kycCase;
   }
 }

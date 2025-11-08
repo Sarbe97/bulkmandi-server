@@ -45,9 +45,7 @@ export class FileStorageService {
     this.ensureUploadDir();
   }
 
-  /**
-   * ✅ Ensure upload directory exists
-   */
+  
   private ensureUploadDir(): void {
     try {
       if (!fs.existsSync(this.baseUploadDir)) {
@@ -60,18 +58,7 @@ export class FileStorageService {
     }
   }
 
-  /**
-   * ✅ Upload File (New Method - Compatible with organizations.service.ts)
-   * Used by organizations.service.uploadSingleBankDocument()
-   *
-   * @example
-   * await this.fileStorageService.uploadFile({
-   *   file: file.buffer,
-   *   fileName: 'cheque.pdf',
-   *   mimeType: 'application/pdf',
-   *   folder: 'documents/organizations/{orgId}/bank-documents/CANCELLED_CHEQUE'
-   * })
-   */
+
   async uploadFile(options: UploadFileOptions): Promise<string> {
     try {
       const { file, fileName, mimeType, folder } = options;
@@ -154,10 +141,7 @@ export class FileStorageService {
     }
   }
 
-  /**
-   * ✅ Save File (Legacy Method - For backward compatibility)
-   * Older method with more detailed organization structure
-   */
+ 
   async saveFile(options: SaveFileOptions): Promise<SaveFileResponse> {
     try {
       const { file, organizationId, folderType, docType, metadata } = options;
@@ -271,10 +255,7 @@ export class FileStorageService {
     }
   }
 
-  /**
-   * ✅ Read File Securely (with authorization check)
-   * Verifies that the file belongs to the requesting organization
-   */
+  
   async readFileSecure(options: {
     fileUrl: string;
     organizationId: string;
@@ -323,10 +304,7 @@ export class FileStorageService {
     }
   }
 
-  /**
-   * ✅ Delete File
-   * Safely removes file from storage
-   */
+
   async deleteFile(options: DeleteFileOptions): Promise<void> {
     try {
       const { fileUrl, organizationId } = options;
@@ -369,10 +347,7 @@ export class FileStorageService {
     }
   }
 
-  /**
-   * ✅ Delete Directory Recursively
-   * Removes entire organization directory
-   */
+ 
   async deleteDirectory(organizationId: string): Promise<void> {
     try {
       const orgDir = path.join(
@@ -406,9 +381,7 @@ export class FileStorageService {
     }
   }
 
-  /**
-   * ✅ Check if File Exists
-   */
+   
   fileExists(fileUrl: string, organizationId?: string): boolean {
     try {
       // ✅ Optional security check
@@ -436,9 +409,7 @@ export class FileStorageService {
     }
   }
 
-  /**
-   * ✅ Get File Size
-   */
+ 
   getFileSize(fileUrl: string, organizationId?: string): number {
     try {
       // ✅ Optional security check
@@ -475,9 +446,7 @@ export class FileStorageService {
     }
   }
 
-  /**
-   * ✅ List Files in Directory
-   */
+  
   listFiles(organizationId: string, folderType: string): string[] {
     try {
       const dirPath = path.join(
@@ -509,9 +478,7 @@ export class FileStorageService {
     }
   }
 
-  /**
-   * ✅ Get File Info (Metadata)
-   */
+   
   getFileInfo(fileUrl: string, organizationId?: string): {
     size: number;
     createdAt: Date;
