@@ -1,38 +1,23 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
 
-import { UserRole } from '@common/enums';
-import { CustomLoggerService } from '@core/logger/custom.logger.service';
-import { KYCStatus } from '@modules/kyc/kyc-status.constants';
-import { KycAdminService } from '@modules/kyc/services/kyc-admin.service';
-import { Organization, OrganizationDocument } from '@modules/organizations/schemas/organization.schema';
-import { UserBankDto, UserOrgKycDto } from '../dto';
+import { UserRole } from "@common/enums";
+import { CustomLoggerService } from "@core/logger/custom.logger.service";
+import { KYCStatus } from "@modules/kyc/kyc-status.constants";
+import { KycAdminService } from "@modules/kyc/services/kyc-admin.service";
+import { Organization, OrganizationDocument } from "@modules/organizations/schemas/organization.schema";
+import { UserBankDto, UserOrgKycDto } from "../dto";
 
 // Define required steps per role
 const REQUIRED_STEPS_BY_ROLE = {
-  [UserRole.BUYER]: [
-    'org-kyc',
-    'bank-details',
-    'compliance-docs',
-    'buyer-preferences',
-  ],
-  [UserRole.SELLER]: [
-    'org-kyc',
-    'bank-details',
-    'compliance-docs',
-    'catalog',
-  ],
+  [UserRole.BUYER]: ["org-kyc", "bank-details", "compliance-docs", "buyer-preferences"],
+  [UserRole.SELLER]: ["org-kyc", "bank-details", "compliance-docs", "catalog"],
   [UserRole.THREE_PL]: [
-    'org-kyc',
-    'bank-details',
-    'compliance-docs',
-    'logistics-prefs', // Future extension
+    "org-kyc",
+    "bank-details",
+    "compliance-docs",
+    "logistics-prefs", // Future extension
   ],
 };
 
@@ -50,9 +35,7 @@ export class UserOnboardingService {
    */
   private checkEditPermission(org: OrganizationDocument): void {
     if (org.isOnboardingLocked) {
-      throw new ForbiddenException(
-        `Cannot edit onboarding. Current status: ${org.kycStatus}. You can only edit when status is DRAFT or REJECTED.`,
-      );
+      throw new ForbiddenException(`Cannot edit onboarding. Current status: ${org.kycStatus}. You can only edit when status is DRAFT or REJECTED.`);
     }
   }
 
@@ -69,17 +52,11 @@ export class UserOnboardingService {
    * Step 1: Update Organization KYC
    * Same logic for all roles, but org-kyc is stored in same field
    */
-  async updateOrgKyc(
-    organizationId: string,
-    dto: UserOrgKycDto,
-    userRole: UserRole,
-  ): Promise<any> {
+  async updateOrgKyc(organizationId: string, dto: UserOrgKycDto, userRole: UserRole): Promise<any> {
     try {
-      this.logger.log(
-        `updateOrgKyc: org=${organizationId}, role=${userRole}`,
-      );
+      this.logger.log(`updateOrgKyc: org=${organizationId}, role=${userRole}`);
 
-      console.log('DTO received in updateOrgKyc:', dto);
+      console.log("DTO received in updateOrgKyc:", dto);
       let org = await this.orgModel.findById(organizationId);
       if (!org) {
         org = new this.orgModel({
@@ -106,8 +83,8 @@ export class UserOnboardingService {
         plantLocations: dto.plantLocations,
       };
 
-      if (!org.completedSteps.includes('org-kyc')) {
-        org.completedSteps.push('org-kyc');
+      if (!org.completedSteps.includes("org-kyc")) {
+        org.completedSteps.push("org-kyc");
       }
 
       await org.save();
@@ -115,9 +92,7 @@ export class UserOnboardingService {
 
       return this.formatResponse(org);
     } catch (error) {
-      this.logger.error(
-        `Error updating org KYC for org ${organizationId}: ${error.message}`,
-      );
+      this.logger.error(`Error updating org KYC for org ${organizationId}: ${error.message}`);
       throw error;
     }
   }
@@ -126,16 +101,12 @@ export class UserOnboardingService {
    * Step 2: Update Bank Details
    * Same for all roles
    */
-  async updateBankDetails(
-    organizationId: string,
-    dto: UserBankDto,
-    userRole: UserRole,
-  ): Promise<any> {
+  async updateBankDetails(organizationId: string, dto: UserBankDto, userRole: UserRole): Promise<any> {
     try {
       this.logger.log(`updateBankDetails: org=${organizationId}, role=${userRole}`);
 
       const org = await this.orgModel.findById(organizationId);
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) throw new NotFoundException("Organization not found");
 
       this.checkEditPermission(org);
 
@@ -150,11 +121,11 @@ export class UserOnboardingService {
         bankName: dto.bankName,
         branchName: dto.branchName,
         accountType: dto.accountType,
-        
+
         payoutMethod: dto.payoutMethod,
         upiDetails: dto.upiDetails,
 
-        pennyDropStatus: dto.pennyDropStatus || 'PENDING',
+        pennyDropStatus: dto.pennyDropStatus || "PENDING",
         pennyDropScore: dto.pennyDropScore || 0,
 
         documents: (dto.documents || []).map((doc) => ({
@@ -166,8 +137,8 @@ export class UserOnboardingService {
         })),
       };
 
-      if (!org.completedSteps.includes('bank-details')) {
-        org.completedSteps.push('bank-details');
+      if (!org.completedSteps.includes("bank-details")) {
+        org.completedSteps.push("bank-details");
       }
 
       await org.save();
@@ -175,9 +146,7 @@ export class UserOnboardingService {
 
       return this.formatResponse(org);
     } catch (error) {
-      this.logger.error(
-        `Error updating bank details for org ${organizationId}: ${error.message}`,
-      );
+      this.logger.error(`Error updating bank details for org ${organizationId}: ${error.message}`);
       throw error;
     }
   }
@@ -186,29 +155,21 @@ export class UserOnboardingService {
    * Step 3: Update Compliance Docs
    * Same for all roles
    */
-  async updateComplianceDocs(
-    organizationId: string,
-    dto: any,
-    userRole: UserRole,
-  ): Promise<any> {
+  async updateComplianceDocs(organizationId: string, dto: any, userRole: UserRole): Promise<any> {
     try {
-      this.logger.log(
-        `updateComplianceDocs: org=${organizationId}, role=${userRole}`,
-      );
+      this.logger.log(`updateComplianceDocs: org=${organizationId}, role=${userRole}`);
 
       const org = await this.orgModel.findById(organizationId);
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) throw new NotFoundException("Organization not found");
 
       this.checkEditPermission(org);
 
       if (!dto.warrantyAssurance || !dto.termsAccepted || !dto.amlCompliance) {
-        throw new BadRequestException('All declarations must be accepted');
+        throw new BadRequestException("All declarations must be accepted");
       }
 
       if (!dto.documents || dto.documents.length === 0) {
-        throw new BadRequestException(
-          'At least one compliance document is required',
-        );
+        throw new BadRequestException("At least one compliance document is required");
       }
 
       org.compliance = {
@@ -226,8 +187,8 @@ export class UserOnboardingService {
         },
       };
 
-      if (!org.completedSteps.includes('compliance-docs')) {
-        org.completedSteps.push('compliance-docs');
+      if (!org.completedSteps.includes("compliance-docs")) {
+        org.completedSteps.push("compliance-docs");
       }
 
       await org.save();
@@ -235,9 +196,7 @@ export class UserOnboardingService {
 
       return this.formatResponse(org);
     } catch (error) {
-      this.logger.error(
-        `Error updating compliance docs for org ${organizationId}: ${error.message}`,
-      );
+      this.logger.error(`Error updating compliance docs for org ${organizationId}: ${error.message}`);
       throw error;
     }
   }
@@ -248,32 +207,22 @@ export class UserOnboardingService {
    * Generic handler for role-specific steps
    * Validates that step is allowed for role, then updates
    */
-  async updateRoleSpecificStep(
-    organizationId: string,
-    stepKey: string,
-    dto: any,
-    userRole: UserRole,
-    allowedRole: UserRole,
-  ): Promise<any> {
+  async updateRoleSpecificStep(organizationId: string, stepKey: string, dto: any, userRole: UserRole, allowedRole: UserRole): Promise<any> {
     try {
       // Validate role
       if (userRole !== allowedRole) {
-        throw new ForbiddenException(
-          `Step '${stepKey}' is only available for ${allowedRole} users`,
-        );
+        throw new ForbiddenException(`Step '${stepKey}' is only available for ${allowedRole} users`);
       }
 
-      this.logger.log(
-        `updateRoleSpecificStep: step=${stepKey}, org=${organizationId}, role=${userRole}`,
-      );
+      this.logger.log(`updateRoleSpecificStep: step=${stepKey}, org=${organizationId}, role=${userRole}`);
 
       const org = await this.orgModel.findById(organizationId);
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) throw new NotFoundException("Organization not found");
 
       this.checkEditPermission(org);
 
       // Handle buyer-specific preferences
-      if (stepKey === 'buyer-preferences') {
+      if (stepKey === "buyer-preferences") {
         org.buyerPreferences = {
           categories: dto.categories,
           typicalMonthlyVolumeMT: dto.typicalMonthlyVolumeMT,
@@ -289,12 +238,12 @@ export class UserOnboardingService {
       }
 
       // Handle seller-specific catalog
-      if (stepKey === 'catalog') {
+      if (stepKey === "catalog") {
         org.catalog = dto;
       }
 
       // Handle 3PL logistics (future)
-      if (stepKey === 'logistics-prefs') {
+      if (stepKey === "logistics-prefs") {
         org.catalog.logisticsPreference = dto;
       }
 
@@ -307,9 +256,7 @@ export class UserOnboardingService {
 
       return this.formatResponse(org);
     } catch (error) {
-      this.logger.error(
-        `Error updating step '${stepKey}' for org ${organizationId}: ${error.message}`,
-      );
+      this.logger.error(`Error updating step '${stepKey}' for org ${organizationId}: ${error.message}`);
       throw error;
     }
   }
@@ -322,13 +269,11 @@ export class UserOnboardingService {
   async getProgress(organizationId: string, userRole: UserRole): Promise<any> {
     try {
       const org = await this.orgModel.findById(organizationId);
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) throw new NotFoundException("Organization not found");
 
       const requiredSteps = this.getRequiredStepsForRole(userRole);
       const completed = org.completedSteps || [];
-      const progress = requiredSteps.length > 0
-        ? Math.round((completed.length / requiredSteps.length) * 100)
-        : 0;
+      const progress = requiredSteps.length > 0 ? Math.round((completed.length / requiredSteps.length) * 100) : 0;
 
       const nextStep = requiredSteps.find((s) => !completed.includes(s));
 
@@ -346,9 +291,7 @@ export class UserOnboardingService {
         updatedAt: org.updatedAt,
       };
     } catch (error) {
-      this.logger.error(
-        `Error getting progress for org ${organizationId}: ${error.message}`,
-      );
+      this.logger.error(`Error getting progress for org ${organizationId}: ${error.message}`);
       throw error;
     }
   }
@@ -359,13 +302,11 @@ export class UserOnboardingService {
   async getOnboardingData(organizationId: string): Promise<any> {
     try {
       const org = await this.orgModel.findById(organizationId);
-      if (!org) throw new NotFoundException('Organization not found');
+      if (!org) throw new NotFoundException("Organization not found");
 
       return this.formatResponse(org);
     } catch (error) {
-      this.logger.error(
-        `Error getting onboarding data for org ${organizationId}: ${error.message}`,
-      );
+      this.logger.error(`Error getting onboarding data for org ${organizationId}: ${error.message}`);
       throw error;
     }
   }
@@ -373,68 +314,48 @@ export class UserOnboardingService {
   /**
    * Submit onboarding for KYC
    */
-  async submitOnboarding(
-    organizationId: string,
-    userRole: UserRole,
-    dto: any,
-  ): Promise<any> {
+   
+  async submitOnboarding(organizationId: string, userRole: UserRole): Promise<any> {
     try {
-      this.logger.log(
-        `submitOnboarding: org=${organizationId}, role=${userRole}`,
-      );
+      this.logger.log(`submitOnboarding: organizationId=${organizationId}, role=${userRole}`);
 
+      // Find organization by userId
       const org = await this.orgModel.findById(organizationId);
-      if (!org) throw new NotFoundException('Organization not found');
-
-      // Validate declarations
-      if (!dto.termsAccepted || !dto.dataAccuracyConfirmed) {
-        throw new BadRequestException(
-          'You must accept terms and confirm data accuracy',
-        );
+      if (!org) {
+        throw new NotFoundException("Organization not found for user");
       }
 
-      // Validate all required steps are completed
+      // Block if already locked
+      if (org.isOnboardingLocked) {
+        throw new ForbiddenException(`Onboarding is already locked with status: ${org.kycStatus}`);
+      }
+
       const requiredSteps = this.getRequiredStepsForRole(userRole);
-      const allCompleted = requiredSteps.every((step) =>
-        org.completedSteps.includes(step),
-      );
+      const completed = org.completedSteps || [];
+      const missing = requiredSteps.filter((s) => !completed.includes(s));
 
-      if (!allCompleted) {
-        const missing = requiredSteps.filter(
-          (s) => !org.completedSteps.includes(s),
-        );
-        throw new BadRequestException(`Missing steps: ${missing.join(', ')}`);
+      if (missing.length > 0) {
+        throw new BadRequestException(`Missing steps: ${missing.join(", ")}`);
       }
 
-      // Create/update KYC case based on status
-      const latestKycCase = await this.kycAdminService.getLatestKycCase(
-        organizationId,
-      );
+      const latestKycCase = await this.kycAdminService.getLatestKycCase(org._id.toString());
 
       let kycCase;
-      if (
-        !latestKycCase ||
-        [KYCStatus.DRAFT, KYCStatus.REJECTED].includes(latestKycCase.status as KYCStatus)
-      ) {
-        kycCase = await this.kycAdminService.createKycCaseOnSubmission(
-          organizationId,
-        );
+      if (!latestKycCase || [KYCStatus.DRAFT, KYCStatus.REJECTED].includes(latestKycCase.status as KYCStatus)) {
+        kycCase = await this.kycAdminService.createKycCaseOnSubmission(org._id.toString());
       } else if (latestKycCase.status === KYCStatus.INFO_REQUESTED) {
         kycCase = await this.kycAdminService.updateKycCase(latestKycCase.id);
       } else if (latestKycCase.status === KYCStatus.REVISION_REQUESTED) {
-        kycCase = await this.kycAdminService.createKycCaseOnSubmission(
-          organizationId,
-        );
+        kycCase = await this.kycAdminService.createKycCaseOnSubmission(org._id.toString());
       } else {
-        throw new BadRequestException('Invalid KYC submission state');
+        throw new BadRequestException("Invalid KYC submission state");
       }
 
-      // Lock onboarding
       org.kycStatus = KYCStatus.SUBMITTED;
       org.isOnboardingLocked = true;
       await org.save();
 
-      this.logger.log(`Onboarding submitted for org ${organizationId}`);
+      this.logger.log(`Onboarding submitted for Organization ${organizationId}`);
 
       return {
         success: true,
@@ -446,9 +367,7 @@ export class UserOnboardingService {
         },
       };
     } catch (error) {
-      this.logger.error(
-        `Error submitting onboarding for org ${organizationId}: ${error.message}`,
-      );
+      this.logger.error(`Error submitting onboarding for Organization ${organizationId}: ${error.message}`);
       throw error;
     }
   }

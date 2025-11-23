@@ -157,13 +157,15 @@ export class UserOnboardingController {
   /**
    * Submit Onboarding for KYC
    */
+
   @Post("submit")
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: "Submit onboarding for KYC verification",
     description: "Validates all required steps, creates KYC case, locks onboarding",
   })
   async submitOnboarding(@CurrentUser() user: any, @Body() dto: any): Promise<any> {
     this.logger.log(`POST user/onboarding/submit by user=${user.userId}, role=${user.role}`);
-    return this.service.submitOnboarding(user.organizationId, user.role, dto);
+    return this.service.submitOnboarding(user.organizationId, user.role);
   }
 }
