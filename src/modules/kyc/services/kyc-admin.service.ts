@@ -40,10 +40,8 @@ export class KycAdminService {
       submittedData: {
         orgKyc: org.orgKyc,
         primaryBankAccount: org.primaryBankAccount,
-        complianceDocuments: org.complianceDocuments,
+        compliance: org.compliance,
         catalog: org.catalog,
-        priceFloors: org.priceFloors,
-        logisticsPreference: org.logisticsPreference,
       },
       submissionAttempt,
       activityLog: [
@@ -72,10 +70,8 @@ export class KycAdminService {
     kycCase.submittedData = {
       orgKyc: org.orgKyc,
       primaryBankAccount: org.primaryBankAccount,
-      complianceDocuments: org.complianceDocuments,
+      compliance: org.compliance ,
       catalog: org.catalog,
-      priceFloors: org.priceFloors,
-      logisticsPreference: org.logisticsPreference,
     };
 
     kycCase.status = KYCStatus.SUBMITTED;
@@ -112,11 +108,10 @@ export class KycAdminService {
     const pipeline: PipelineStage[] = [
       { $match: matchStage },
       { $sort: { createdAt: -1 } },
-      // pick latest case per org
       {
         $group: {
           _id: "$organizationId",
-          latestCaseId: { $first: "$_id" }, // most recent due to sort
+          latestCaseId: { $first: "$_id" },
         },
       },
       { $skip: skip },
@@ -137,16 +132,25 @@ export class KycAdminService {
       .exec();
     this.logger.log(`Fetched ${cases.length} KYC cases from database`);
 
-    // role filter if required
+    // sort again to keep consistent descending order
+    cases = cases.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    // role filter based on org
     if (filters?.role && filters.role !== "ALL") {
       cases = cases.filter((c) => (c.organizationId as any)?.role === filters.role);
       this.logger.log(`Filtered cases by role: ${filters.role}, remaining count: ${cases.length}`);
     }
 
-    // search filter if required
+    // search filter based on org snapshot or org base
     if (filters?.search) {
       const searchLower = filters.search.toLowerCase();
-      cases = cases.filter((c) => (c.organizationId as any)?.legalName?.toLowerCase().includes(searchLower));
+      cases = cases.filter((c) => {
+        const snapshot = c.submittedData;
+        return (
+          snapshot?.orgKyc?.legalName?.toLowerCase()?.includes(searchLower) ||
+          (c.organizationId as any)?.legalName?.toLowerCase()?.includes(searchLower)
+        );
+      });
       this.logger.log(`Filtered cases by search term: ${filters.search}, remaining count: ${cases.length}`);
     }
 
@@ -154,25 +158,25 @@ export class KycAdminService {
     this.logger.log(`Total organizations count for filters: ${totalOrgs}`);
 
     const items = cases.map((kycCase) => {
+      const snapshot = kycCase.submittedData || {};
       const org = kycCase.organizationId as any;
 
       return {
         caseId: kycCase._id.toString(),
         submissionNumber: kycCase.submissionNumber,
-        organizationId: org._id.toString(),
-        orgName: org.legalName,
-        role: org.role,
-        gstin: org.orgKyc?.gstin || "N/A",
-        pan: org.orgKyc?.pan || "N/A",
-        bankVerified: org.primaryBankAccount?.pennyDropStatus === "VERIFIED",
-        bankScore: org.primaryBankAccount?.pennyDropScore || 0,
+        organizationId: org?._id?.toString(),
+        orgName: snapshot?.orgKyc?.legalName || org?.legalName,
+        role: org?.role, // << fixed
+        gstin: snapshot?.orgKyc?.gstin || "N/A",
+        pan: snapshot?.orgKyc?.pan || "N/A",
+        bankVerified: snapshot?.primaryBankAccount?.pennyDropStatus === "VERIFIED",
+        bankScore: snapshot?.primaryBankAccount?.pennyDropScore || 0,
         riskLevel: "Low",
         riskRemarks: "",
         submittedAt: kycCase.createdAt,
         age: this.kycHelperService.calculateAge(kycCase.createdAt),
       };
     });
-
     this.logger.log(`Returning ${items.length} KYC queue items`);
 
     return {

@@ -36,7 +36,7 @@ export class PlantLocation {
   name!: string;
 
   @Prop({ required: true })
-  pin!: string;
+  pincode!: string;
 
   @Prop()
   address?: string;

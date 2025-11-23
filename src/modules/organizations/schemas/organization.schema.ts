@@ -5,11 +5,11 @@ import { UserRole } from "src/common/enums";
 export type OrganizationDocument = Organization & Document;
 
 @Schema({ _id: false })
-export class Address {
+export class PlantLocation {
   @Prop() street?: string;
   @Prop() city?: string;
   @Prop() state?: string;
-  @Prop() pin?: string;
+  @Prop() pincode?: string;
   @Prop() country?: string;
 }
 
@@ -31,7 +31,7 @@ export class OrgKyc {
   @Prop() registeredAddress?: string;
   @Prop() businessType?: string;
   @Prop() incorporationDate?: string;
-  @Prop({ type: [Address], default: [] }) plantLocations?: Address[];
+  @Prop({ type: [PlantLocation], default: [] }) plantLocations?: PlantLocation[];
   @Prop({ type: Contact }) primaryContact?: Contact;
 }
 ///////////
@@ -44,17 +44,12 @@ export class DocumentUplod {
   @Prop({ type: Date }) uploadedAt?: Date;
   @Prop() status?: string; //['UPLOADED', 'PENDING', 'VERIFIED', 'REJECTED']
 }
-@Schema({ _id: false })
-export class Declarations {
-  @Prop({ default: false }) warrantyAssurance: boolean;
-  @Prop({ default: false }) termsAccepted: boolean;
-  @Prop({ default: false }) amlCompliance: boolean;
-}
 
 @Schema({ _id: false })
 export class BankAccount {
   @Prop() accountNumber?: string;
   @Prop() accountHolderName?: string;
+  @Prop() accountType?: string;
   @Prop() ifsc?: string;
   @Prop() bankName?: string;
   @Prop() branchName?: string;
@@ -63,6 +58,7 @@ export class BankAccount {
   @Prop() pennyDropStatus?: string;
   @Prop() pennyDropScore?: number;
   @Prop() payoutMethod?: string;
+  @Prop() upiDetails?: string;
   @Prop({ type: [DocumentUplod], default: [] }) documents?: DocumentUplod[];
   // @Prop({ type: Declarations, default: {} }) declarations?: Declarations;
 }
@@ -74,6 +70,7 @@ export class CatalogProduct {
   @Prop({ type: [String] }) grades: string[];
   @Prop() moqPerOrder: number;
   @Prop() stdLeadTime: number;
+@Prop({ type: [String], default: [] }) availability: string[];
 }
 
 @Schema({ _id: false })
@@ -83,17 +80,36 @@ export class PriceFloor {
 }
 
 @Schema({ _id: false })
+export class LogisticsPreference {
+  @Prop({ default: false }) usePlatform3PL: boolean;
+  @Prop({ default: false }) selfPickupAllowed: boolean;
+}
+
+@Schema({ _id: false })
+export class Catalog {
+  @Prop({ type: [CatalogProduct], default: [] }) catalogProduct: CatalogProduct[];
+  @Prop({ type: [PlantLocation], default: [] }) plantLocations: PlantLocation[];
+  @Prop({ type: [PriceFloor], default: [] }) priceFloors: PriceFloor[];
+  @Prop({ type: LogisticsPreference }) logisticsPreference: LogisticsPreference;
+
+}
+
+//////////////////
+
+@Schema({ _id: false })
+export class Declarations {
+  @Prop({ default: false }) warrantyAssurance: boolean;
+  @Prop({ default: false }) termsAccepted: boolean;
+  @Prop({ default: false }) amlCompliance: boolean;
+}
+
+@Schema({ _id: false })
 export class Compliance {
   @Prop({ type: [DocumentUplod], default: [] }) documents?: DocumentUplod[];
   @Prop({ type: Declarations, default: {} }) declarations?: Declarations;
 }
 
-@Schema({ _id: false })
-export class LogisticsPreference {
-  @Prop() usePlatform3PL: boolean;
-  @Prop() selfPickupAllowed: boolean;
-}
-
+///////////
 @Schema({ timestamps: true })
 export class Organization {
   @Prop({ required: false, unique: true })
@@ -111,20 +127,25 @@ export class Organization {
   @Prop({ type: BankAccount })
   primaryBankAccount?: BankAccount;
 
-  @Prop({ type: [CatalogProduct], default: [] })
-  catalog?: CatalogProduct[];
-
-  @Prop({ type: [PriceFloor], default: [] })
-  priceFloors?: PriceFloor[];
-
-  @Prop({ type: [DocumentUplod], default: [] })
-  complianceDocuments?: DocumentUplod[];
-
   @Prop({ type: Compliance, default: {} })
   compliance?: Compliance;
 
-  @Prop({ type: LogisticsPreference })
-  logisticsPreference?: LogisticsPreference;
+  @Prop({ type: Catalog, default: {} })
+  catalog?: Catalog;
+
+  @Prop({ type: Object })
+  buyerPreferences?: {
+    categories: string[];
+    typicalMonthlyVolumeMT?: number;
+    incoterms: string[];
+    deliveryPins: string[];
+    acceptanceWindow: string;
+    qcRequirement: string;
+    notifyEmail?: boolean;
+    notifySMS?: boolean;
+    notifyWhatsApp?: boolean;
+    notes?: string;
+  };
 
   @Prop({ type: Declarations })
   declarations?: Declarations;
@@ -158,6 +179,12 @@ export class Organization {
 
   @Prop({ default: false })
   isVerified!: boolean;
+
+  @Prop({ type: Date, default: null })
+  submittedAt?: Date;
+
+  @Prop()
+  submissionRemarks?: string;
 
   createdAt?: Date;
   updatedAt?: Date;

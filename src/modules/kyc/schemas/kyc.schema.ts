@@ -19,10 +19,8 @@ export class KycCase {
   submittedData: {
     orgKyc?: any;
     primaryBankAccount?: any;
-    complianceDocuments?: any[];
-    catalog?: any[];
-    priceFloors?: any[];
-    logisticsPreference?: any;
+    compliance ?: any ;
+    catalog?: any ;
   };
 
   // Admin review fields

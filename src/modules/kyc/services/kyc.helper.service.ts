@@ -1,3 +1,4 @@
+import { DocumentType } from "@common/enums";
 import { Injectable } from "@nestjs/common";
 import { CustomLoggerService } from "src/core/logger/custom.logger.service";
 
@@ -100,7 +101,7 @@ export class KycHelperService {
   }
 
   public checkDocumentsComplete(org: any): boolean {
-    const requiredDocs = ["GST_CERTIFICATE", "PAN_CERTIFICATE"];
+    const requiredDocs = [DocumentType.GST_CERTIFICATE, DocumentType.PAN_CERTIFICATE];
     const uploadedTypes = (org.complianceDocuments || []).map((d: any) => d.type);
     const complete = requiredDocs.every((type) => uploadedTypes.includes(type));
     this.logger.log(`Documents completeness check: ${complete}`);
