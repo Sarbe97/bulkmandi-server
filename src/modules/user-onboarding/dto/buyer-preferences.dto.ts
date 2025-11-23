@@ -26,7 +26,7 @@ export class BuyerPreferencesDto {
   })
   @IsNotEmpty()
   incoterms: string[];
-
+ 
   @IsArray()
   @IsString({ each: true })
   @IsNotEmpty()
