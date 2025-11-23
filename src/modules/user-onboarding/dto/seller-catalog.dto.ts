@@ -1,12 +1,13 @@
+import { PlantLocationDto } from '@modules/catalog/dto/create-catalog.dto';
 import { Type } from 'class-transformer';
 import {
-    IsArray,
-    IsBoolean,
-    IsNotEmpty,
-    IsNumber,
-    IsString,
-    Min,
-    ValidateNested,
+  IsArray,
+  IsBoolean,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  Min,
+  ValidateNested,
 } from 'class-validator';
 
 class CatalogProductDto {
@@ -64,13 +65,19 @@ export class SellerCatalogDto {
   @ValidateNested({ each: true })
   @Type(() => CatalogProductDto)
   @IsNotEmpty()
-  catalog: CatalogProductDto[];
+  catalogProducts: CatalogProductDto[];
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PriceFloorDto)
   @IsNotEmpty()
   priceFloors: PriceFloorDto[];
+ 
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PlantLocationDto)
+  @IsNotEmpty()
+  plantLocations: PlantLocationDto[];
 
   @ValidateNested()
   @Type(() => LogisticsPreferenceDto)

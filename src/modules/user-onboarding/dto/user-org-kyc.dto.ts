@@ -51,7 +51,7 @@ export class UserOrgKycDto {
   @IsString()
   @IsNotEmpty()
   legalName: string;
-
+ 
   @IsString()
   @IsOptional()
   tradeName?: string;

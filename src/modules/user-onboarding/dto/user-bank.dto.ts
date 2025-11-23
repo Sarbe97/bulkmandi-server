@@ -28,6 +28,10 @@ export class UserBankDto {
   @IsNotEmpty()
   accountNumber: string;
 
+  @IsString()
+  @IsNotEmpty()
+  accountHolderName: string;
+
   @Transform(({ value }) => value?.toUpperCase())
   @IsString()
   @IsNotEmpty()
@@ -41,16 +45,20 @@ export class UserBankDto {
   bankName: string;
 
   @IsString()
-  @IsNotEmpty()
-  accountHolderName: string;
+  @IsOptional()
+  branchName?: string;
 
   @IsEnum(["SAVINGS", "CURRENT", "OD"])
   @IsOptional()
   accountType?: string;
 
   @IsString()
+  @IsNotEmpty()
+  payoutMethod: string;
+
+  @IsString()
   @IsOptional()
-  branchName?: string;
+  upiDetails: string;
 
   // Backend sets this after penny-drop verification
   @IsEnum(["PENDING", "VERIFIED", "FAILED"])

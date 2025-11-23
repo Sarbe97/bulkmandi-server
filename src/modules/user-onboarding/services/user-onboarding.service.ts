@@ -12,6 +12,7 @@ import { CustomLoggerService } from '@core/logger/custom.logger.service';
 import { KYCStatus } from '@modules/kyc/kyc-status.constants';
 import { KycAdminService } from '@modules/kyc/services/kyc-admin.service';
 import { Organization, OrganizationDocument } from '@modules/organizations/schemas/organization.schema';
+import { UserBankDto, UserOrgKycDto } from '../dto';
 
 // Define required steps per role
 const REQUIRED_STEPS_BY_ROLE = {
@@ -70,7 +71,7 @@ export class UserOnboardingService {
    */
   async updateOrgKyc(
     organizationId: string,
-    dto: any,
+    dto: UserOrgKycDto,
     userRole: UserRole,
   ): Promise<any> {
     try {
@@ -127,7 +128,7 @@ export class UserOnboardingService {
    */
   async updateBankDetails(
     organizationId: string,
-    dto: any,
+    dto: UserBankDto,
     userRole: UserRole,
   ): Promise<any> {
     try {
@@ -144,13 +145,18 @@ export class UserOnboardingService {
 
       org.primaryBankAccount = {
         accountNumber: dto.accountNumber,
+        accountHolderName: dto.accountHolderName,
         ifsc: dto.ifsc,
         bankName: dto.bankName,
-        accountHolderName: dto.accountHolderName,
-        accountType: dto.accountType,
         branchName: dto.branchName,
+        accountType: dto.accountType,
+        
+        payoutMethod: dto.payoutMethod,
+        upiDetails: dto.upiDetails,
+
         pennyDropStatus: dto.pennyDropStatus || 'PENDING',
         pennyDropScore: dto.pennyDropScore || 0,
+
         documents: (dto.documents || []).map((doc) => ({
           docType: doc.docType,
           fileName: doc.fileName,

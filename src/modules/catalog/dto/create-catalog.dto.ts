@@ -1,5 +1,5 @@
-import { Type } from 'class-transformer';
-import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { Type } from "class-transformer";
+import { IsArray, IsOptional, IsString, ValidateNested } from "class-validator";
 
 export class GradeDto {
   @IsString()
@@ -11,13 +11,15 @@ export class GradeDto {
 
 export class PlantLocationDto {
   @IsString()
-  name: string;
-
+  name?: string;
   @IsString()
-  pin: string;
-
+  city?: string;
   @IsString()
-  address: string;
+  state?: string;
+  @IsString()
+  pincode?: string;
+  @IsOptional()
+  country?: string;
 }
 
 export class CreateCatalogDto {

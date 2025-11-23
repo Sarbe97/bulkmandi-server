@@ -87,7 +87,7 @@ export class LogisticsPreference {
 
 @Schema({ _id: false })
 export class Catalog {
-  @Prop({ type: [CatalogProduct], default: [] }) catalogProduct: CatalogProduct[];
+  @Prop({ type: [CatalogProduct], default: [] }) catalogProducts: CatalogProduct[];
   @Prop({ type: [PlantLocation], default: [] }) plantLocations: PlantLocation[];
   @Prop({ type: [PriceFloor], default: [] }) priceFloors: PriceFloor[];
   @Prop({ type: LogisticsPreference }) logisticsPreference: LogisticsPreference;
