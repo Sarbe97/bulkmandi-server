@@ -37,7 +37,7 @@ export class AdminDashboardService {
     const kycBreakdown = {
       buyers: kycByRole.find(r => r._id === 'BUYER')?.count || 0,
       sellers: kycByRole.find(r => r._id === 'SELLER')?.count || 0,
-      threepl: kycByRole.find(r => r._id === '3PL')?.count || 0,
+      threepl: kycByRole.find(r => r._id === 'LOGISTIC')?.count || 0,
     };
 
     return {

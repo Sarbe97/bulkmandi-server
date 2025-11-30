@@ -37,7 +37,7 @@ export class OrgKyc {
 ///////////
 
 @Schema({ _id: false })
-export class DocumentUplod {
+export class DocumentUpload {
   @Prop() docType?: string;
   @Prop() fileName?: string;
   @Prop() fileUrl?: string;
@@ -59,7 +59,7 @@ export class BankAccount {
   @Prop() pennyDropScore?: number;
   @Prop() payoutMethod?: string;
   @Prop() upiDetails?: string;
-  @Prop({ type: [DocumentUplod], default: [] }) documents?: DocumentUplod[];
+  @Prop({ type: [DocumentUpload], default: [] }) documents?: DocumentUpload[];
   // @Prop({ type: Declarations, default: {} }) declarations?: Declarations;
 }
 
@@ -70,7 +70,7 @@ export class CatalogProduct {
   @Prop({ type: [String] }) grades: string[];
   @Prop() moqPerOrder: number;
   @Prop() stdLeadTime: number;
-@Prop({ type: [String], default: [] }) availability: string[];
+  @Prop({ type: [String], default: [] }) availability: string[];
 }
 
 @Schema({ _id: false })
@@ -91,7 +91,6 @@ export class Catalog {
   @Prop({ type: [PlantLocation], default: [] }) plantLocations: PlantLocation[];
   @Prop({ type: [PriceFloor], default: [] }) priceFloors: PriceFloor[];
   @Prop({ type: LogisticsPreference }) logisticsPreference: LogisticsPreference;
-
 }
 
 //////////////////
@@ -105,10 +104,27 @@ export class Declarations {
 
 @Schema({ _id: false })
 export class Compliance {
-  @Prop({ type: [DocumentUplod], default: [] }) documents?: DocumentUplod[];
+  @Prop({ type: [DocumentUpload], default: [] }) documents?: DocumentUpload[];
   @Prop({ type: Declarations, default: {} }) declarations?: Declarations;
 }
 
+///////////////
+
+@Schema()
+export class FleetTypeItem {
+  @Prop() type: string;
+  @Prop() label: string;
+  @Prop() vehicleCount: number;
+}
+
+@Schema()
+export class FleetAndCompliance {
+  @Prop({ type: [FleetTypeItem], default: [] }) fleetTypes: FleetTypeItem[];
+  @Prop() insuranceExpiry: Date;
+  @Prop() policyDocument: DocumentUpload; // your file schema
+  @Prop() ewayBillIntegration: string; // api | manual
+  @Prop() podMethod: string; // driver_app | pdf
+}
 ///////////
 @Schema({ timestamps: true })
 export class Organization {
@@ -146,6 +162,9 @@ export class Organization {
     notifyWhatsApp?: boolean;
     notes?: string;
   };
+
+  @Prop({ type: FleetAndCompliance, default: null })
+  fleetAndCompliance?: FleetAndCompliance;
 
   @Prop({ type: Declarations })
   declarations?: Declarations;

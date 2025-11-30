@@ -8,16 +8,17 @@ import { KYCStatus } from "@modules/kyc/kyc-status.constants";
 import { KycAdminService } from "@modules/kyc/services/kyc-admin.service";
 import { Organization, OrganizationDocument } from "@modules/organizations/schemas/organization.schema";
 import { UserBankDto, UserOrgKycDto } from "../dto";
+import { FleetAndComplianceFormDataDto } from "../dto/fleet-compliance.dto";
 
 // Define required steps per role
 const REQUIRED_STEPS_BY_ROLE = {
   [UserRole.BUYER]: ["org-kyc", "bank-details", "compliance-docs", "buyer-preferences"],
   [UserRole.SELLER]: ["org-kyc", "bank-details", "compliance-docs", "catalog"],
-  [UserRole.THREE_PL]: [
-    "org-kyc",
-    "bank-details",
-    "compliance-docs",
-    "logistics-prefs", // Future extension
+  [UserRole.LOGISTIC]: [
+    'org-kyc',
+    'bank-details',
+    'fleet-compliance',          // New step
+    'compliance-docs',
   ],
 };
 
@@ -201,6 +202,39 @@ export class UserOnboardingService {
     }
   }
 
+  async updateFleetAndCompliance(
+  organizationId: string,
+  dto: FleetAndComplianceFormDataDto,
+  userRole: UserRole,
+): Promise<any> {
+  if (userRole !== UserRole.LOGISTIC) {
+    throw new ForbiddenException('Step "fleet-compliance" is only for logistic users');
+  }
+
+  const org = await this.orgModel.findById(organizationId);
+  if (!org) throw new NotFoundException('Organization not found');
+
+  if (org.isOnboardingLocked) {
+    throw new ForbiddenException(`Cannot edit onboarding. Current status: ${org.kycStatus}.`);
+  }
+
+  // Save/update fleet & compliance data
+  org.fleetAndCompliance = {
+    fleetTypes: dto.fleetTypes,
+    insuranceExpiry: dto.insuranceExpiry,
+    policyDocument: dto.policyDocument, // handle file upload as per your system
+    ewayBillIntegration: dto.ewayBillIntegration,
+    podMethod: dto.podMethod,
+  };
+
+  if (!org.completedSteps.includes('fleet-compliance')) {
+    org.completedSteps.push('fleet-compliance');
+  }
+
+  await org.save();
+
+  return this.formatResponse(org);
+}
   // ===== ROLE-SPECIFIC STEPS =====
 
   /**
@@ -242,7 +276,7 @@ export class UserOnboardingService {
         org.catalog = dto;
       }
 
-      // Handle 3PL logistics (future)
+      // Handle LOGISTIC logistics (future)
       if (stepKey === "logistics-prefs") {
         org.catalog.logisticsPreference = dto;
       }

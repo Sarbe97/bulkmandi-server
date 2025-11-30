@@ -21,7 +21,7 @@ export class User {
   @Prop({ type: String, enum: UserRole, required: true })
   role: UserRole; // SELLER, BUYER, THREE_PL, ADMIN
 
-  // For non-admin users (SELLER, BUYER, 3PL)
+  // For non-admin users (SELLER, BUYER, LOGISTIC)
   @Prop({ type: Types.ObjectId, ref: "Organization", required: false })
   organizationId: Types.ObjectId; //
 

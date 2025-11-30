@@ -12,9 +12,10 @@ import { RolesGuard } from "@modules/auth/guards/roles.guard";
 import { DocumentHandlerService } from "@core/file/services/document-handler.service";
 import { multerOptions } from "../config/multer.config";
 import { BuyerPreferencesDto, SellerCatalogDto, UserBankDto, UserDocsDto, UserOrgKycDto } from "../dto";
+import { FleetAndComplianceFormDataDto } from "../dto/fleet-compliance.dto";
 import { UserOnboardingService } from "../services/user-onboarding.service";
 
-@ApiTags("User Onboarding (Buyer, Seller, 3PL)")
+@ApiTags("User Onboarding (Buyer, Seller, Logistic)")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller("user/onboarding")
@@ -29,7 +30,7 @@ export class UserOnboardingController {
 
   /**
    * Step 1: Update Organization KYC
-   * Works for: Buyer, Seller, 3PL
+   * Works for: Buyer, Seller, Logistic
    */
   @Put("org-kyc")
   @ApiOperation({
@@ -72,7 +73,7 @@ export class UserOnboardingController {
 
   /**
    * Step 2: Update Bank Details
-   * Works for: Buyer, Seller, 3PL
+   * Works for: Buyer, Seller, Logistic
    */
   @Put("bank-details")
   @ApiOperation({
@@ -86,7 +87,7 @@ export class UserOnboardingController {
 
   /**
    * Step 3: Update Compliance Docs
-   * Works for: Buyer, Seller, 3PL
+   * Works for: Buyer, Seller, Logistic
    */
   @Put("compliance-docs")
   @ApiOperation({
@@ -126,6 +127,11 @@ export class UserOnboardingController {
     return this.service.updateRoleSpecificStep(user.organizationId, "catalog", dto, user.role, UserRole.SELLER);
   }
 
+  @Put("fleet-compliance")
+  @UseGuards(JwtAuthGuard)
+  async updateFleetAndCompliance(@CurrentUser() user: any, @Body() dto: FleetAndComplianceFormDataDto) {
+    return this.service.updateFleetAndCompliance(user.organizationId, dto, user.role);
+  }
   // ===== COMMON SUBMISSION & STATUS ENDPOINTS =====
 
   /**

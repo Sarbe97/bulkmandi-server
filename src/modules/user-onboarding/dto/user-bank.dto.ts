@@ -1,27 +1,8 @@
 import { Transform, Type } from "class-transformer";
 import { IsArray, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Matches, Max, Min, ValidateNested } from "class-validator";
+import { DocumentDto } from "./document.dto";
 
-class DocumentDto {
-  @IsString()
-  @IsNotEmpty()
-  docType: string;
-
-  @IsString()
-  @IsNotEmpty()
-  fileName: string;
-
-  @IsString()
-  @IsNotEmpty()
-  fileUrl: string;
-
-  @IsString()
-  @IsOptional()
-  uploadedAt?: string;
-
-  @IsString()
-  @IsOptional()
-  status?: string; // UPLOADED, PENDING, VERIFIED, REJECTED
-}
+ 
 
 export class UserBankDto {
   @IsString()

@@ -194,7 +194,7 @@
               "enum": [
                 "SELLER",
                 "BUYER",
-                "3PL"
+                "LOGISTIC"
               ],
               "type": "string"
             }
@@ -467,7 +467,7 @@
         ],
         "summary": "Step 1: Update organization KYC details",
         "tags": [
-          "User Onboarding (Buyer, Seller, 3PL)"
+          "User Onboarding (Buyer, Seller, Logistic)"
         ]
       }
     },
@@ -488,7 +488,7 @@
         ],
         "summary": "Upload document to storage (Phase 1)",
         "tags": [
-          "User Onboarding (Buyer, Seller, 3PL)"
+          "User Onboarding (Buyer, Seller, Logistic)"
         ]
       }
     },
@@ -518,7 +518,7 @@
         ],
         "summary": "Delete document from storage",
         "tags": [
-          "User Onboarding (Buyer, Seller, 3PL)"
+          "User Onboarding (Buyer, Seller, Logistic)"
         ]
       }
     },
@@ -549,7 +549,7 @@
         ],
         "summary": "Step 2: Update bank account details",
         "tags": [
-          "User Onboarding (Buyer, Seller, 3PL)"
+          "User Onboarding (Buyer, Seller, Logistic)"
         ]
       }
     },
@@ -580,7 +580,7 @@
         ],
         "summary": "Step 3: Update compliance documents & declarations",
         "tags": [
-          "User Onboarding (Buyer, Seller, 3PL)"
+          "User Onboarding (Buyer, Seller, Logistic)"
         ]
       }
     },
@@ -611,7 +611,7 @@
         ],
         "summary": "Step 4 (Buyer Only): Update buyer preferences",
         "tags": [
-          "User Onboarding (Buyer, Seller, 3PL)"
+          "User Onboarding (Buyer, Seller, Logistic)"
         ]
       }
     },
@@ -642,7 +642,36 @@
         ],
         "summary": "Step 4 (Seller Only): Update product catalog and pricing",
         "tags": [
-          "User Onboarding (Buyer, Seller, 3PL)"
+          "User Onboarding (Buyer, Seller, Logistic)"
+        ]
+      }
+    },
+    "/api/v1/user/onboarding/fleet-compliance": {
+      "put": {
+        "operationId": "UserOnboardingController_updateFleetAndCompliance",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FleetAndComplianceFormDataDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "User Onboarding (Buyer, Seller, Logistic)"
         ]
       }
     },
@@ -663,7 +692,7 @@
         ],
         "summary": "Get onboarding progress",
         "tags": [
-          "User Onboarding (Buyer, Seller, 3PL)"
+          "User Onboarding (Buyer, Seller, Logistic)"
         ]
       }
     },
@@ -684,7 +713,7 @@
         ],
         "summary": "Get complete onboarding data for review",
         "tags": [
-          "User Onboarding (Buyer, Seller, 3PL)"
+          "User Onboarding (Buyer, Seller, Logistic)"
         ]
       }
     },
@@ -705,7 +734,7 @@
         ],
         "summary": "Submit onboarding for KYC verification",
         "tags": [
-          "User Onboarding (Buyer, Seller, 3PL)"
+          "User Onboarding (Buyer, Seller, Logistic)"
         ]
       }
     },
@@ -823,6 +852,10 @@
         "properties": {}
       },
       "SellerCatalogDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "FleetAndComplianceFormDataDto": {
         "type": "object",
         "properties": {}
       },

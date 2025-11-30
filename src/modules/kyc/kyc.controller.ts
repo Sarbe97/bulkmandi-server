@@ -19,7 +19,7 @@ export class KycController {
   @Get("queue")
   @ApiOperation({ summary: "Get KYC verification queue" })
   @ApiQuery({ name: "status", required: false, enum: ["SUBMITTED", "APPROVED", "REJECTED", "INFO_REQUESTED", "REVISION_REQUESTED"] })
-  @ApiQuery({ name: "role", required: false, enum: ["SELLER", "BUYER", "3PL"] })
+  @ApiQuery({ name: "role", required: false, enum: ["SELLER", "BUYER", "LOGISTIC"] })
   @ApiQuery({ name: "search", required: false, description: "Search by organization name" })
   @ApiQuery({ name: "page", required: false, type: Number, example: 1 })
   @ApiQuery({ name: "limit", required: false, type: Number, example: 20 })

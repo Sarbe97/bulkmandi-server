@@ -2,7 +2,7 @@ export enum UserRole {
   BUYER = 'BUYER',
   SELLER = 'SELLER',
   ADMIN = 'ADMIN',
-  THREE_PL = '3PL',
+  LOGISTIC  = 'LOGISTIC',
   SUPER_ADMIN = 'SUPER_ADMIN', // Optional: for senior admins
 }
 
