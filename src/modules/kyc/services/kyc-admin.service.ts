@@ -14,7 +14,7 @@ export class KycAdminService {
     @InjectModel(Organization.name) private orgModel: Model<OrganizationDocument>,
     private readonly kycHelperService: KycHelperService,
     private readonly logger: CustomLoggerService,
-  ) {}
+  ) { }
 
   // create KYC case on submission
   async createKycCaseOnSubmission(orgId: string) {
@@ -70,7 +70,7 @@ export class KycAdminService {
     kycCase.submittedData = {
       orgKyc: org.orgKyc,
       primaryBankAccount: org.primaryBankAccount,
-      compliance: org.compliance ,
+      compliance: org.compliance,
       catalog: org.catalog,
     };
 
@@ -403,8 +403,8 @@ export class KycAdminService {
       throw new NotFoundException("Organization not found");
     }
 
-    if (org.kycStatus !== KYCStatus.APPROVED) {
-      this.logger.warn(`Cannot unlock KYC with status: ${org.kycStatus}`);
+    if (kycCase.status !== KYCStatus.APPROVED) {
+      this.logger.warn(`Cannot unlock KYC with status: ${kycCase.status}`);
       throw new BadRequestException("Can only unlock approved KYC");
     }
 
@@ -414,6 +414,7 @@ export class KycAdminService {
       performedBy: adminId,
       remarks: remarks || "Revision Requested by admin",
     });
+    kycCase.status = KYCStatus.REVISION_REQUESTED;
     await kycCase.save();
     this.logger.log(`KYC case unlocked for update, caseId: ${caseId}`);
 
