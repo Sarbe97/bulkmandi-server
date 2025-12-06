@@ -3,10 +3,15 @@ import axios from 'axios';
 import { GstResponseDto } from './dto/gst-response.dto';
 import { IfscResponseDto } from './dto/ifsc-response.dto';
 import { PincodeResponseDto, PostOfficeDto } from './dto/pincode-response.dto';
+import { FLEET_TYPES_MASTER } from './constants';
 
 @Injectable()
 export class UtilityApisService {
   private readonly logger = new Logger(UtilityApisService.name);
+
+  async getFleetTypes() {
+    return FLEET_TYPES_MASTER;
+  }
 
   /**
    * Get plant location suggestions by pincode or post office name
@@ -24,7 +29,7 @@ export class UtilityApisService {
 
     try {
       const { data } = await axios.get<PincodeResponseDto[]>(url, { timeout: 10000 });
-      
+
       const first = Array.isArray(data) ? data[0] : null;
       if (!first || first.Status !== 'Success' || !Array.isArray(first.PostOffice)) {
         return [];
@@ -84,7 +89,7 @@ export class UtilityApisService {
     }
   }
 
-   async verifyPennyDrop(accountNumber: string, ifscCode: string) {
+  async verifyPennyDrop(accountNumber: string, ifscCode: string) {
     if (!accountNumber || !ifscCode) {
       throw new BadRequestException('accountNumber and ifscCode are required');
     }
@@ -97,7 +102,7 @@ export class UtilityApisService {
         username: process.env.RAZORPAY_KEY_ID,
         password: process.env.RAZORPAY_KEY_SECRET,
       };
-      
+
       const payload = {
         ifsc_code: trimmedIfsc,
         account_number: trimmedAccount,

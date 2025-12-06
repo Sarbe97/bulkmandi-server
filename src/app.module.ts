@@ -14,6 +14,7 @@ import { AdminModule } from "./modules/admin/admin.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { KycModule } from "./modules/kyc/kyc.module";
 import { OrganizationsModule } from "./modules/organizations/organizations.module";
+import { MasterDataModule } from './modules/master-data/master-data.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { OrganizationsModule } from "./modules/organizations/organizations.modul
     // AuditModule,
     // NotificationsModule,
     DocumentsModule,
+    MasterDataModule,
   ],
   controllers: [AppController],
   providers: [AppService],

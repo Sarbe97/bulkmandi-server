@@ -82,6 +82,7 @@ export class UserOnboardingService {
         incorporationDate: dto.incorporationDate,
         primaryContact: dto.primaryContact,
         plantLocations: dto.plantLocations,
+        serviceStates: dto.serviceStates,
       };
 
       if (!org.completedSteps.includes("org-kyc")) {

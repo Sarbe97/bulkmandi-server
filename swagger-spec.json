@@ -757,6 +757,32 @@
           "Admin Dashboard"
         ]
       }
+    },
+    "/api/v1/master-data/fleet-types": {
+      "get": {
+        "operationId": "MasterDataController_getFleetTypes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MasterData"
+        ]
+      },
+      "post": {
+        "operationId": "MasterDataController_addFleetType",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MasterData"
+        ]
+      }
     }
   },
   "info": {

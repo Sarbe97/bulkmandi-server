@@ -51,7 +51,7 @@ export class UserOrgKycDto {
   @IsString()
   @IsNotEmpty()
   legalName: string;
- 
+
   @IsString()
   @IsOptional()
   tradeName?: string;
@@ -88,6 +88,10 @@ export class UserOrgKycDto {
   @IsString()
   @IsOptional()
   incorporationDate?: string;
+
+  @IsOptional()
+  @IsString({ each: true })
+  serviceStates?: string[];
 
   @ValidateNested()
   @Type(() => ContactDto)

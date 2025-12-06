@@ -6,7 +6,12 @@ import { UtilityApisService } from "./utility-apis.service";
 
 @Controller("utility-apis")
 export class UtilityApisController {
-  constructor(private readonly utilityApisService: UtilityApisService) {}
+  constructor(private readonly utilityApisService: UtilityApisService) { }
+
+  @Get("fleet-types")
+  async getFleetTypes() {
+    return this.utilityApisService.getFleetTypes();
+  }
 
   @Get("plant-location-suggestions")
   async plantLocationSuggestions(@Query("q") query: string): Promise<PostOfficeDto[]> {

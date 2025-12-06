@@ -31,6 +31,7 @@ export class OrgKyc {
   @Prop() registeredAddress?: string;
   @Prop() businessType?: string;
   @Prop() incorporationDate?: string;
+  @Prop({ type: [String], default: [] }) serviceStates?: string[];
   @Prop({ type: [PlantLocation], default: [] }) plantLocations?: PlantLocation[];
   @Prop({ type: Contact }) primaryContact?: Contact;
 }
