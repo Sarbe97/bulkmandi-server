@@ -3,7 +3,9 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 import { MongooseModule } from "@nestjs/mongoose";
 import { PassportModule } from "@nestjs/passport";
- 
+
+import { IdGeneratorService } from "src/common/services/id-generator.service";
+import { KycCase, KycCaseSchema } from "../kyc/schemas/kyc.schema";
 import { Organization, OrganizationSchema } from "../organizations/schemas/organization.schema";
 import { User, UserSchema } from "../users/schemas/user.schema";
 import { AuthController } from "./auth.controller";
@@ -28,10 +30,11 @@ import { LocalStrategy } from "./strategies/local.strategy";
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Organization.name, schema: OrganizationSchema },
+      { name: KycCase.name, schema: KycCaseSchema },
     ]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy],
+  providers: [AuthService, JwtStrategy, LocalStrategy, IdGeneratorService],
   exports: [AuthService],
 })
-export class AuthModule {}
+export class AuthModule { }

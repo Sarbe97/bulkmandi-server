@@ -3,6 +3,7 @@ import { Organization, OrganizationDocument } from "@modules/organizations/schem
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, PipelineStage, Types } from "mongoose";
+import { IdGeneratorService } from "src/common/services/id-generator.service";
 import { KYCStatus } from "../kyc-status.constants";
 import { KycCase, KycCaseDocument } from "../schemas/kyc.schema";
 import { KycHelperService } from "./kyc.helper.service";
@@ -14,6 +15,7 @@ export class KycAdminService {
     @InjectModel(Organization.name) private orgModel: Model<OrganizationDocument>,
     private readonly kycHelperService: KycHelperService,
     private readonly logger: CustomLoggerService,
+    private readonly idGenerator: IdGeneratorService, // ✅ Inject ID generator
   ) { }
 
   // create KYC case on submission
@@ -26,16 +28,32 @@ export class KycAdminService {
       throw new NotFoundException("Organization not found");
     }
 
+    // ✅ Ensure organization has orgCode (for new ID system)
+    if (!org.orgCode) {
+      this.logger.warn(`Organization ${orgId} is missing orgCode. Generating one now...`);
+      // Generate orgCode if missing (for existing orgs)
+      org.orgCode = await this.idGenerator.generateOrgCode(org.role);
+      await org.save();
+      this.logger.log(`Generated orgCode ${org.orgCode} for organization ${orgId}`);
+    }
+
     const count = await this.kycCaseModel.countDocuments({ organizationId: new Types.ObjectId(orgId) });
     this.logger.log(`Existing submissions count for orgId ${orgId}: ${count}`);
 
     const submissionAttempt = count + 1;
-    const submissionNumber = `KYC-${org.orgId}-${String(submissionAttempt).padStart(3, "0")}`;
-    this.logger.log(`Generated submissionNumber: ${submissionNumber}`);
+
+    // ✅ Generate business-friendly caseCode
+    const caseCode = await this.idGenerator.generateCaseCode(org.orgCode, submissionAttempt);
+
+    // Keep submissionNumber for backward compatibility (set same as caseCode)
+    const submissionNumber = caseCode;
+
+    this.logger.log(`Generated caseCode: ${caseCode}, submissionAttempt: ${submissionAttempt}`);
 
     const kycCase = new this.kycCaseModel({
       organizationId: new Types.ObjectId(orgId),
-      submissionNumber,
+      organizationCode: org.orgCode,
+      caseCode,
       status: KYCStatus.SUBMITTED,
       submittedData: {
         orgKyc: org.orgKyc,
@@ -54,7 +72,7 @@ export class KycAdminService {
       ],
     });
 
-    this.logger.log(`Saving new KYC case for orgId: ${orgId}`);
+    this.logger.log(`Saving new KYC case for orgCode: ${org.orgCode}`);
     return kycCase.save();
   }
 
@@ -162,11 +180,12 @@ export class KycAdminService {
       const org = kycCase.organizationId as any;
 
       return {
-        caseId: kycCase._id.toString(),
-        submissionNumber: kycCase.submissionNumber,
-        organizationId: org?._id?.toString(),
+        caseId: kycCase.caseCode,
+        caseCode: kycCase.caseCode,
+        organizationId: org?.orgCode,
+        organizationCode: org?.orgCode,
         orgName: snapshot?.orgKyc?.legalName || org?.legalName,
-        role: org?.role, // << fixed
+        role: org?.role,
         gstin: snapshot?.orgKyc?.gstin || "N/A",
         pan: snapshot?.orgKyc?.pan || "N/A",
         bankVerified: snapshot?.primaryBankAccount?.pennyDropStatus === "VERIFIED",
@@ -190,12 +209,20 @@ export class KycAdminService {
     };
   }
 
-  async getKycCaseDetail(caseId: string) {
-    this.logger.log(`getKycCaseDetail called with caseId: ${caseId}`);
+  async getKycCaseDetail(caseIdOrCode: string) {
+    this.logger.log(`getKycCaseDetail called with identifier: ${caseIdOrCode}`);
 
-    const kycCase = await this.kycCaseModel.findById(caseId).populate("organizationId").lean();
+    // ✅ Try to find by caseCode first, then by MongoDB _id for backward compatibility
+    let kycCase = await this.kycCaseModel.findOne({ caseCode: caseIdOrCode }).populate("organizationId").lean();
+
+    if (!kycCase && Types.ObjectId.isValid(caseIdOrCode)) {
+      // Fallback to MongoDB _id for backward compatibility
+      this.logger.log(`caseCode not found, trying MongoDB ObjectId: ${caseIdOrCode}`);
+      kycCase = await this.kycCaseModel.findById(caseIdOrCode).populate("organizationId").lean();
+    }
+
     if (!kycCase) {
-      this.logger.warn(`KYC case not found for caseId: ${caseId}`);
+      this.logger.warn(`KYC case not found for identifier: ${caseIdOrCode}`);
       throw new NotFoundException("KYC case not found");
     }
 
@@ -209,16 +236,16 @@ export class KycAdminService {
       addressVerified: !!org.orgKyc?.registeredAddress,
     };
 
-    this.logger.log(`Auto checks completed for caseId: ${caseId}`);
+    this.logger.log(`Auto checks completed for caseCode: ${caseIdOrCode}`);
 
     const riskAssessment = this.kycHelperService.assessRisk(org);
 
-    this.logger.log(`Risk assessment done for caseId: ${caseId}, level: ${riskAssessment.level}`);
+    this.logger.log(`Risk assessment done for caseCode: ${caseIdOrCode}, level: ${riskAssessment.level}`);
 
     return {
       case: {
-        caseId: kycCase._id,
-        submissionNumber: kycCase.submissionNumber,
+        caseId: kycCase.caseCode,
+        caseCode: kycCase.caseCode,
         status: kycCase.status,
         submittedAt: kycCase.createdAt,
         age: this.kycHelperService.calculateAge(kycCase.createdAt),
@@ -228,8 +255,8 @@ export class KycAdminService {
         },
       },
       organization: {
-        id: org._id,
-        orgId: org.orgId,
+        id: org.orgCode,
+        orgCode: org.orgCode,
         legalName: org.legalName,
         tradeName: org.orgKyc?.tradeName,
         role: org.role,
@@ -268,12 +295,18 @@ export class KycAdminService {
   /**
    * Approve KYC case
    */
-  async approveKycCase(caseId: string, adminId: string, remarks?: string) {
-    this.logger.log(`approveKycCase called for caseId: ${caseId} by admin: ${adminId}`);
+  async approveKycCase(caseIdOrCode: string, adminId: string, remarks?: string) {
+    this.logger.log(`approveKycCase called for identifier: ${caseIdOrCode} by admin: ${adminId}`);
 
-    const kycCase = await this.kycCaseModel.findById(caseId);
+    // ✅ Try to find by caseCode first, then by MongoDB _id
+    let kycCase = await this.kycCaseModel.findOne({ caseCode: caseIdOrCode });
+
+    if (!kycCase && Types.ObjectId.isValid(caseIdOrCode)) {
+      kycCase = await this.kycCaseModel.findById(caseIdOrCode);
+    }
+
     if (!kycCase) {
-      this.logger.warn(`KYC case not found for approval, caseId: ${caseId}`);
+      this.logger.warn(`KYC case not found for approval, identifier: ${caseIdOrCode}`);
       throw new NotFoundException("KYC case not found");
     }
 
@@ -284,7 +317,7 @@ export class KycAdminService {
 
     const org = await this.orgModel.findById(kycCase.organizationId);
     if (!org) {
-      this.logger.warn(`Organization not found for caseId: ${caseId}`);
+      this.logger.warn(`Organization not found for caseCode: ${caseIdOrCode}`);
       throw new NotFoundException("Organization not found");
     }
 
@@ -298,7 +331,7 @@ export class KycAdminService {
       remarks: remarks || "KYC approved by admin",
     });
     await kycCase.save();
-    this.logger.log(`KYC case approved and saved, caseId: ${caseId}`);
+    this.logger.log(`KYC case approved and saved, caseCode: ${kycCase.caseCode}`);
 
     org.kycStatus = "APPROVED";
     org.isVerified = true;
@@ -307,17 +340,19 @@ export class KycAdminService {
     org.kycApprovedBy = adminId;
     org.rejectionReason = undefined; // Clear any previous rejection
     await org.save();
-    this.logger.log(`Organization updated after KYC approval, orgId: ${org._id}`);
+    this.logger.log(`Organization updated after KYC approval, orgCode: ${org.orgCode}`);
 
     return {
       message: "KYC case approved successfully",
       kycCase: {
-        id: kycCase._id,
+        id: kycCase.caseCode,
+        caseCode: kycCase.caseCode,
         status: kycCase.status,
         reviewedAt: kycCase.reviewedAt,
       },
       organization: {
-        id: org._id,
+        id: org.orgCode,
+        orgCode: org.orgCode,
         kycStatus: org.kycStatus,
         isVerified: org.isVerified,
       },
@@ -327,17 +362,23 @@ export class KycAdminService {
   /**
    * Reject KYC case
    */
-  async rejectKycCase(caseId: string, adminId: string, rejectionReason: string) {
-    this.logger.log(`rejectKycCase called for caseId: ${caseId} by admin: ${adminId}`);
+  async rejectKycCase(caseIdOrCode: string, adminId: string, rejectionReason: string) {
+    this.logger.log(`rejectKycCase called for identifier: ${caseIdOrCode} by admin: ${adminId}`);
 
     if (!rejectionReason || rejectionReason.trim().length === 0) {
       this.logger.warn("Rejection reason missing");
       throw new BadRequestException("Rejection reason is required");
     }
 
-    const kycCase = await this.kycCaseModel.findById(caseId);
+    // ✅ Try to find by caseCode first, then by MongoDB _id
+    let kycCase = await this.kycCaseModel.findOne({ caseCode: caseIdOrCode });
+
+    if (!kycCase && Types.ObjectId.isValid(caseIdOrCode)) {
+      kycCase = await this.kycCaseModel.findById(caseIdOrCode);
+    }
+
     if (!kycCase) {
-      this.logger.warn(`KYC case not found for rejection, caseId: ${caseId}`);
+      this.logger.warn(`KYC case not found for rejection, identifier: ${caseIdOrCode}`);
       throw new NotFoundException("KYC case not found");
     }
     console.log("kycCase found");
@@ -349,7 +390,7 @@ export class KycAdminService {
 
     const org = await this.orgModel.findById(new Types.ObjectId(kycCase.organizationId));
     if (!org) {
-      this.logger.warn(`Organization not found for caseId: ${caseId}`);
+      this.logger.warn(`Organization not found for case: ${caseIdOrCode}`);
       throw new NotFoundException("Organization not found");
     }
     console.log("org found");
@@ -365,43 +406,47 @@ export class KycAdminService {
       remarks: rejectionReason,
     });
     await kycCase.save();
-    this.logger.log(`KYC case rejected and saved, caseId: ${caseId}`);
+    this.logger.log(`KYC case rejected and saved, caseCode: ${kycCase.caseCode}`);
 
     org.kycStatus = "REJECTED";
     org.rejectionReason = rejectionReason;
     org.isOnboardingLocked = false;
     org.isVerified = false;
     await org.save();
-    this.logger.log(`Organization updated after KYC rejection, orgId: ${org._id}`);
+    this.logger.log(`Organization updated after KYC rejection, orgCode: ${org.orgCode}`);
 
     return {
       message: "KYC case rejected successfully",
       kycCase: {
-        id: kycCase._id,
+        id: kycCase.caseCode || kycCase._id.toString(), // ✅ Business-friendly ID
+        caseCode: kycCase.caseCode,
         status: kycCase.status,
         rejectionReason: kycCase.rejectionReason,
         reviewedAt: kycCase.reviewedAt,
+        _internalId: kycCase._id.toString(),
       },
       organization: {
-        id: org._id,
+        id: org.orgCode || org._id.toString(), // ✅ Business-friendly ID
+        orgCode: org.orgCode,
         kycStatus: org.kycStatus,
         rejectionReason: org.rejectionReason,
+        _internalId: org._id.toString(),
       },
     };
   }
 
-  async unlockForUpdate(caseId: string, adminId: string, remarks: string) {
-    this.logger.log(`unlockForUpdate called for caseId: ${caseId} by admin: ${adminId}`);
+  async unlockForUpdate(caseCode: string, adminId: string, remarks: string) {
+    this.logger.log(`unlockForUpdate called for caseCode: ${caseCode} by admin: ${adminId}`);
 
-    const kycCase = await this.kycCaseModel.findById(caseId);
+    const kycCase = await this.kycCaseModel.findOne({ caseCode });
     if (!kycCase) {
-      this.logger.warn(`KYC case not found for unlocking, caseId: ${caseId}`);
+      this.logger.warn(`KYC case not found for unlocking, caseCode: ${caseCode}`);
       throw new NotFoundException("KYC case not found");
     }
 
     const org = await this.orgModel.findById(kycCase.organizationId);
     if (!org) {
-      this.logger.warn(`Organization not found for unlocking, caseId: ${caseId}`);
+      this.logger.warn(`Organization not found for unlocking, caseCode: ${caseCode}`);
       throw new NotFoundException("Organization not found");
     }
 
@@ -418,7 +463,7 @@ export class KycAdminService {
     });
     kycCase.status = KYCStatus.REVISION_REQUESTED;
     await kycCase.save();
-    this.logger.log(`KYC case unlocked for update, caseId: ${caseId}`);
+    this.logger.log(`KYC case unlocked for update, caseCode: ${caseCode}`);
 
     org.isOnboardingLocked = false;
     org.kycStatus = KYCStatus.REVISION_REQUESTED;
@@ -435,18 +480,18 @@ export class KycAdminService {
   /**
    * Request more information
    */
-  async requestMoreInfo(caseId: string, adminId: string, message: string, fields: string[]) {
-    this.logger.log(`requestMoreInfo called for caseId: ${caseId} by admin: ${adminId} with fields: ${fields.join(", ")}`);
+  async requestMoreInfo(caseCode: string, adminId: string, message: string, fields: string[]) {
+    this.logger.log(`requestMoreInfo called for caseCode: ${caseCode} by admin: ${adminId} with fields: ${fields.join(", ")}`);
 
-    const kycCase = await this.kycCaseModel.findById(caseId);
+    const kycCase = await this.kycCaseModel.findOne({ caseCode });
     if (!kycCase) {
-      this.logger.warn(`KYC case not found for info request, caseId: ${caseId}`);
+      this.logger.warn(`KYC case not found for info request, caseCode: ${caseCode}`);
       throw new NotFoundException("KYC case not found");
     }
 
     const org = await this.orgModel.findById(kycCase.organizationId);
     if (!org) {
-      this.logger.warn(`Organization not found for info request, caseId: ${caseId}`);
+      this.logger.warn(`Organization not found for info request, caseCode: ${caseCode}`);
       throw new NotFoundException("Organization not found");
     }
 
@@ -458,7 +503,7 @@ export class KycAdminService {
       remarks: `Fields: ${fields.join(", ")}. Message: ${message}`,
     });
     await kycCase.save();
-    this.logger.log(`Information requested saved for caseId: ${caseId}`);
+    this.logger.log(`Information requested saved for caseCode: ${caseCode}`);
 
     org.isOnboardingLocked = false;
     org.kycStatus = KYCStatus.INFO_REQUESTED;
@@ -475,12 +520,12 @@ export class KycAdminService {
   /**
    * Add to watchlist
    */
-  async addToWatchlist(caseId: string, adminId: string, reason: string, tags: string[]) {
-    this.logger.log(`addToWatchlist called for caseId: ${caseId} by admin: ${adminId}`);
+  async addToWatchlist(caseCode: string, adminId: string, reason: string, tags: string[]) {
+    this.logger.log(`addToWatchlist called for caseCode: ${caseCode} by admin: ${adminId}`);
 
-    const kycCase = await this.kycCaseModel.findById(caseId);
+    const kycCase = await this.kycCaseModel.findOne({ caseCode });
     if (!kycCase) {
-      this.logger.warn(`KYC case not found for watchlist addition, caseId: ${caseId}`);
+      this.logger.warn(`KYC case not found for watchlist addition, caseCode: ${caseCode}`);
       throw new NotFoundException("KYC case not found");
     }
 
@@ -492,7 +537,7 @@ export class KycAdminService {
     });
     await kycCase.save();
 
-    this.logger.log(`KYC case added to watchlist, caseId: ${caseId}`);
+    this.logger.log(`KYC case added to watchlist, caseCode: ${caseCode}`);
 
     return {
       message: "Organization added to watchlist",
@@ -504,19 +549,17 @@ export class KycAdminService {
   /**
    * Get KYC case history - already logged internally
    */
-  async getKycCaseHistory(orgId: string) {
-    this.logger.log(`getKycCaseHistory called for orgId: ${orgId}`);
-
-    const orgObjId = new Types.ObjectId(orgId);
+  async getKycCaseHistory(orgCode: string) {
+    this.logger.log(`getKycCaseHistory called for orgCode: ${orgCode}`);
 
     const cases = await this.kycCaseModel
-      .find({ organizationId: orgObjId })
-      .sort({ createdAt: -1 }) // newest first
+      .find({ organizationCode: orgCode })
+      .sort({ createdAt: -1 })
       .lean();
 
     return cases.map((c) => ({
-      caseId: c._id.toString(),
-      submissionNumber: c.submissionNumber,
+      caseId: c.caseCode,
+      caseCode: c.caseCode,
       status: c.status,
       submissionAttempt: c.submissionAttempt,
       submittedAt: c.createdAt,

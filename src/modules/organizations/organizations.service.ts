@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { CustomLoggerService } from "src/core/logger/custom.logger.service";
+import { IdGeneratorService } from "src/common/services/id-generator.service";
 import { Organization, OrganizationDocument } from "./schemas/organization.schema";
 
 /**
@@ -17,7 +18,8 @@ export class OrganizationsService {
     @InjectModel(Organization.name)
     private orgModel: Model<OrganizationDocument>,
     private readonly logger: CustomLoggerService,
-  ) {}
+    private readonly idGenerator: IdGeneratorService, // ✅ Inject ID generator
+  ) { }
 
   /**
    * Create a new organization
@@ -26,8 +28,12 @@ export class OrganizationsService {
     try {
       this.logger.log("Creating organization", "OrganizationsService.createOrganization");
 
+      // ✅ Generate unique orgCode based on role
+      const orgCode = await this.idGenerator.generateOrgCode(data.role);
+
       const org = new this.orgModel({
         ...data,
+        orgCode, // ✅ Set generated orgCode
         kycStatus: "DRAFT",
         isOnboardingLocked: false,
         completedSteps: [],
@@ -35,7 +41,11 @@ export class OrganizationsService {
 
       const savedOrg = await org.save();
 
-      this.logger.log(`Organization created with id ${savedOrg._id}`, "OrganizationsService.createOrganization");
+      this.logger.log(
+        `Organization created with orgCode ${savedOrg.orgCode} (_id: ${savedOrg._id})`,
+        "OrganizationsService.createOrganization"
+      );
+
       return savedOrg;
     } catch (error) {
       this.logger.log(`Error creating organization: ${error.message}`, "OrganizationsService.createOrganization");
@@ -77,6 +87,25 @@ export class OrganizationsService {
       return org;
     } catch (error) {
       this.logger.log(`Error fetching organization by orgId ${orgId}: ${error.message}`, "OrganizationsService.getOrganizationByOrgId");
+      throw error;
+    }
+  }
+
+  /**
+   * ✅ NEW: Get organization by business-friendly orgCode
+   */
+  async getOrganizationByCode(orgCode: string): Promise<OrganizationDocument> {
+    try {
+      this.logger.log(`Fetching organization by orgCode: ${orgCode}`, "OrganizationsService.getOrganizationByCode");
+
+      const org = await this.orgModel.findOne({ orgCode });
+      if (!org) {
+        this.logger.log(`Organization not found with orgCode: ${orgCode}`, "OrganizationsService.getOrganizationByCode");
+        throw new NotFoundException("Organization not found");
+      }
+      return org;
+    } catch (error) {
+      this.logger.log(`Error fetching organization by orgCode ${orgCode}: ${error.message}`, "OrganizationsService.getOrganizationByCode");
       throw error;
     }
   }

@@ -4,6 +4,7 @@ import { InjectModel } from "@nestjs/mongoose";
 import * as bcrypt from "bcrypt";
 import { Model } from "mongoose";
 import { UserRole } from "src/common/enums";
+import { IdGeneratorService } from "src/common/services/id-generator.service";
 import { Organization, OrganizationDocument } from "../organizations/schemas/organization.schema";
 import { User, UserDocument } from "../users/schemas/user.schema";
 
@@ -16,6 +17,7 @@ export class AuthService {
     @InjectModel(Organization.name)
     private organizationModel: Model<OrganizationDocument>,
     private jwtService: JwtService,
+    private idGenerator: IdGeneratorService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -130,13 +132,12 @@ export class AuthService {
       throw new ConflictException("Mobile number already exists. Please use a different mobile number.");
     }
 
-    // Generate unique orgId
-    const orgCount = await this.organizationModel.countDocuments();
-    const orgId = `ORG-${String(orgCount + 1).padStart(6, "0")}`;
+    // Generate orgCode
+    const orgCode = await this.idGenerator.generateOrgCode(role as UserRole);
 
     // Create organization
     const organization = new this.organizationModel({
-      orgId,
+      orgCode,
       legalName: organizationName,
       role,
       completedSteps: [],
@@ -177,30 +178,30 @@ export class AuthService {
         email: savedUser.email,
         role: savedUser.role,
         organizationId: savedOrg._id.toString(),
-        orgId: savedOrg.orgId,
+        orgCode: savedOrg.orgCode,
       },
     };
   }
 
   async refreshAccessToken(refreshToken: string) {
-  try {
-    const payload = this.jwtService.verify(refreshToken);
-    
-    // Optional: Check if refresh token is revoked or invalidated here
+    try {
+      const payload = this.jwtService.verify(refreshToken);
 
-    // Remove fields that should not be re-signed if any
-    const { iat, exp, nbf, ...rest } = payload;
+      // Optional: Check if refresh token is revoked or invalidated here
 
-    // Generate and return new access token with shorter expiry
-    const accessToken = this.jwtService.sign(rest, {
-      expiresIn: '15m', // Same expiry as in login
-    });
+      // Remove fields that should not be re-signed if any
+      const { iat, exp, nbf, ...rest } = payload;
 
-    return { accessToken };
-  } catch (err) {
-    throw new UnauthorizedException('Invalid refresh token');
+      // Generate and return new access token with shorter expiry
+      const accessToken = this.jwtService.sign(rest, {
+        expiresIn: '15m', // Same expiry as in login
+      });
+
+      return { accessToken };
+    } catch (err) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
   }
-}
 
   // ADMIN ONLY: Create first admin user
   async seedFirstAdmin() {

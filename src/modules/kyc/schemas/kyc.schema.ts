@@ -5,14 +5,14 @@ export type KycCaseDocument = KycCase & Document;
 
 @Schema({ timestamps: true })
 export class KycCase {
-  @Prop({ required: true, type: Types.ObjectId, ref: "Organization" })
+  @Prop({ required: true, type: Types.ObjectId, ref: "Organization", index: true })
   organizationId: Types.ObjectId;
 
-  @Prop({})
-  orgId: string;
+  @Prop({ required: true, index: true })
+  organizationCode!: string; // Denormalized from Organization.orgCode
 
-  @Prop({ required: true })
-  submissionNumber: string; // KYC-ORG_ID-001
+  @Prop({ required: true, unique: true, index: true })
+  caseCode!: string; // Format: KYC-{ORG_CODE}-{ATTEMPT} e.g., KYC-ORG-SEL-000123-001
 
   @Prop({ default: "DRAFT" })
   status: string; // DRAFT, SUBMITTED, APPROVED, REJECTED, RESUBMITTED, REVISION_REQUESTED
@@ -57,4 +57,5 @@ export class KycCase {
 
 export const KycCaseSchema = SchemaFactory.createForClass(KycCase);
 KycCaseSchema.index({ organizationId: 1, status: 1 });
-KycCaseSchema.index({ submissionNumber: 1 });
+// KycCaseSchema.index({ caseCode: 1 }, { unique: true });
+KycCaseSchema.index({ organizationCode: 1, submissionAttempt: -1 });

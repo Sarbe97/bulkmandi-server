@@ -14,7 +14,7 @@ export class KycController {
   constructor(
     private readonly kycAdminService: KycAdminService,
     private readonly logger: CustomLoggerService,
-  ) {}
+  ) { }
 
   @Get("queue")
   @ApiOperation({ summary: "Get KYC verification queue" })
@@ -28,31 +28,51 @@ export class KycController {
     return this.kycAdminService.getKycQueue(filters);
   }
 
-  @Get("case/:caseId")
+  @Get("case/:caseIdOrCode")
   @ApiOperation({ summary: "Get detailed KYC case information" })
-  @ApiParam({ name: "caseId", description: "KYC Case ID" })
-  async getCaseDetail(@Param("caseId") caseId: string) {
-    this.logger.log(`GET /admin/kyc/case/${caseId} called`, "KycController");
-    return this.kycAdminService.getKycCaseDetail(caseId);
+  @ApiParam({
+    name: "caseIdOrCode",
+    description: "KYC Case Code (e.g., KYC-ORG-SEL-000123-001) or MongoDB ObjectId for backward compatibility",
+    example: "KYC-ORG-SEL-000123-001"
+  })
+  async getCaseDetail(@Param("caseIdOrCode") caseIdOrCode: string) {
+    this.logger.log(`GET /admin/kyc/case/${caseIdOrCode} called`, "KycController");
+    return this.kycAdminService.getKycCaseDetail(caseIdOrCode);
   }
 
-  @Post("case/:caseId/approve")
+  @Post("case/:caseIdOrCode/approve")
   @ApiOperation({ summary: "Approve KYC case" })
-  @ApiParam({ name: "caseId", description: "KYC Case ID" })
-  async approveCase(@Param("caseId") caseId: string, @CurrentUser() user: any, @Body() body: { remarks?: string }) {
-    this.logger.log(`POST /admin/kyc/case/${caseId}/approve called by userId: ${user.userId} with remarks: ${body.remarks}`, "KycController");
-    return this.kycAdminService.approveKycCase(caseId, user.userId, body.remarks);
+  @ApiParam({
+    name: "caseIdOrCode",
+    description: "KYC Case Code or MongoDB ObjectId",
+    example: "KYC-ORG-SEL-000123-001"
+  })
+  async approveCase(
+    @Param("caseIdOrCode") caseIdOrCode: string,
+    @CurrentUser() user: any,
+    @Body() body: { remarks?: string }
+  ) {
+    this.logger.log(`POST /admin/kyc/case/${caseIdOrCode}/approve called by userId: ${user.userId} with remarks: ${body.remarks}`, "KycController");
+    return this.kycAdminService.approveKycCase(caseIdOrCode, user.userId, body.remarks);
   }
 
-  @Post("case/:caseId/reject")
+  @Post("case/:caseIdOrCode/reject")
   @ApiOperation({ summary: "Reject KYC case" })
-  @ApiParam({ name: "caseId", description: "KYC Case ID" })
-  async rejectCase(@Param("caseId") caseId: string, @CurrentUser() user: any, @Body() body: { rejectionReason: string }) {
+  @ApiParam({
+    name: "caseIdOrCode",
+    description: "KYC Case Code or MongoDB ObjectId",
+    example: "KYC-ORG-SEL-000123-001"
+  })
+  async rejectCase(
+    @Param("caseIdOrCode") caseIdOrCode: string,
+    @CurrentUser() user: any,
+    @Body() body: { rejectionReason: string }
+  ) {
     this.logger.log(
-      `POST /admin/kyc/case/${caseId}/reject called by userId: ${user.userId} with rejectionReason: ${body.rejectionReason}`,
+      `POST /admin/kyc/case/${caseIdOrCode}/reject called by userId: ${user.userId} with rejectionReason: ${body.rejectionReason}`,
       "KycController",
     );
-    return this.kycAdminService.rejectKycCase(caseId, user.userId, body.rejectionReason);
+    return this.kycAdminService.rejectKycCase(caseIdOrCode, user.userId, body.rejectionReason);
   }
 
   @Post("case/:caseId/request-info")

@@ -396,8 +396,8 @@ export class UserOnboardingService {
         success: true,
         message: `${userRole} onboarding submitted for verification`,
         kycCase: {
-          id: kycCase._id.toString(),
-          submissionNumber: kycCase.submissionNumber,
+          id: kycCase.caseCode,
+          caseCode: kycCase.caseCode,
           status: kycCase.status,
         },
       };
@@ -414,8 +414,8 @@ export class UserOnboardingService {
    */
   private formatResponse(org: OrganizationDocument): any {
     return {
-      organizationId: org._id.toString(),
-      orgId: org.orgId,
+      organizationId: org.orgCode || org._id.toString(), // ✅ Return business-friendly ID (fallback to ObjectId)
+      orgCode: org.orgCode, // ✅ Explicit business-friendly code
       legalName: org.legalName,
       role: org.role,
       kycStatus: org.kycStatus,

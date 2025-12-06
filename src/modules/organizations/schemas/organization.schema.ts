@@ -144,13 +144,13 @@ export class FleetAndCompliance {
 ///////////
 @Schema({ timestamps: true })
 export class Organization {
-  @Prop({ required: false, unique: true })
-  orgId?: string;
+  @Prop({ required: true, unique: true, index: true })
+  orgCode!: string; // Format: ORG-{ROLE}-{SEQUENCE} e.g., ORG-SEL-000123
 
   @Prop({ required: true })
   legalName!: string;
 
-  @Prop({ type: String, enum: UserRole })
+  @Prop({ type: String, enum: UserRole, required: true })
   role!: UserRole;
 
   @Prop({ type: OrgKyc })

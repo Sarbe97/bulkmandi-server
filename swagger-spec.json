@@ -231,16 +231,17 @@
         ]
       }
     },
-    "/api/v1/admin/kyc/case/{caseId}": {
+    "/api/v1/admin/kyc/case/{caseIdOrCode}": {
       "get": {
         "operationId": "KycController_getCaseDetail",
         "parameters": [
           {
-            "name": "caseId",
+            "name": "caseIdOrCode",
             "required": true,
             "in": "path",
-            "description": "KYC Case ID",
+            "description": "KYC Case Code (e.g., KYC-ORG-SEL-000123-001) or MongoDB ObjectId for backward compatibility",
             "schema": {
+              "example": "KYC-ORG-SEL-000123-001",
               "type": "string"
             }
           }
@@ -261,16 +262,17 @@
         ]
       }
     },
-    "/api/v1/admin/kyc/case/{caseId}/approve": {
+    "/api/v1/admin/kyc/case/{caseIdOrCode}/approve": {
       "post": {
         "operationId": "KycController_approveCase",
         "parameters": [
           {
-            "name": "caseId",
+            "name": "caseIdOrCode",
             "required": true,
             "in": "path",
-            "description": "KYC Case ID",
+            "description": "KYC Case Code or MongoDB ObjectId",
             "schema": {
+              "example": "KYC-ORG-SEL-000123-001",
               "type": "string"
             }
           }
@@ -291,16 +293,17 @@
         ]
       }
     },
-    "/api/v1/admin/kyc/case/{caseId}/reject": {
+    "/api/v1/admin/kyc/case/{caseIdOrCode}/reject": {
       "post": {
         "operationId": "KycController_rejectCase",
         "parameters": [
           {
-            "name": "caseId",
+            "name": "caseIdOrCode",
             "required": true,
             "in": "path",
-            "description": "KYC Case ID",
+            "description": "KYC Case Code or MongoDB ObjectId",
             "schema": {
+              "example": "KYC-ORG-SEL-000123-001",
               "type": "string"
             }
           }

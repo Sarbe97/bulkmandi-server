@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { IdGeneratorService } from '../../common/services/id-generator.service';
 import {
   Organization,
   OrganizationSchema,
@@ -18,7 +19,7 @@ import { KycCaseService } from './services/kyc.service';
     ]),
   ],
   controllers: [KycController],
-  providers: [KycCaseService, KycAdminService,KycHelperService],
+  providers: [KycCaseService, KycAdminService, KycHelperService, IdGeneratorService], // ✅ Added IdGeneratorService
   exports: [KycCaseService, KycAdminService, MongooseModule],
 })
-export class KycModule {}
+export class KycModule { }
