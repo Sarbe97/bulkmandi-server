@@ -10,7 +10,6 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { UserOnboardingModule } from "@modules/user-onboarding/user-onboarding.module";
 import { CoreModule } from "./core/core.module";
 import { DatabaseModule } from "./core/database/database.module";
-import { ThreePLModule } from "./modules/3pl/3pl.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { KycModule } from "./modules/kyc/kyc.module";
@@ -41,7 +40,7 @@ import { OrganizationsModule } from "./modules/organizations/organizations.modul
     // SellerModule,
     UserOnboardingModule,
     AdminModule,
-    ThreePLModule,
+    // ThreePLModule,
     // AuditModule,
     // NotificationsModule,
     DocumentsModule,
@@ -49,4 +48,4 @@ import { OrganizationsModule } from "./modules/organizations/organizations.modul
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

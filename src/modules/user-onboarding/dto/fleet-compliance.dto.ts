@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsDateString, IsEnum, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { ArrayMinSize, IsArray, IsEnum, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { DocumentDto } from './document.dto';
 
 export type FleetTypeOption = '20t_open' | '25t_trailer' | 'covered_16t' | string;
@@ -11,6 +11,8 @@ export class FleetTypeItemDto {
   @IsString()
   label: string;
 
+  @IsNumber()
+  @Min(0)
   vehicleCount: number;
 }
 
@@ -21,8 +23,8 @@ export class FleetAndComplianceFormDataDto {
   @ArrayMinSize(1)
   fleetTypes: FleetTypeItemDto[];
 
-  @IsDateString()
-  insuranceExpiry: Date;
+  @IsString()
+  insuranceExpiry: string;
 
   @IsOptional()
   @ValidateNested()

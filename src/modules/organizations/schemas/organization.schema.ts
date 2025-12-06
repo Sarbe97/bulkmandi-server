@@ -6,7 +6,7 @@ export type OrganizationDocument = Organization & Document;
 
 @Schema({ _id: false })
 export class PlantLocation {
-  @Prop() street?: string;
+  @Prop() name?: string;
   @Prop() city?: string;
   @Prop() state?: string;
   @Prop() pincode?: string;
@@ -120,7 +120,7 @@ export class FleetTypeItem {
 @Schema()
 export class FleetAndCompliance {
   @Prop({ type: [FleetTypeItem], default: [] }) fleetTypes: FleetTypeItem[];
-  @Prop() insuranceExpiry: Date;
+  @Prop() insuranceExpiry: string;
   @Prop() policyDocument: DocumentUpload; // your file schema
   @Prop() ewayBillIntegration: string; // api | manual
   @Prop() podMethod: string; // driver_app | pdf

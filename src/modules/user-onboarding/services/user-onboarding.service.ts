@@ -29,7 +29,7 @@ export class UserOnboardingService {
     private readonly orgModel: Model<OrganizationDocument>,
     private readonly kycAdminService: KycAdminService,
     private readonly logger: CustomLoggerService,
-  ) {}
+  ) { }
 
   /**
    * Helper: Check if user can edit (onboarding not locked)
@@ -203,38 +203,38 @@ export class UserOnboardingService {
   }
 
   async updateFleetAndCompliance(
-  organizationId: string,
-  dto: FleetAndComplianceFormDataDto,
-  userRole: UserRole,
-): Promise<any> {
-  if (userRole !== UserRole.LOGISTIC) {
-    throw new ForbiddenException('Step "fleet-compliance" is only for logistic users');
+    organizationId: string,
+    dto: FleetAndComplianceFormDataDto,
+    userRole: UserRole,
+  ): Promise<any> {
+    if (userRole !== UserRole.LOGISTIC) {
+      throw new ForbiddenException('Step "fleet-compliance" is only for logistic users');
+    }
+
+    const org = await this.orgModel.findById(organizationId);
+    if (!org) throw new NotFoundException('Organization not found');
+
+    if (org.isOnboardingLocked) {
+      throw new ForbiddenException(`Cannot edit onboarding. Current status: ${org.kycStatus}.`);
+    }
+
+    // Save/update fleet & compliance data
+    org.fleetAndCompliance = {
+      fleetTypes: dto.fleetTypes,
+      insuranceExpiry: dto.insuranceExpiry,
+      policyDocument: dto.policyDocument, // handle file upload as per your system
+      ewayBillIntegration: dto.ewayBillIntegration,
+      podMethod: dto.podMethod,
+    };
+
+    if (!org.completedSteps.includes('fleet-compliance')) {
+      org.completedSteps.push('fleet-compliance');
+    }
+
+    await org.save();
+
+    return this.formatResponse(org);
   }
-
-  const org = await this.orgModel.findById(organizationId);
-  if (!org) throw new NotFoundException('Organization not found');
-
-  if (org.isOnboardingLocked) {
-    throw new ForbiddenException(`Cannot edit onboarding. Current status: ${org.kycStatus}.`);
-  }
-
-  // Save/update fleet & compliance data
-  org.fleetAndCompliance = {
-    fleetTypes: dto.fleetTypes,
-    insuranceExpiry: dto.insuranceExpiry,
-    policyDocument: dto.policyDocument, // handle file upload as per your system
-    ewayBillIntegration: dto.ewayBillIntegration,
-    podMethod: dto.podMethod,
-  };
-
-  if (!org.completedSteps.includes('fleet-compliance')) {
-    org.completedSteps.push('fleet-compliance');
-  }
-
-  await org.save();
-
-  return this.formatResponse(org);
-}
   // ===== ROLE-SPECIFIC STEPS =====
 
   /**
@@ -348,7 +348,7 @@ export class UserOnboardingService {
   /**
    * Submit onboarding for KYC
    */
-   
+
   async submitOnboarding(organizationId: string, userRole: UserRole): Promise<any> {
     try {
       this.logger.log(`submitOnboarding: organizationId=${organizationId}, role=${userRole}`);
@@ -426,6 +426,7 @@ export class UserOnboardingService {
       compliance: org.compliance || null,
       buyerPreferences: org.buyerPreferences || null,
       catalog: org.catalog || null,
+      fleetAndCompliance: org.fleetAndCompliance || null,
       logisticsPreference: org.catalog?.logisticsPreference || null,
       createdAt: org.createdAt,
       updatedAt: org.updatedAt,

@@ -757,35 +757,6 @@
           "Admin Dashboard"
         ]
       }
-    },
-    "/api/v1/3pl/assign-shipment": {
-      "post": {
-        "operationId": "ThreePLController_assignShipment",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AssignmentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "3PL"
-        ]
-      }
     }
   },
   "info": {
@@ -856,10 +827,6 @@
         "properties": {}
       },
       "FleetAndComplianceFormDataDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "AssignmentDto": {
         "type": "object",
         "properties": {}
       }
