@@ -26,11 +26,11 @@ export class KycAdminService {
       throw new NotFoundException("Organization not found");
     }
 
-    const count = await this.kycCaseModel.countDocuments({ organizationId: orgId });
+    const count = await this.kycCaseModel.countDocuments({ organizationId: new Types.ObjectId(orgId) });
     this.logger.log(`Existing submissions count for orgId ${orgId}: ${count}`);
 
     const submissionAttempt = count + 1;
-    const submissionNumber = `KYC-${orgId}-${String(submissionAttempt).padStart(3, "0")}`;
+    const submissionNumber = `KYC-${org.orgId}-${String(submissionAttempt).padStart(3, "0")}`;
     this.logger.log(`Generated submissionNumber: ${submissionNumber}`);
 
     const kycCase = new this.kycCaseModel({
@@ -340,17 +340,19 @@ export class KycAdminService {
       this.logger.warn(`KYC case not found for rejection, caseId: ${caseId}`);
       throw new NotFoundException("KYC case not found");
     }
+    console.log("kycCase found");
 
     if (kycCase.status !== KYCStatus.SUBMITTED) {
       this.logger.warn(`Attempt to reject KYC case with invalid status: ${kycCase.status}`);
       throw new BadRequestException("Only submitted cases can be rejected");
     }
 
-    const org = await this.orgModel.findById(kycCase.organizationId);
+    const org = await this.orgModel.findById(new Types.ObjectId(kycCase.organizationId));
     if (!org) {
       this.logger.warn(`Organization not found for caseId: ${caseId}`);
       throw new NotFoundException("Organization not found");
     }
+    console.log("org found");
 
     kycCase.status = KYCStatus.REJECTED;
     kycCase.rejectionReason = rejectionReason;

@@ -8,6 +8,9 @@ export class KycCase {
   @Prop({ required: true, type: Types.ObjectId, ref: "Organization" })
   organizationId: Types.ObjectId;
 
+  @Prop({})
+  orgId: string;
+
   @Prop({ required: true })
   submissionNumber: string; // KYC-ORG_ID-001
 
@@ -19,8 +22,8 @@ export class KycCase {
   submittedData: {
     orgKyc?: any;
     primaryBankAccount?: any;
-    compliance ?: any ;
-    catalog?: any ;
+    compliance?: any;
+    catalog?: any;
   };
 
   // Admin review fields

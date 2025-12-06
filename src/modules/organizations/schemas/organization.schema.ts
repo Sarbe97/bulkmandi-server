@@ -63,7 +63,7 @@ export class BankAccount {
   @Prop({ type: [DocumentUpload], default: [] }) documents?: DocumentUpload[];
   // @Prop({ type: Declarations, default: {} }) declarations?: Declarations;
 }
-
+///////////
 @Schema({ _id: false })
 export class CatalogProduct {
   @Prop() category: string;
@@ -110,6 +110,21 @@ export class Compliance {
 }
 
 ///////////////
+@Schema()
+export class BuyerPreferences {
+  @Prop() categories: string[];
+  @Prop() typicalMonthlyVolumeMT?: number;
+  @Prop() incoterms: string[];
+  @Prop() deliveryPins: string[];
+  @Prop() acceptanceWindow: string;
+  @Prop() qcRequirement: string;
+  @Prop() notifyEmail?: boolean;
+  @Prop() notifySMS?: boolean;
+  @Prop() notifyWhatsApp?: boolean;
+  @Prop() notes?: string;
+}
+
+/////
 
 @Schema()
 export class FleetTypeItem {
@@ -150,19 +165,8 @@ export class Organization {
   @Prop({ type: Catalog, default: {} })
   catalog?: Catalog;
 
-  @Prop({ type: Object })
-  buyerPreferences?: {
-    categories: string[];
-    typicalMonthlyVolumeMT?: number;
-    incoterms: string[];
-    deliveryPins: string[];
-    acceptanceWindow: string;
-    qcRequirement: string;
-    notifyEmail?: boolean;
-    notifySMS?: boolean;
-    notifyWhatsApp?: boolean;
-    notes?: string;
-  };
+  @Prop({ type: BuyerPreferences, default: {} })
+  buyerPreferences?: BuyerPreferences;
 
   @Prop({ type: FleetAndCompliance, default: null })
   fleetAndCompliance?: FleetAndCompliance;
