@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, ConflictException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 
@@ -7,6 +7,8 @@ import { CustomLoggerService } from "@core/logger/custom.logger.service";
 import { KYCStatus } from "@modules/kyc/kyc-status.constants";
 import { KycAdminService } from "@modules/kyc/services/kyc-admin.service";
 import { Organization, OrganizationDocument } from "@modules/organizations/schemas/organization.schema";
+import { User, UserDocument } from "@modules/users/schemas/user.schema";
+import { IdGeneratorService } from "src/common/services/id-generator.service";
 import { UserBankDto, UserOrgKycDto } from "../dto";
 import { FleetAndComplianceFormDataDto } from "../dto/fleet-compliance.dto";
 
@@ -27,8 +29,11 @@ export class UserOnboardingService {
   constructor(
     @InjectModel(Organization.name)
     private readonly orgModel: Model<OrganizationDocument>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<UserDocument>,
     private readonly kycAdminService: KycAdminService,
     private readonly logger: CustomLoggerService,
+    private readonly idGenerator: IdGeneratorService,
   ) { }
 
   /**
@@ -53,19 +58,38 @@ export class UserOnboardingService {
    * Step 1: Update Organization KYC
    * Same logic for all roles, but org-kyc is stored in same field
    */
-  async updateOrgKyc(organizationId: string, dto: UserOrgKycDto, userRole: UserRole): Promise<any> {
+  async updateOrgKyc(organizationId: string | null, dto: UserOrgKycDto, userRole: UserRole, userId: string): Promise<any> {
     try {
       this.logger.log(`updateOrgKyc: org=${organizationId}, role=${userRole}`);
 
       console.log("DTO received in updateOrgKyc:", dto);
-      let org = await this.orgModel.findById(organizationId);
+      let org;
+
+      if (organizationId) {
+        org = await this.orgModel.findById(organizationId);
+      }
+
+      // If org doesn't exist or ID is null, create new one
       if (!org) {
+        const orgCode = await this.idGenerator.generateOrgCode(dto.legalName);
         org = new this.orgModel({
-          _id: organizationId,
+          orgCode,
+          orgId: orgCode, // ✅ Set orgId to satisfy unique index
+          legalName: dto.legalName, // Required field
           role: userRole,
           completedSteps: [],
           isOnboardingLocked: false,
+          kycStatus: "DRAFT", // Explicit default
+          status: "Active", // Default
         });
+
+        // Save new org to generate ID
+        await org.save();
+        organizationId = org._id.toString();
+
+        // Link to User
+        await this.userModel.findByIdAndUpdate(userId, { organizationId: org._id });
+        this.logger.log(`Created new Organization ${organizationId} and linked to user ${userId}`);
       }
 
       this.checkEditPermission(org);
@@ -301,8 +325,24 @@ export class UserOnboardingService {
   /**
    * Get onboarding progress
    */
-  async getProgress(organizationId: string, userRole: UserRole): Promise<any> {
+  async getProgress(organizationId: string | null, userRole: UserRole): Promise<any> {
     try {
+      if (!organizationId) {
+        return {
+          organizationId: null,
+          role: userRole,
+          completedSteps: [],
+          currentProgress: 0,
+          isOnboardingLocked: false,
+          kycStatus: "DRAFT",
+          rejectionReason: null,
+          allSteps: this.getRequiredStepsForRole(userRole),
+          nextStep: "org-kyc",
+          createdAt: null,
+          updatedAt: null,
+        };
+      }
+
       const org = await this.orgModel.findById(organizationId);
       if (!org) throw new NotFoundException("Organization not found");
 
@@ -334,8 +374,27 @@ export class UserOnboardingService {
   /**
    * Get complete onboarding data
    */
-  async getOnboardingData(organizationId: string): Promise<any> {
+  async getOnboardingData(organizationId: string | null): Promise<any> {
     try {
+      if (!organizationId) {
+        return {
+          organizationId: null,
+          orgCode: null,
+          legalName: "",
+          role: null,
+          kycStatus: "DRAFT",
+          isOnboardingLocked: false,
+          completedSteps: [],
+          orgKyc: null,
+          primaryBankAccount: null,
+          compliance: null,
+          buyerPreferences: null,
+          catalog: null,
+          fleetAndCompliance: null,
+          logisticsPreference: null,
+        };
+      }
+
       const org = await this.orgModel.findById(organizationId);
       if (!org) throw new NotFoundException("Organization not found");
 
@@ -363,6 +422,21 @@ export class UserOnboardingService {
       // Block if already locked
       if (org.isOnboardingLocked) {
         throw new ForbiddenException(`Onboarding is already locked with status: ${org.kycStatus}`);
+      }
+
+      // ✅ Check for duplicate organization name (excluding self)
+      const duplicate = await this.orgModel.findOne({
+        legalName: new RegExp(`^${org.legalName}$`, 'i'),
+        role: org.role,
+        kycStatus: { $in: ['SUBMITTED', 'APPROVED', 'REJECTED'] },
+        _id: { $ne: org._id },
+      });
+
+      if (duplicate) {
+        throw new ConflictException(
+          `Organization "${org.legalName}" already exists and has been submitted. ` +
+          `Please search for it and request an invite code from admin.`,
+        );
       }
 
       const requiredSteps = this.getRequiredStepsForRole(userRole);

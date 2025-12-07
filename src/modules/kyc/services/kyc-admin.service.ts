@@ -32,7 +32,7 @@ export class KycAdminService {
     if (!org.orgCode) {
       this.logger.warn(`Organization ${orgId} is missing orgCode. Generating one now...`);
       // Generate orgCode if missing (for existing orgs)
-      org.orgCode = await this.idGenerator.generateOrgCode(org.role);
+      org.orgCode = await this.idGenerator.generateOrgCode(org.legalName);
       await org.save();
       this.logger.log(`Generated orgCode ${org.orgCode} for organization ${orgId}`);
     }
@@ -266,6 +266,8 @@ export class KycAdminService {
         registeredAddress: org.orgKyc?.registeredAddress,
         businessType: org.orgKyc?.businessType,
         incorporationDate: org.orgKyc?.incorporationDate,
+        inviteCode: org.inviteCode,
+        inviteCodeExpiry: org.inviteCodeExpiry,
       },
       contacts: {
         primary: org.orgKyc?.primaryContact,

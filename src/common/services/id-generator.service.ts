@@ -28,30 +28,40 @@ export class IdGeneratorService {
      * Format: ORG-{ROLE}-{SEQUENCE}
      * Example: ORG-SEL-000123
      */
-    async generateOrgCode(role: UserRole): Promise<string> {
-        const rolePrefix = this.getRolePrefix(role);
+    /**
+     * Generate unique organization code
+     * Format: {NAME_PREFIX}-{RANDOM_4_DIGIT}
+     * Example: ABCS-1234
+     */
+    async generateOrgCode(legalName: string): Promise<string> {
+        // Sanitize: A-Z only, Uppercase
+        let prefix = legalName.replace(/[^a-zA-Z]/g, '').toUpperCase().substring(0, 4);
 
-        // Count existing organizations with the same role
-        const count = await this.orgModel.countDocuments({ role });
-        const sequence = (count + 1).toString().padStart(6, '0');
-
-        const orgCode = `ORG-${rolePrefix}-${sequence}`;
-
-        // Ensure uniqueness (in case of race conditions)
-        const exists = await this.orgModel.exists({ orgCode });
-        if (exists) {
-            // Retry with incremented count
-            const retrySequence = (count + 2).toString().padStart(6, '0');
-            return `ORG-${rolePrefix}-${retrySequence}`;
+        // Ensure at least 3 chars
+        if (prefix.length < 3) {
+            prefix = (prefix + "ORG").substring(0, 4); // Pad with ORG if too short
         }
+        if (prefix.length === 0) prefix = "ORG";
 
-        return orgCode;
+        let retries = 0;
+        while (retries < 10) {
+            const suffix = Math.floor(1000 + Math.random() * 9000); // 1000-9999
+            const orgCode = `${prefix}-${suffix}`;
+
+            const exists = await this.orgModel.exists({ orgCode });
+            if (!exists) {
+                return orgCode;
+            }
+            retries++;
+        }
+        // Fallback to timestamp to guarantee uniqueness
+        return `${prefix}-${Date.now().toString().slice(-6)}`;
     }
 
     /**
      * Generate unique KYC case code
      * Format: KYC-{ORG_CODE}-{ATTEMPT}
-     * Example: KYC-ORG-SEL-000123-001
+     * Example: KYC-ABCS-1234-001
      */
     async generateCaseCode(organizationCode: string, submissionAttempt: number): Promise<string> {
         const attempt = submissionAttempt.toString().padStart(3, '0');
@@ -59,31 +69,19 @@ export class IdGeneratorService {
     }
 
     /**
-     * Parse organization code to extract role and sequence
+     * Parse organization code
+     * @deprecated Org codes no longer contain role info
      */
     parseOrgCode(orgCode: string): { role: UserRole | null; sequence: number } {
-        const match = orgCode.match(/^ORG-(SEL|BUY|LOG)-(\d{6})$/);
-        if (!match) {
-            return { role: null, sequence: 0 };
-        }
-
-        const rolePrefixMap: Record<string, UserRole> = {
-            'SEL': UserRole.SELLER,
-            'BUY': UserRole.BUYER,
-            'LOG': UserRole.LOGISTIC,
-        };
-
-        return {
-            role: rolePrefixMap[match[1]] || null,
-            sequence: parseInt(match[2], 10),
-        };
+        return { role: null, sequence: 0 };
     }
 
     /**
      * Parse KYC case code to extract organization code and attempt
      */
     parseCaseCode(caseCode: string): { organizationCode: string | null; attempt: number } {
-        const match = caseCode.match(/^KYC-(ORG-[A-Z]{3}-\d{6})-(\d{3})$/);
+        // Updated regex to handle variable length org codes
+        const match = caseCode.match(/^KYC-(.+)-(\d{3})$/);
         if (!match) {
             return { organizationCode: null, attempt: 0 };
         }

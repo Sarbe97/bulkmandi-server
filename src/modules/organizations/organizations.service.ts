@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { CustomLoggerService } from "src/core/logger/custom.logger.service";
 import { IdGeneratorService } from "src/common/services/id-generator.service";
 import { Organization, OrganizationDocument } from "./schemas/organization.schema";
+import { UserRole } from "@common/enums";
 
 /**
  * OrganizationsService
@@ -28,12 +29,13 @@ export class OrganizationsService {
     try {
       this.logger.log("Creating organization", "OrganizationsService.createOrganization");
 
-      // ✅ Generate unique orgCode based on role
-      const orgCode = await this.idGenerator.generateOrgCode(data.role);
+      // ✅ Generate unique orgCode based on name
+      const orgCode = await this.idGenerator.generateOrgCode(data.legalName);
 
       const org = new this.orgModel({
         ...data,
         orgCode, // ✅ Set generated orgCode
+        orgId: orgCode, // ✅ Set orgId alias
         kycStatus: "DRAFT",
         isOnboardingLocked: false,
         completedSteps: [],
@@ -197,5 +199,142 @@ export class OrganizationsService {
       this.logger.log(`Error counting organizations: ${error.message}`, "OrganizationsService.countOrganizations");
       throw error;
     }
+  }
+
+
+  /**
+   * Check if organization name exists (excluding DRAFT status)
+   */
+  async checkOrgNameAvailability(legalName: string, role: UserRole): Promise<{ available: boolean; message?: string }> {
+    const existing = await this.orgModel.findOne({
+      legalName: new RegExp(`^${legalName}$`, 'i'),
+      role,
+      kycStatus: { $in: ['SUBMITTED', 'APPROVED', 'REJECTED', 'INFO_REQUESTED'] },
+    });
+
+    if (existing) {
+      return {
+        available: false,
+        message: 'An organization with this name already exists. Please search and join using an invite code.',
+      };
+    }
+
+    return { available: true };
+  }
+
+  /**
+   * Search APPROVED organizations by name or code
+   */
+  async searchOrganizations(searchTerm: string, role: UserRole): Promise<any[]> {
+    if (!searchTerm || searchTerm.length < 2) {
+      return [];
+    }
+
+    const searchRegex = new RegExp(searchTerm, 'i');
+
+    const organizations = await this.orgModel
+      .find({
+        role,
+        kycStatus: 'APPROVED', // Only show approved orgs
+        $or: [{ legalName: searchRegex }, { orgCode: searchRegex }],
+      })
+      .select('orgCode legalName kycStatus role')
+      .limit(10)
+      .lean();
+
+    return organizations.map((org) => ({
+      orgCode: org.orgCode,
+      legalName: org.legalName,
+      kycStatus: org.kycStatus,
+      role: org.role,
+    }));
+  }
+
+  /**
+   * Generate invite code
+   */
+  private generateInviteCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid 0,O,1,I
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
+  /**
+   * Create invite code for organization (ADMIN ONLY)
+   */
+  async createInviteCode(orgCode: string, expiryDays: number = 7): Promise<{ inviteCode: string; expiresAt: Date }> {
+    const org = await this.orgModel.findOne({ orgCode });
+
+    if (!org) {
+      throw new NotFoundException('Organization not found');
+    }
+
+    if (org.kycStatus !== 'APPROVED') {
+      throw new BadRequestException('Can only create invite codes for approved organizations');
+    }
+
+    // Generate unique code
+    let code: string;
+    let exists: any;
+
+    do {
+      code = this.generateInviteCode();
+      exists = await this.orgModel.exists({ inviteCode: code });
+    } while (exists != null);
+
+    // Set expiry
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + expiryDays);
+
+    // Update org
+    org.inviteCode = code;
+    org.inviteCodeExpiry = expiresAt;
+    org.inviteCodeCreatedAt = new Date();
+    await org.save();
+
+    return { inviteCode: code, expiresAt };
+  }
+
+  /**
+   * Delete/revoke invite code (ADMIN ONLY)
+   */
+  async revokeInviteCode(orgCode: string): Promise<{ success: boolean }> {
+    const org = await this.orgModel.findOne({ orgCode });
+
+    if (!org) {
+      throw new NotFoundException('Organization not found');
+    }
+
+    org.inviteCode = null;
+    org.inviteCodeExpiry = null;
+    org.inviteCodeCreatedAt = null;
+    await org.save();
+
+    return { success: true };
+  }
+
+  /**
+   * Validate invite code
+   */
+  async validateInviteCode(inviteCode: string): Promise<{ valid: boolean; orgCode?: string; legalName?: string; message?: string }> {
+    const org = await this.orgModel.findOne({ inviteCode });
+
+    if (!org) {
+      return { valid: false, message: 'Invalid invite code' };
+    }
+
+    // Check expiry
+    if (org.inviteCodeExpiry && org.inviteCodeExpiry < new Date()) {
+      return { valid: false, message: 'Invite code has expired' };
+    }
+
+    return {
+      valid: true,
+      orgCode: org.orgCode,
+      legalName: org.legalName,
+    };
   }
 }

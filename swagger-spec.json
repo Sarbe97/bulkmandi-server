@@ -67,6 +67,20 @@
         ]
       }
     },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Logout successful"
+          }
+        },
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/api/v1/auth/refresh-token": {
       "post": {
         "operationId": "AuthController_refreshToken",
@@ -90,6 +104,78 @@
             "description": ""
           }
         },
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/organizations/search": {
+      "get": {
+        "operationId": "AuthController_searchOrganizations",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "description": "Search term (min 2 characters)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "required": true,
+            "in": "query",
+            "description": "User role (SELLER, BUYER, LOGISTIC)",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Search APPROVED organizations by name or code",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/organizations/join-with-code": {
+      "post": {
+        "operationId": "AuthController_joinWithCode",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Join organization using invite code",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/organizations/check-name": {
+      "get": {
+        "operationId": "AuthController_checkOrgName",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "query",
+            "description": "Organization name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Check if organization name is available",
         "tags": [
           "Authentication"
         ]
@@ -758,6 +844,143 @@
         "summary": "Get admin dashboard statistics",
         "tags": [
           "Admin Dashboard"
+        ]
+      }
+    },
+    "/api/v1/admin/dashboard/organizations/{orgCode}/create-invite-code": {
+      "post": {
+        "operationId": "AdminDashboardController_createInviteCode",
+        "parameters": [
+          {
+            "name": "orgCode",
+            "required": true,
+            "in": "path",
+            "description": "Organization code",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create invite code for organization (ADMIN ONLY)",
+        "tags": [
+          "Admin Dashboard"
+        ]
+      }
+    },
+    "/api/v1/admin/dashboard/organizations/{orgCode}/revoke-invite-code": {
+      "delete": {
+        "operationId": "AdminDashboardController_revokeInviteCode",
+        "parameters": [
+          {
+            "name": "orgCode",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke invite code (ADMIN ONLY)",
+        "tags": [
+          "Admin Dashboard"
+        ]
+      }
+    },
+    "/api/v1/admin/dashboard/organizations/validate-invite-code": {
+      "post": {
+        "operationId": "AdminDashboardController_validateCode",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Validate an invite code (public)",
+        "tags": [
+          "Admin Dashboard"
+        ]
+      }
+    },
+    "/api/v1/admin/organizations/{orgCode}/create-invite-code": {
+      "post": {
+        "operationId": "AdminController_createInviteCode",
+        "parameters": [
+          {
+            "name": "orgCode",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create invite code for organization",
+        "tags": [
+          "Admin Organizations"
+        ]
+      }
+    },
+    "/api/v1/admin/organizations/{orgCode}/revoke-invite-code": {
+      "post": {
+        "operationId": "AdminController_revokeInviteCode",
+        "parameters": [
+          {
+            "name": "orgCode",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke invite code",
+        "tags": [
+          "Admin Organizations"
         ]
       }
     },

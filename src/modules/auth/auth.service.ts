@@ -18,7 +18,7 @@ export class AuthService {
     private organizationModel: Model<OrganizationDocument>,
     private jwtService: JwtService,
     private idGenerator: IdGeneratorService,
-  ) {}
+  ) { }
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.userModel.findOne({ email: email.toLowerCase() });
@@ -42,9 +42,10 @@ export class AuthService {
 
     const isAdmin = [UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role);
 
-    if (!isAdmin && !user.organizationId) {
-      throw new UnauthorizedException("User is not linked to an organization");
-    }
+    // ALLOW LOGIN WITHOUT ORG - Frontend will handle redirection
+    // if (!isAdmin && !user.organizationId) {
+    //   throw new UnauthorizedException("User is not linked to an organization");
+    // }
 
     // Update last login
     await this.userModel.findByIdAndUpdate(user._id, {
@@ -110,8 +111,8 @@ export class AuthService {
     return response;
   }
 
-  async register(registerDto: { email: string; password: string; mobile: string; role: string; organizationName: string }) {
-    const { email, password, mobile, role, organizationName } = registerDto;
+  async register(registerDto: { email: string; password: string; mobile: string; role: string }) {
+    const { email, password, mobile, role } = registerDto;
 
     // Prevent admin registration via public API
     if ([UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(role as UserRole)) {
@@ -132,32 +133,17 @@ export class AuthService {
       throw new ConflictException("Mobile number already exists. Please use a different mobile number.");
     }
 
-    // Generate orgCode
-    const orgCode = await this.idGenerator.generateOrgCode(role as UserRole);
-
-    // Create organization
-    const organization = new this.organizationModel({
-      orgCode,
-      legalName: organizationName,
-      role,
-      completedSteps: [],
-      kycStatus: "DRAFT",
-      status: "ACTIVE",
-      isVerified: false,
-    });
-    const savedOrg = await organization.save();
-
     // Hash password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create user linked to organization
+    // Create user WITHOUT organization link
     const newUser = new this.userModel({
       email: email.toLowerCase(),
       password: hashedPassword,
       mobile,
       role,
-      organizationId: savedOrg._id,
+      organizationId: null, // User must select/create organization next
     });
     const savedUser = await newUser.save();
 
@@ -166,8 +152,8 @@ export class AuthService {
       userId: savedUser._id,
       email: savedUser.email,
       role: savedUser.role,
-      organizationId: savedOrg._id.toString(),
       isAdmin: false,
+      needsOrgSelection: true, // Flag indicating user needs to select organization
     };
     const accessToken = this.jwtService.sign(payload);
 
@@ -177,8 +163,7 @@ export class AuthService {
         id: savedUser._id.toString(),
         email: savedUser.email,
         role: savedUser.role,
-        organizationId: savedOrg._id.toString(),
-        orgCode: savedOrg.orgCode,
+        needsOrgSelection: true, // Frontend will show organization selection modal
       },
     };
   }

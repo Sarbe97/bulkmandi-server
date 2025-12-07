@@ -24,7 +24,7 @@ export class UserOnboardingController {
     private readonly service: UserOnboardingService,
     private readonly documentHandlerService: DocumentHandlerService,
     private readonly logger: CustomLoggerService,
-  ) {}
+  ) { }
 
   // ===== COMMON STEPS FOR ALL ROLES =====
 
@@ -39,7 +39,7 @@ export class UserOnboardingController {
   })
   async updateOrgKyc(@CurrentUser() user: any, @Body() dto: UserOrgKycDto): Promise<any> {
     this.logger.log(`PUT user/onboarding/org-kyc by user=${user.userId}, org=${user.organizationId}, role=${user.role}`);
-    return this.service.updateOrgKyc(user.organizationId, dto, user.role);
+    return this.service.updateOrgKyc(user.organizationId, dto, user.role, user.userId);
   }
 
   /**
