@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { MongoIdValidationPipe } from '../../common/pipes/mongo-id-validation.pipe';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -17,6 +17,18 @@ export class UsersController {
   async getProfile(@CurrentUser() user: any) {
     console.log(" user profile", user);
     return this.usersService.findById(user.userId);
+  }
+
+  @Patch('profile')
+  @ApiOperation({ summary: 'Update user profile' })
+  async updateProfile(@CurrentUser() user: any, @Body() body: any) {
+    const { firstName, lastName, mobile } = body;
+    const updateData = { firstName, lastName, mobile };
+
+    // Remove undefined fields
+    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+
+    return this.usersService.updateUser(user.userId, updateData);
   }
 
   @ApiOperation({ summary: 'Get user by ID' })

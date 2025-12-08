@@ -111,8 +111,8 @@ export class AuthService {
     return response;
   }
 
-  async register(registerDto: { email: string; password: string; mobile: string; role: string }) {
-    const { email, password, mobile, role } = registerDto;
+  async register(registerDto: any) {
+    const { email, password, mobile, role, firstName, lastName } = registerDto;
 
     // Prevent admin registration via public API
     if ([UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(role as UserRole)) {
@@ -142,6 +142,8 @@ export class AuthService {
       email: email.toLowerCase(),
       password: hashedPassword,
       mobile,
+      firstName,
+      lastName,
       role,
       organizationId: null, // User must select/create organization next
     });
@@ -208,7 +210,8 @@ export class AuthService {
     const admin = new this.userModel({
       email: "admin@bulkmandi.com",
       password: hashedPassword,
-      name: "Super Admin",
+      firstName: "Super",
+      lastName: "Admin",
       role: UserRole.ADMIN,
       permissions: ["*"], // All permissions
       organizationId: null,
@@ -221,7 +224,7 @@ export class AuthService {
       message: "First admin created successfully",
       admin: {
         email: admin.email,
-        name: admin.name,
+        name: `${admin.firstName} ${admin.lastName}`,
         role: admin.role,
       },
       credentials: {

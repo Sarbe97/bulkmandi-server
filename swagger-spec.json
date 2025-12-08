@@ -313,6 +313,24 @@
         "tags": [
           "Users"
         ]
+      },
+      "patch": {
+        "operationId": "UsersController_updateProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update user profile",
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/api/v1/users/{id}": {

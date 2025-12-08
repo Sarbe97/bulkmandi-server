@@ -16,7 +16,13 @@ export class User {
   mobile: string;
 
   @Prop()
-  name: string; // NEW: Admin name
+  firstName: string;
+
+  @Prop()
+  lastName: string;
+
+  // @Prop()
+  // name: string; // Deprecated, use virtual getter
 
   @Prop({ type: String, enum: UserRole, required: true })
   role: UserRole; // SELLER, BUYER, THREE_PL, ADMIN
@@ -52,9 +58,18 @@ export class User {
 export const UserSchema = SchemaFactory.createForClass(User);
 
 // Add virtual for populated organizationId
+// Add virtual for populated organizationId
 UserSchema.virtual("organization", {
   ref: "Organization",
   localField: "organizationId",
   foreignField: "_id",
   justOne: true,
 });
+
+// ✅ Virtual getter for full name
+UserSchema.virtual("name").get(function () {
+  return `${this.firstName || ""} ${this.lastName || ""}`.trim();
+});
+
+UserSchema.set("toJSON", { virtuals: true });
+UserSchema.set("toObject", { virtuals: true });

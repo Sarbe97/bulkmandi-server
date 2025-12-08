@@ -3,6 +3,7 @@ import {
   IsEmail,
   IsEnum,
   IsMobilePhone,
+  IsOptional,
   IsString,
   MinLength,
 } from "class-validator";
@@ -21,6 +22,16 @@ export class RegisterDto {
   @ApiProperty()
   @IsMobilePhone("en-IN")
   mobile: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  firstName?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  lastName?: string;
 
   @ApiProperty({ enum: UserRole })
   @IsEnum(UserRole)

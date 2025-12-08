@@ -31,4 +31,8 @@ export class UsersService {
   async updateLastLogin(id: string): Promise<void> {
     await this.userModel.findByIdAndUpdate(id, { lastLoginAt: new Date() });
   }
+
+  async updateUser(userId: string, updateData: Partial<User>) {
+    return this.userModel.findByIdAndUpdate(userId, updateData, { new: true }).exec();
+  }
 }
