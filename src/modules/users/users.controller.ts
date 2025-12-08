@@ -10,12 +10,13 @@ import { UsersService } from './services/users.service';
 @UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @ApiOperation({ summary: 'Get user profile' })
   @Get('profile')
   async getProfile(@CurrentUser() user: any) {
-    return this.usersService.findById(user.id);
+    console.log(" user profile", user);
+    return this.usersService.findById(user.userId);
   }
 
   @ApiOperation({ summary: 'Get user by ID' })

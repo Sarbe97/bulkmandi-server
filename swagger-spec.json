@@ -117,7 +117,7 @@
             "name": "q",
             "required": true,
             "in": "query",
-            "description": "Search term (min 2 characters)",
+            "description": "Search term (minimum 2 characters)",
             "schema": {
               "type": "string"
             }
@@ -126,8 +126,10 @@
             "name": "role",
             "required": true,
             "in": "query",
-            "description": "User role (SELLER, BUYER, LOGISTIC)",
-            "schema": {}
+            "description": "Organization role (SELLER, BUYER, LOGISTIC)",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -135,7 +137,37 @@
             "description": ""
           }
         },
-        "summary": "Search APPROVED organizations by name or code",
+        "summary": "Search organizations by name or code",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/organizations/link": {
+      "post": {
+        "operationId": "AuthController_linkToOrganization",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Link user to an existing organization",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/organizations/create-and-link": {
+      "post": {
+        "operationId": "AuthController_createAndLinkOrganization",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create new organization and link user",
         "tags": [
           "Authentication"
         ]
@@ -240,6 +272,75 @@
         "summary": "Preview document inline",
         "tags": [
           "Organizations"
+        ]
+      }
+    },
+    "/api/v1/organizations/validate-invite-code": {
+      "post": {
+        "operationId": "OrganizationsController_validateCode",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Validate an invite code",
+        "tags": [
+          "Organizations"
+        ]
+      }
+    },
+    "/api/v1/users/profile": {
+      "get": {
+        "operationId": "UsersController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get user profile",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "operationId": "UsersController_getUserById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get user by ID",
+        "tags": [
+          "Users"
         ]
       }
     },
@@ -842,85 +943,6 @@
           }
         ],
         "summary": "Get admin dashboard statistics",
-        "tags": [
-          "Admin Dashboard"
-        ]
-      }
-    },
-    "/api/v1/admin/dashboard/organizations/{orgCode}/create-invite-code": {
-      "post": {
-        "operationId": "AdminDashboardController_createInviteCode",
-        "parameters": [
-          {
-            "name": "orgCode",
-            "required": true,
-            "in": "path",
-            "description": "Organization code",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create invite code for organization (ADMIN ONLY)",
-        "tags": [
-          "Admin Dashboard"
-        ]
-      }
-    },
-    "/api/v1/admin/dashboard/organizations/{orgCode}/revoke-invite-code": {
-      "delete": {
-        "operationId": "AdminDashboardController_revokeInviteCode",
-        "parameters": [
-          {
-            "name": "orgCode",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Revoke invite code (ADMIN ONLY)",
-        "tags": [
-          "Admin Dashboard"
-        ]
-      }
-    },
-    "/api/v1/admin/dashboard/organizations/validate-invite-code": {
-      "post": {
-        "operationId": "AdminDashboardController_validateCode",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Validate an invite code (public)",
         "tags": [
           "Admin Dashboard"
         ]

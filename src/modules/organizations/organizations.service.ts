@@ -1,10 +1,28 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { UsersService } from "../users/services/users.service";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+import { Model, Types } from "mongoose";
 import { CustomLoggerService } from "src/core/logger/custom.logger.service";
 import { IdGeneratorService } from "src/common/services/id-generator.service";
 import { Organization, OrganizationDocument } from "./schemas/organization.schema";
 import { UserRole } from "@common/enums";
+
+export interface OrgSearchResult {
+  orgCode: string;
+  legalName: string;
+  kycStatus: string;
+  role: string;
+  canAcceptNewUsers: boolean;
+}
+
+export interface LinkResult {
+  success: boolean;
+  organizationId: string;
+  orgCode: string;
+  kycStatus: string;
+  redirectTo: 'dashboard' | 'onboarding' | 'error';
+  message: string;
+}
 
 /**
  * OrganizationsService
@@ -19,7 +37,8 @@ export class OrganizationsService {
     @InjectModel(Organization.name)
     private orgModel: Model<OrganizationDocument>,
     private readonly logger: CustomLoggerService,
-    private readonly idGenerator: IdGeneratorService, // ✅ Inject ID generator
+    private readonly idGenerator: IdGeneratorService,
+    private readonly usersService: UsersService, // ✅ Injected UsersService
   ) { }
 
   /**
@@ -223,9 +242,9 @@ export class OrganizationsService {
   }
 
   /**
-   * Search APPROVED organizations by name or code
+   * Search organizations by name or code (More permissive for linking)
    */
-  async searchOrganizations(searchTerm: string, role: UserRole): Promise<any[]> {
+  async searchOrganizations(searchTerm: string, role: UserRole): Promise<OrgSearchResult[]> {
     if (!searchTerm || searchTerm.length < 2) {
       return [];
     }
@@ -235,7 +254,7 @@ export class OrganizationsService {
     const organizations = await this.orgModel
       .find({
         role,
-        kycStatus: 'APPROVED', // Only show approved orgs
+        // Removed kycStatus restriction to allow joining approved/pending orgs
         $or: [{ legalName: searchRegex }, { orgCode: searchRegex }],
       })
       .select('orgCode legalName kycStatus role')
@@ -245,9 +264,219 @@ export class OrganizationsService {
     return organizations.map((org) => ({
       orgCode: org.orgCode,
       legalName: org.legalName,
-      kycStatus: org.kycStatus,
+      kycStatus: org.kycStatus || 'DRAFT',
       role: org.role,
+      canAcceptNewUsers: this.canOrgAcceptNewUsers(org.kycStatus),
     }));
+  }
+
+  /**
+   * Check if organization can accept new users based on KYC status
+   */
+  private canOrgAcceptNewUsers(kycStatus: string): boolean {
+    return kycStatus !== 'REJECTED';
+  }
+
+  /**
+   * Link user to an existing organization
+   */
+  async linkUserToOrganization(userId: string, orgCode: string, requestRevision: boolean = false): Promise<LinkResult> {
+    // Find user (Using injected service, but implementation gets Document which we need to save)
+    // NOTE: UsersService.findById returns Promise<User>. We assume User is a Document or compatible with .save()
+    // If UsersService returns a POJO/Interface without .save(), we need to use UserModel carefully or update UsersService.
+    // However, typical NestJS Mongoose usage returns HydratedDocument unless .lean() is used.
+    // If UsersService.findById uses .populate() without .lean(), it returns a Document.
+    // Let's try.
+    const user: any = await this.usersService.findById(userId);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if user already linked to an organization
+    if (user.organizationId) {
+      // If it's the SAME organization, just return success
+      const currentOrg = await this.getOrganization(user.organizationId.toString());
+      if (currentOrg.orgCode === orgCode) {
+        return {
+          success: true,
+          organizationId: currentOrg._id.toString(),
+          orgCode: currentOrg.orgCode,
+          kycStatus: currentOrg.kycStatus,
+          redirectTo: currentOrg.kycStatus === 'APPROVED' ? 'dashboard' : 'onboarding',
+          message: 'Already linked to this organization',
+        };
+      }
+      throw new BadRequestException('User is already linked to an organization');
+    }
+
+    // Find organization
+    const org = await this.orgModel.findOne({ orgCode });
+    if (!org) {
+      throw new NotFoundException('Organization not found');
+    }
+
+    // Check if organization can accept new users
+    if (org.kycStatus === 'REJECTED') {
+      return {
+        success: false,
+        organizationId: org._id.toString(),
+        orgCode: org.orgCode,
+        kycStatus: org.kycStatus,
+        redirectTo: 'error',
+        message: 'This organization\'s KYC was rejected.',
+      };
+    }
+
+    // Link user to organization
+    user.organizationId = new Types.ObjectId(org._id.toString());
+    await user.save();
+
+    // Determine redirect based on KYC status and revision request
+    let redirectTo: 'dashboard' | 'onboarding' | 'error' = 'onboarding';
+    let message = 'Successfully linked to organization';
+
+    if (org.kycStatus === 'APPROVED') {
+      if (requestRevision) {
+        redirectTo = 'onboarding';
+        message = 'Organization KYC marked for revision. Please update the information.';
+      } else {
+        redirectTo = 'dashboard';
+        message = 'Welcome! Your organization is already approved.';
+      }
+    } else if (org.kycStatus === 'SUBMITTED' || org.kycStatus === 'INFO_REQUESTED') {
+      redirectTo = 'onboarding';
+      message = 'Your organization\'s KYC is under review.';
+    } else {
+      redirectTo = 'onboarding';
+      message = 'Please complete the organization KYC process.';
+    }
+
+    return {
+      success: true,
+      organizationId: org._id.toString(),
+      orgCode: org.orgCode,
+      kycStatus: org.kycStatus,
+      redirectTo,
+      message,
+    };
+  }
+
+  /**
+   * Create new organization and link user
+   */
+  async createOrganizationAndLinkUser(
+    userId: string,
+    orgData: { legalName: string; role: UserRole }
+  ): Promise<LinkResult> {
+    // Find user
+    const user: any = await this.usersService.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if user already linked
+    if (user.organizationId) {
+      throw new BadRequestException('User is already linked to an organization');
+    }
+
+    // Verify role matches
+    if (user.role !== orgData.role) {
+      throw new BadRequestException('Organization role must match user role');
+    }
+
+    // Check if organization name already exists for this role
+    const existingOrg = await this.orgModel.findOne({
+      legalName: new RegExp(`^${orgData.legalName}$`, 'i'),
+      role: orgData.role,
+    });
+
+    if (existingOrg) {
+      throw new ConflictException('An organization with this name already exists for this role');
+    }
+
+    // Generate orgCode
+    const orgCode = await this.idGenerator.generateOrgCode(orgData.role);
+
+    // Create organization
+    const organization = new this.orgModel({
+      orgCode,
+      legalName: orgData.legalName,
+      role: orgData.role,
+      completedSteps: [],
+      kycStatus: 'DRAFT',
+      status: 'ACTIVE',
+      isVerified: false,
+    });
+    const savedOrg = await organization.save();
+
+    // Link user to organization
+    user.organizationId = new Types.ObjectId(savedOrg._id.toString());
+    await user.save();
+
+    return {
+      success: true,
+      organizationId: savedOrg._id.toString(),
+      orgCode: savedOrg.orgCode,
+      kycStatus: 'DRAFT',
+      redirectTo: 'onboarding',
+      message: 'Organization created successfully. Please complete the KYC process.',
+    };
+  }
+
+  async joinWithInviteCode(userId: string, inviteCode: string): Promise<LinkResult> {
+    // Find user
+    const user: any = await this.usersService.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Check if already linked
+    if (user.organizationId) {
+      throw new BadRequestException('User is already linked to an organization');
+    }
+
+    // Find organization by invite code
+    const org = await this.orgModel.findOne({ inviteCode });
+    if (!org) {
+      throw new NotFoundException('Invalid invite code');
+    }
+
+    // Check expiry
+    if (org.inviteCodeExpiry && org.inviteCodeExpiry < new Date()) {
+      throw new BadRequestException('Invite code has expired');
+    }
+
+    // Check role match
+    if (user.role !== org.role) {
+      throw new BadRequestException(
+        `Role mismatch. You are ${user.role} but this organization is for ${org.role}s`,
+      );
+    }
+
+    // Check org status
+    if (org.kycStatus !== 'APPROVED') {
+      throw new BadRequestException('Organization KYC is not approved yet');
+    }
+
+    // Link user to org
+    user.organizationId = new Types.ObjectId(org._id.toString());
+    user.usedInviteCode = inviteCode;
+    await user.save();
+
+    // Clear invite code (single-use)
+    org.inviteCode = null;
+    org.inviteCodeExpiry = null;
+    await org.save();
+
+    return {
+      success: true,
+      organizationId: org._id.toString(),
+      orgCode: org.orgCode,
+      kycStatus: org.kycStatus,
+      redirectTo: 'dashboard',
+      message: `Successfully joined ${org.legalName}`,
+    };
   }
 
   /**

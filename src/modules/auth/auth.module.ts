@@ -11,7 +11,6 @@ import { OrganizationsModule } from "../organizations/organizations.module";
 import { User, UserSchema } from "../users/schemas/user.schema";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
-import { AuthOrganizationService } from "./auth-organization.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { LocalStrategy } from "./strategies/local.strategy";
 
@@ -37,7 +36,7 @@ import { LocalStrategy } from "./strategies/local.strategy";
     OrganizationsModule, // ✅ Added OrganizationsModule
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthOrganizationService, JwtStrategy, LocalStrategy, IdGeneratorService],
+  providers: [AuthService, JwtStrategy, LocalStrategy, IdGeneratorService],
   exports: [AuthService],
 })
 export class AuthModule { }

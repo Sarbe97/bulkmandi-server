@@ -1,10 +1,11 @@
-import { Controller, ForbiddenException, Get, Param, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, ForbiddenException, Get, Param, Post, Res, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from "@nestjs/swagger";
 import { CustomLoggerService } from "src/core/logger/custom.logger.service";
 import { FileStorageService } from "../../core/file/services/file-storage.service";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { OrganizationsService } from "./organizations.service";
+import { Public } from "../auth/decorators/public.decorator";
 
 @ApiTags("Organizations")
 @ApiBearerAuth()
@@ -15,7 +16,7 @@ export class OrganizationsController {
     private readonly organizationsService: OrganizationsService,
     private readonly fileStorageService: FileStorageService,
     private readonly logger: CustomLoggerService,
-  ) {}
+  ) { }
 
   /**
    * Extract organization ID from authenticated user
@@ -101,6 +102,13 @@ export class OrganizationsController {
     } catch (error) {
       this.logger.log(`Error previewing file ${fileName}: ${error.message}`, "OrganizationsController.previewDocument");
       throw new ForbiddenException(error.message);
+      throw new ForbiddenException(error.message);
     }
+  }
+
+  @Post("validate-invite-code")
+  @ApiOperation({ summary: "Validate an invite code" })
+  async validateCode(@Body() body: { inviteCode: string }) {
+    return this.organizationsService.validateInviteCode(body.inviteCode);
   }
 }

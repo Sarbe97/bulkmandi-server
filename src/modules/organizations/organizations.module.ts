@@ -6,6 +6,7 @@ import { KycCase, KycCaseSchema } from "../kyc/schemas/kyc.schema";
 import { OrganizationsController } from "./organizations.controller";
 import { OrganizationsService } from "./organizations.service";
 import { Organization, OrganizationSchema } from "./schemas/organization.schema";
+import { UsersModule } from "../users/users.module";
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { Organization, OrganizationSchema } from "./schemas/organization.schema"
       { name: Organization.name, schema: OrganizationSchema },
       { name: KycCase.name, schema: KycCaseSchema }, // ✅ Added for IdGeneratorService
     ]),
+    UsersModule, // ✅ Added for UsersService
   ],
   controllers: [OrganizationsController],
   providers: [OrganizationsService, FileStorageService, IdGeneratorService], // ✅ Added IdGeneratorService

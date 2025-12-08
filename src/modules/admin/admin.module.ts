@@ -4,7 +4,7 @@ import { KycCase, KycCaseSchema } from '../kyc/schemas/kyc.schema';
 import { Organization, OrganizationSchema } from '../organizations/schemas/organization.schema';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { AdminDashboardController } from './controllers/admin-dashboard.controller';
-import { AdminController } from './controllers/admin.contoller';
+import { AdminController } from './controllers/admin.controller';
 import { AdminDashboardService } from './services/admin-dashboard.service';
 
 @Module({

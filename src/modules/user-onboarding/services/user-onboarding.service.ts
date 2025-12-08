@@ -94,6 +94,28 @@ export class UserOnboardingService {
 
       this.checkEditPermission(org);
 
+      // ✅ Check for duplicate GSTIN
+      if (dto.gstin) {
+        const existingGstin = await this.orgModel.findOne({
+          "orgKyc.gstin": dto.gstin,
+          _id: { $ne: org._id },
+        });
+        if (existingGstin) {
+          throw new ConflictException("GSTIN already registered with another organization.");
+        }
+      }
+
+      // ✅ Check for duplicate PAN
+      if (dto.pan) {
+        const existingPan = await this.orgModel.findOne({
+          "orgKyc.pan": dto.pan,
+          _id: { $ne: org._id },
+        });
+        if (existingPan) {
+          throw new ConflictException("PAN already registered with another organization.");
+        }
+      }
+
       org.legalName = dto.legalName;
       org.orgKyc = {
         legalName: dto.legalName,
