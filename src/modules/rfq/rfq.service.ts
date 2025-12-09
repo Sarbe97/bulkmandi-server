@@ -4,12 +4,14 @@ import { Model } from 'mongoose';
 import { CreateRfqDto } from './dto/create-rfq.dto';
 import { Rfq, RfqDocument } from './schemas/rfq.schema';
 
+
+
 @Injectable()
 export class RfqService {
   constructor(
     @InjectModel(Rfq.name)
     private rfqModel: Model<RfqDocument>
-  ) {}
+  ) { }
 
   async create(buyerId: string, dto: CreateRfqDto) {
     // Make sure buyer org exists, skip for brevity
@@ -21,13 +23,18 @@ export class RfqService {
       product: {
         category: dto.category,
         grade: dto.grade,
+        subCategory: dto.subCategory,
+        size: dto.size,
+        tolerance: dto.tolerance,
+        millTcRequired: dto.millTcRequired || false,
       },
       quantityMT: dto.quantityMT,
       targetPin: dto.targetPin,
       deliveryBy: new Date(dto.deliveryBy),
       incoterm: dto.incoterm,
       notes: dto.notes,
-      status: 'DRAFT'
+      status: 'OPEN'
+
     });
     return rfq.save();
   }

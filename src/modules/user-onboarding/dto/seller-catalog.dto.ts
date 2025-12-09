@@ -37,18 +37,15 @@ class CatalogProductDto {
   @IsArray()
   @IsString({ each: true })
   availability: string[];
-}
 
-class PriceFloorDto {
-  @IsString()
-  @IsNotEmpty()
-  category: string;
-
+  // Moved from PriceFloorDto
   @IsNumber()
   @Min(0)
-  @IsNotEmpty()
+  @IsNotEmpty() // Or @IsOptional() if not strictly required for all
   pricePerMT: number;
 }
+
+
 
 class LogisticsPreferenceDto {
   @IsBoolean()
@@ -61,18 +58,13 @@ class LogisticsPreferenceDto {
 }
 
 export class SellerCatalogDto {
-  @IsArray()
-  @ValidateNested({ each: true })
   @Type(() => CatalogProductDto)
   @IsNotEmpty()
   catalogProducts: CatalogProductDto[];
 
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => PriceFloorDto)
-  @IsNotEmpty()
-  priceFloors: PriceFloorDto[];
- 
+  // Removed PriceFloorDto
+
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PlantLocationDto)

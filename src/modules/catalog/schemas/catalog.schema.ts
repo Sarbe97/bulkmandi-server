@@ -15,20 +15,20 @@ export class Grade {
   description?: string;
 }
 
-@Schema({ _id: false })
-export class PriceFloor {
-  @Prop({ required: true })
-  category!: string;
-
-  @Prop({ required: true })
-  grade!: string;
-
-  @Prop({ required: true })
-  pricePerMT!: number;
-
-  @Prop()
-  effectiveFrom?: Date;
-}
+// @Schema({ _id: false })
+// export class PriceFloor {
+//   @Prop({ required: true })
+//   category!: string;
+//
+//   @Prop({ required: true })
+//   grade!: string;
+//
+//   @Prop({ required: true })
+//   pricePerMT!: number;
+//
+//   @Prop()
+//   effectiveFrom?: Date;
+// }
 
 @Schema({ _id: false })
 export class PlantLocation {
@@ -65,8 +65,11 @@ export class Catalog {
   @Prop({ type: [Grade], default: [] })
   grades!: Grade[];
 
-  @Prop({ type: [PriceFloor], default: [] })
-  priceFloors!: PriceFloor[];
+  // @Prop({ type: [PriceFloor], default: [] })
+  // priceFloors!: PriceFloor[];
+
+  @Prop({ type: Object, default: {} })
+  pricePerCategory!: Record<string, number>; // { "HR_COILS": 45000 }
 
   @Prop({ type: [PlantLocation], default: [] })
   plantLocations!: PlantLocation[];

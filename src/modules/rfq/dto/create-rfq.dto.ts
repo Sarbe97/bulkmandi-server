@@ -1,4 +1,5 @@
-import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsBoolean, IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+
 
 export class CreateRfqDto {
   @IsString()
@@ -7,7 +8,25 @@ export class CreateRfqDto {
 
   @IsString()
   @IsNotEmpty()
+  @IsString()
+  @IsNotEmpty()
   grade: string;                // e.g., 'IS2062_E250'
+
+  @IsString()
+  @IsOptional()
+  subCategory?: string;
+
+  @IsString()
+  @IsOptional()
+  size?: string;
+
+  @IsString()
+  @IsOptional()
+  tolerance?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  millTcRequired?: boolean;
 
   @IsNumber()
   quantityMT: number;
@@ -27,6 +46,7 @@ export class CreateRfqDto {
   buyerOrgName: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   notes?: string;
 }
+

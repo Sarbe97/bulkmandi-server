@@ -72,11 +72,6 @@ export class CatalogProduct {
   @Prop() moqPerOrder: number;
   @Prop() stdLeadTime: number;
   @Prop({ type: [String], default: [] }) availability: string[];
-}
-
-@Schema({ _id: false })
-export class PriceFloor {
-  @Prop() category: string;
   @Prop() pricePerMT: number;
 }
 
@@ -90,7 +85,7 @@ export class LogisticsPreference {
 export class Catalog {
   @Prop({ type: [CatalogProduct], default: [] }) catalogProducts: CatalogProduct[];
   @Prop({ type: [PlantLocation], default: [] }) plantLocations: PlantLocation[];
-  @Prop({ type: [PriceFloor], default: [] }) priceFloors: PriceFloor[];
+  // priceFloors removed
   @Prop({ type: LogisticsPreference }) logisticsPreference: LogisticsPreference;
 }
 

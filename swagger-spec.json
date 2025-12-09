@@ -1049,6 +1049,60 @@
           "MasterData"
         ]
       }
+    },
+    "/api/v1/master-data/product-categories": {
+      "get": {
+        "operationId": "MasterDataController_getProductCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MasterData"
+        ]
+      },
+      "post": {
+        "operationId": "MasterDataController_addProductCategory",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MasterData"
+        ]
+      }
+    },
+    "/api/v1/master-data/delete/fleet-types": {
+      "post": {
+        "operationId": "MasterDataController_deleteFleetType",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MasterData"
+        ]
+      }
+    },
+    "/api/v1/master-data/delete/product-categories": {
+      "post": {
+        "operationId": "MasterDataController_deleteProductCategory",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MasterData"
+        ]
+      }
     }
   },
   "info": {
