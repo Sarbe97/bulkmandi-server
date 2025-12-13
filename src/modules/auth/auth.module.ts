@@ -21,11 +21,12 @@ import { LocalStrategy } from "./strategies/local.strategy";
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>("JWT_SECRET"),
+        secret: configService.get<string>("JWT_SECRET") || process.env.JWT_SECRET || 'your-secret-key',
         signOptions: {
           //expiresIn: configService.get<string>("JWT_EXPIRES_IN"),
         },
       }),
+
       inject: [ConfigService],
     }),
     MongooseModule.forFeature([
@@ -37,6 +38,7 @@ import { LocalStrategy } from "./strategies/local.strategy";
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, LocalStrategy, IdGeneratorService],
-  exports: [AuthService],
+  exports: [AuthService, JwtStrategy, PassportModule],
+
 })
 export class AuthModule { }

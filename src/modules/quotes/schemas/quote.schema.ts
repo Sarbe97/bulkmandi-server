@@ -8,8 +8,8 @@ export class Quote {
   @Prop({ required: true, unique: true })
   quoteId!: string; // QUOTE-2025-00001
 
-  @Prop({ type: Types.ObjectId, ref: 'Rfq', required: true })
-  rfqId!: Types.ObjectId;
+  @Prop({ required: true, index: true })
+  rfqId!: string;
 
   @Prop({ type: Types.ObjectId, ref: 'Organization', required: true })
   sellerId!: Types.ObjectId;
@@ -57,6 +57,13 @@ export class Quote {
 
   @Prop()
   validityExpiresAt?: Date;
+
+  // Commercial Terms
+  @Prop({ required: false })
+  paymentTerms!: string; // e.g. 100% Advance, LC 30 Days
+
+  @Prop()
+  qualityTerms?: string; // e.g. Mill TC
 
   // Price floor checks
   @Prop({ default: false })

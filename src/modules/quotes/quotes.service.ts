@@ -10,10 +10,15 @@ export class QuotesService {
   constructor(
     @InjectModel(Quote.name) private quoteModel: Model<QuoteDocument>,
     @InjectModel(Rfq.name) private rfqModel: Model<RfqDocument>
-  ) {}
+  ) { }
+
+  async findByRfqId(rfqId: string) {
+    return this.quoteModel.find({ rfqId }).sort({ submittedAt: 1 });
+  }
 
   async create(sellerId: string, dto: CreateQuoteDto) {
-    const rfq = await this.rfqModel.findById(dto.rfqId);
+    // Find RFQ by custom string ID
+    const rfq = await this.rfqModel.findOne({ rfqId: dto.rfqId });
     if (!rfq || rfq.status !== 'OPEN') throw new BadRequestException('RFQ not open for quoting');
 
     const exists = await this.quoteModel.findOne({ rfqId: dto.rfqId, sellerId });
@@ -22,10 +27,14 @@ export class QuotesService {
     const baseAmount = dto.pricePerMT * dto.quantityMT;
     const freightTotal = dto.freightPerMT * dto.quantityMT;
     const grandTotal = baseAmount + freightTotal;
+    const quoteId = `QUOTE-${Date.now()}`;
+    const validityExpiresAt = new Date(Date.now() + dto.validityHours * 60 * 60 * 1000);
 
     const quote = new this.quoteModel({
-      rfqId: dto.rfqId,
+      quoteId,
+      rfqId: dto.rfqId, // Store string ID
       sellerId,
+      sellerOrgName: "Seller Org", // TODO: Fetch actua org name
       pricePerMT: dto.pricePerMT,
       quantityMT: dto.quantityMT,
       freightPerMT: dto.freightPerMT,
@@ -33,6 +42,8 @@ export class QuotesService {
       totalPriceBase: baseAmount,
       grandTotal,
       leadDays: dto.leadDays,
+      validityHours: dto.validityHours,
+      validityExpiresAt,
       notes: dto.notes || '',
       status: 'ACTIVE',
       submittedAt: new Date()
@@ -46,10 +57,6 @@ export class QuotesService {
       .sort({ submittedAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
-  }
-
-  async findByRfqId(rfqId: string) {
-    return this.quoteModel.find({ rfqId }).sort({ submittedAt: 1 });
   }
 
   async findByIdOrFail(id: string) {

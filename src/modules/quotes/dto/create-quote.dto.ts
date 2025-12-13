@@ -1,7 +1,7 @@
 import { IsMongoId, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
 
 export class CreateQuoteDto {
-  @IsMongoId()
+  @IsString()
   rfqId: string;
 
   @IsNumber()
@@ -19,6 +19,18 @@ export class CreateQuoteDto {
   @IsNumber()
   @IsPositive()
   leadDays: number;
+
+  @IsNumber()
+  @IsPositive()
+  validityHours: number;
+
+
+  @IsString()
+  paymentTerms: string;
+
+  @IsOptional()
+  @IsString()
+  qualityTerms?: string;
 
   @IsOptional()
   @IsString()

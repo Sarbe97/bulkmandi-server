@@ -16,6 +16,8 @@ import { KycModule } from "./modules/kyc/kyc.module";
 import { OrganizationsModule } from "./modules/organizations/organizations.module";
 import { MasterDataModule } from './modules/master-data/master-data.module';
 import { UsersModule } from "./modules/users/users.module";
+import { RfqModule } from "@modules/rfq/rfq.module";
+import { QuotesModule } from "@modules/quotes/quotes.module";
 
 @Module({
   imports: [
@@ -23,16 +25,19 @@ import { UsersModule } from "./modules/users/users.module";
       isGlobal: true,
     }),
     DatabaseModule,
-
-    // Keep existing
     AuthModule,
     CoreModule,
-    // Add all new modules
     OrganizationsModule,
     KycModule,
+    UserOnboardingModule,
+    AdminModule,
+    DocumentsModule,
+    MasterDataModule,
+    UsersModule,
+    RfqModule,
+    QuotesModule,
     // CatalogModule,
-    // RfqModule,
-    // QuotesModule,
+
     // OrdersModule,
     // PaymentsModule,
     // ShipmentsModule,
@@ -40,14 +45,11 @@ import { UsersModule } from "./modules/users/users.module";
     // SettlementsModule,
     // BuyerModule,
     // SellerModule,
-    UserOnboardingModule,
-    AdminModule,
+
     // ThreePLModule,
     // AuditModule,
     // NotificationsModule,
-    DocumentsModule,
-    MasterDataModule,
-    UsersModule,
+
   ],
   controllers: [AppController],
   providers: [AppService],

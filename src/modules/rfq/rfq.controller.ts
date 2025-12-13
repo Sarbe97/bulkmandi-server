@@ -12,6 +12,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { CustomLoggerService } from '@core/logger/custom.logger.service';
 import { CreateRfqDto } from './dto/create-rfq.dto';
 import { PublishRfqDto } from './dto/publish-rfq.dto';
 import { RfqService } from './rfq.service';
@@ -21,7 +22,11 @@ import { RfqService } from './rfq.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('rfq')
 export class RfqController {
-  constructor(private readonly rfqService: RfqService) {}
+
+  constructor(private readonly rfqService: RfqService,
+    private readonly logger: CustomLoggerService
+  ) { }
+
 
   @ApiOperation({ summary: 'Create RFQ (Buyer only)' })
   @Roles(UserRole.BUYER)
@@ -37,17 +42,19 @@ export class RfqController {
     return this.rfqService.publish(id, user.organizationId);
   }
 
-  @ApiOperation({ summary: 'Get my RFQs (Buyer)' })
+  @ApiOperation({ summary: 'Update RFQ (Buyer only - Drafts)' })
   @Roles(UserRole.BUYER)
+  @Put(':id')
+  async updateRFQ(@CurrentUser() user: any, @Param('id') id: string, @Body() createRfqDto: CreateRfqDto) {
+    return this.rfqService.update(id, user.organizationId, createRfqDto);
+  }
+
+
+  @ApiOperation({ summary: 'Get my RFQs (Buyer)' })
+  // @Roles(UserRole.BUYER)
   @Get('me')
   async getMyRFQs(@CurrentUser() user: any, @Query('status') status?: string, @Query('page') page: number = 1, @Query('limit') limit: number = 20) {
     return this.rfqService.findByBuyerId(user.organizationId, { status }, page, limit);
-  }
-
-  @ApiOperation({ summary: 'Get RFQ by ID' })
-  @Get(':id')
-  async getRFQById(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.rfqService.findByIdOrFail(id);
   }
 
   @ApiOperation({ summary: 'Get open RFQs (Seller view)' })
@@ -55,6 +62,12 @@ export class RfqController {
   @Get('open')
   async getOpenRFQs(@CurrentUser() user: any, @Query('category') category?: string, @Query('grade') grade?: string, @Query('page') page: number = 1, @Query('limit') limit: number = 20) {
     return this.rfqService.findOpenRFQs({ category, grade }, page, limit);
+  }
+
+  @ApiOperation({ summary: 'Get RFQ by ID' })
+  @Get('detail/:id')
+  async getRFQById(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.rfqService.findByIdOrFail(id);
   }
 
   @ApiOperation({ summary: 'Close/Cancel RFQ (Buyer)' })

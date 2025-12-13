@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { InjectModel } from "@nestjs/mongoose";
 import * as bcrypt from "bcrypt";
@@ -18,6 +19,7 @@ export class AuthService {
     private organizationModel: Model<OrganizationDocument>,
     private jwtService: JwtService,
     private idGenerator: IdGeneratorService,
+    private configService: ConfigService,
   ) { }
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -42,11 +44,6 @@ export class AuthService {
 
     const isAdmin = [UserRole.ADMIN, UserRole.SUPER_ADMIN].includes(user.role);
 
-    // ALLOW LOGIN WITHOUT ORG - Frontend will handle redirection
-    // if (!isAdmin && !user.organizationId) {
-    //   throw new UnauthorizedException("User is not linked to an organization");
-    // }
-
     // Update last login
     await this.userModel.findByIdAndUpdate(user._id, {
       lastLoginAt: new Date(),
@@ -59,6 +56,10 @@ export class AuthService {
       const org = await this.organizationModel.findById(user.organizationId);
       organizationName = org?.legalName || null;
     }
+
+    // Verify secret being used
+    const secret = this.configService.get<string>("JWT_SECRET") || process.env.JWT_SECRET || 'your-secret-key';
+
 
     // Build JWT payload
     const payload: any = {
@@ -81,11 +82,13 @@ export class AuthService {
     // Generate access token with shorter expiry
     const accessToken = this.jwtService.sign(payload, {
       expiresIn: "15m", // Adjust as needed
+      secret,
     });
 
     // Generate refresh token with longer expiry
     const refreshToken = this.jwtService.sign(payload, {
       expiresIn: "7d", // Adjust as needed
+      secret,
     });
 
     const response: any = {
@@ -157,7 +160,10 @@ export class AuthService {
       isAdmin: false,
       needsOrgSelection: true, // Flag indicating user needs to select organization
     };
-    const accessToken = this.jwtService.sign(payload);
+
+    // Sign with explicit secret to be safe, though module default should handle it
+    const secret = this.configService.get<string>("JWT_SECRET") || process.env.JWT_SECRET || 'your-secret-key';
+    const accessToken = this.jwtService.sign(payload, { secret });
 
     return {
       accessToken,
@@ -172,9 +178,8 @@ export class AuthService {
 
   async refreshAccessToken(refreshToken: string) {
     try {
-      const payload = this.jwtService.verify(refreshToken);
-
-      // Optional: Check if refresh token is revoked or invalidated here
+      const secret = this.configService.get<string>("JWT_SECRET") || process.env.JWT_SECRET || 'your-secret-key';
+      const payload = this.jwtService.verify(refreshToken, { secret });
 
       // Remove fields that should not be re-signed if any
       const { iat, exp, nbf, ...rest } = payload;
@@ -182,6 +187,7 @@ export class AuthService {
       // Generate and return new access token with shorter expiry
       const accessToken = this.jwtService.sign(rest, {
         expiresIn: '15m', // Same expiry as in login
+        secret,
       });
 
       return { accessToken };

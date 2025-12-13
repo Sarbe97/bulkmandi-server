@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AuthModule } from '../auth/auth.module';
 import { CatalogModule } from '../catalog/catalog.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { RfqController } from './rfq.controller';
@@ -13,9 +14,12 @@ import { Rfq, RfqSchema } from './schemas/rfq.schema';
     ]),
     OrganizationsModule,
     CatalogModule,
+    AuthModule,
   ],
+
+
   controllers: [RfqController],
   providers: [RfqService],
   exports: [RfqService],
 })
-export class RfqModule {}
+export class RfqModule { }

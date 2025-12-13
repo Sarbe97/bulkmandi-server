@@ -48,5 +48,11 @@ export class CreateRfqDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsEnum(['DRAFT', 'OPEN'])
+  status?: string;
 }
+
 

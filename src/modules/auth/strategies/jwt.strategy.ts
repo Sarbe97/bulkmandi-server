@@ -1,4 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+
 import { InjectModel } from '@nestjs/mongoose';
 import { PassportStrategy } from '@nestjs/passport';
 import { Model } from 'mongoose';
@@ -7,22 +9,35 @@ import { User, UserDocument } from 'src/modules/users/schemas/user.schema';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private configService: ConfigService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_SECRET || 'your-secret-key',
+      secretOrKey: configService.get<string>('JWT_SECRET') || process.env.JWT_SECRET || 'your-secret-key',
       ignoreExpiration: false,
     });
   }
 
+
   async validate(payload: any) {
-    // Payload contains: { userId, email, role, isAdmin, organizationId?, permissions? }
-    
+    // console.log('--- JWT Strategy Validate ---');
+    // console.log('Payload:', JSON.stringify(payload, null, 2));
+
     const user = await this.userModel.findById(payload.userId);
-    
-    if (!user || !user.isActive) {
-      throw new UnauthorizedException('User not found or inactive');
+
+    if (!user) {
+      console.error('User not found for ID:', payload.userId);
+      throw new UnauthorizedException('User not found');
     }
+
+    if (!user.isActive) {
+      console.error('User is inactive:', payload.userId);
+      throw new UnauthorizedException('User inactive');
+    }
+
+    // console.log('User validated successfully:', user.email);
 
     // IMPORTANT: Return the complete user object with organizationId
     return {
@@ -34,4 +49,5 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       permissions: payload.permissions || [],
     };
   }
+
 }
