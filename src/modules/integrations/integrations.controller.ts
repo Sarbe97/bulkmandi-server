@@ -2,11 +2,11 @@ import { BadRequestException, Body, Controller, Get, Post, Query } from "@nestjs
 import { GstResponseDto } from "./dto/gst-response.dto";
 import { IfscResponseDto } from "./dto/ifsc-response.dto";
 import { PostOfficeDto } from "./dto/pincode-response.dto";
-import { UtilityApisService } from "./utility-apis.service";
+import { IntegrationsService } from "./integrations.service";
 
 @Controller("utility-apis")
-export class UtilityApisController {
-  constructor(private readonly utilityApisService: UtilityApisService) { }
+export class IntegrationsController {
+  constructor(private readonly utilityApisService: IntegrationsService) { }
 
   @Get("fleet-types")
   async getFleetTypes() {

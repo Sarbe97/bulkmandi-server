@@ -761,6 +761,27 @@
         ]
       }
     },
+    "/api/v1/user/onboarding/bank/verify-penny-drop": {
+      "post": {
+        "description": "Verifies account with razorpay. Returns verified name.",
+        "operationId": "UserOnboardingController_verifyBankDetails",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify bank account using Penny Drop",
+        "tags": [
+          "User Onboarding (Buyer, Seller, Logistic)"
+        ]
+      }
+    },
     "/api/v1/user/onboarding/compliance-docs": {
       "put": {
         "description": "Same for all roles",
@@ -943,6 +964,111 @@
         "summary": "Submit onboarding for KYC verification",
         "tags": [
           "User Onboarding (Buyer, Seller, Logistic)"
+        ]
+      }
+    },
+    "/api/v1/utility-apis/fleet-types": {
+      "get": {
+        "operationId": "IntegrationsController_getFleetTypes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/api/v1/utility-apis/plant-location-suggestions": {
+      "get": {
+        "operationId": "IntegrationsController_plantLocationSuggestions",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/api/v1/utility-apis/validate-ifsc": {
+      "get": {
+        "operationId": "IntegrationsController_validateIfsc",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/api/v1/utility-apis/verify-gstin": {
+      "get": {
+        "operationId": "IntegrationsController_verifyGstin",
+        "parameters": [
+          {
+            "name": "gstin",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "apikey",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/api/v1/utility-apis/verify-pennydrop": {
+      "post": {
+        "operationId": "IntegrationsController_verifyPennyDrop",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Integrations"
         ]
       }
     },

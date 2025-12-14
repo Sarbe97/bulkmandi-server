@@ -18,6 +18,7 @@ import { MasterDataModule } from './modules/master-data/master-data.module';
 import { UsersModule } from "./modules/users/users.module";
 import { RfqModule } from "@modules/rfq/rfq.module";
 import { QuotesModule } from "@modules/quotes/quotes.module";
+import { IntegrationsModule } from "./modules/integrations/integrations.module";
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { QuotesModule } from "@modules/quotes/quotes.module";
     UsersModule,
     RfqModule,
     QuotesModule,
+    IntegrationsModule,
     // CatalogModule,
 
     // OrdersModule,

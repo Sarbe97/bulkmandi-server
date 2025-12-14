@@ -122,4 +122,4 @@ export const OrderSchema = SchemaFactory.createForClass(Order);
 OrderSchema.index({ buyerId: 1, createdAt: -1 });
 OrderSchema.index({ sellerId: 1, createdAt: -1 });
 OrderSchema.index({ status: 1 });
-OrderSchema.index({ rfqId: 1 });
+// OrderSchema.index({ rfqId: 1 });

@@ -99,6 +99,6 @@ export class Quote {
 export const QuoteSchema = SchemaFactory.createForClass(Quote);
 
 // QuoteSchema.index({ quoteId: 1 });
-QuoteSchema.index({ rfqId: 1 });
+// QuoteSchema.index({ rfqId: 1 });
 QuoteSchema.index({ sellerId: 1, createdAt: -1 });
 QuoteSchema.index({ status: 1, validityExpiresAt: 1 });

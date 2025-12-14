@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException, ConflictException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 
@@ -12,6 +12,13 @@ import { IdGeneratorService } from "src/common/services/id-generator.service";
 import { UserBankDto, UserOrgKycDto } from "../dto";
 import { FleetAndComplianceFormDataDto } from "../dto/fleet-compliance.dto";
 
+// Step Services
+import { OrgKycStepService } from "./steps/org-kyc-step.service";
+import { BankDetailsStepService } from "./steps/bank-details-step.service";
+import { ComplianceStepService } from "./steps/compliance-step.service";
+import { IntegrationsService } from "@modules/integrations/integrations.service";
+
+
 // Define required steps per role
 const REQUIRED_STEPS_BY_ROLE = {
   [UserRole.BUYER]: ["org-kyc", "bank-details", "compliance-docs", "buyer-preferences"],
@@ -19,7 +26,7 @@ const REQUIRED_STEPS_BY_ROLE = {
   [UserRole.LOGISTIC]: [
     'org-kyc',
     'bank-details',
-    'fleet-compliance',          // New step
+    'fleet-compliance',
     'compliance-docs',
   ],
 };
@@ -34,6 +41,12 @@ export class UserOnboardingService {
     private readonly kycAdminService: KycAdminService,
     private readonly logger: CustomLoggerService,
     private readonly idGenerator: IdGeneratorService,
+
+    // Injected Step Services
+    private readonly orgKycService: OrgKycStepService,
+    private readonly bankDetailsService: BankDetailsStepService,
+    private readonly complianceService: ComplianceStepService,
+    private readonly integrationsService: IntegrationsService,
   ) { }
 
   /**
@@ -52,201 +65,51 @@ export class UserOnboardingService {
     return REQUIRED_STEPS_BY_ROLE[role] || REQUIRED_STEPS_BY_ROLE[UserRole.BUYER];
   }
 
-  // ===== COMMON STEPS =====
+  // ===== DELEGATED STEPS =====
 
   /**
    * Step 1: Update Organization KYC
-   * Same logic for all roles, but org-kyc is stored in same field
    */
   async updateOrgKyc(organizationId: string | null, dto: UserOrgKycDto, userRole: UserRole, userId: string): Promise<any> {
-    try {
-      this.logger.log(`updateOrgKyc: org=${organizationId}, role=${userRole}`);
-
-      console.log("DTO received in updateOrgKyc:", dto);
-      let org;
-
-      if (organizationId) {
-        org = await this.orgModel.findById(organizationId);
-      }
-
-      // If org doesn't exist or ID is null, create new one
-      if (!org) {
-        const orgCode = await this.idGenerator.generateOrgCode(dto.legalName);
-        org = new this.orgModel({
-          orgCode,
-          orgId: orgCode, // ✅ Set orgId to satisfy unique index
-          legalName: dto.legalName, // Required field
-          role: userRole,
-          completedSteps: [],
-          isOnboardingLocked: false,
-          kycStatus: "DRAFT", // Explicit default
-          status: "Active", // Default
-        });
-
-        // Save new org to generate ID
-        await org.save();
-        organizationId = org._id.toString();
-
-        // Link to User
-        await this.userModel.findByIdAndUpdate(userId, { organizationId: org._id });
-        this.logger.log(`Created new Organization ${organizationId} and linked to user ${userId}`);
-      }
-
-      this.checkEditPermission(org);
-
-      // ✅ Check for duplicate GSTIN
-      if (dto.gstin) {
-        const existingGstin = await this.orgModel.findOne({
-          "orgKyc.gstin": dto.gstin,
-          _id: { $ne: org._id },
-        });
-        if (existingGstin) {
-          throw new ConflictException("GSTIN already registered with another organization.");
-        }
-      }
-
-      // ✅ Check for duplicate PAN
-      if (dto.pan) {
-        const existingPan = await this.orgModel.findOne({
-          "orgKyc.pan": dto.pan,
-          _id: { $ne: org._id },
-        });
-        if (existingPan) {
-          throw new ConflictException("PAN already registered with another organization.");
-        }
-      }
-
-      org.legalName = dto.legalName;
-      org.orgKyc = {
-        legalName: dto.legalName,
-        tradeName: dto.tradeName,
-        gstin: dto.gstin,
-        pan: dto.pan,
-        cin: dto.cin,
-        registeredAddress: dto.registeredAddress,
-        businessType: dto.businessType,
-        incorporationDate: dto.incorporationDate,
-        primaryContact: dto.primaryContact,
-        plantLocations: dto.plantLocations,
-        serviceStates: dto.serviceStates,
-      };
-
-      if (!org.completedSteps.includes("org-kyc")) {
-        org.completedSteps.push("org-kyc");
-      }
-
-      await org.save();
-      this.logger.log(`KYC data updated for org ${organizationId}`);
-
-      return this.formatResponse(org);
-    } catch (error) {
-      this.logger.error(`Error updating org KYC for org ${organizationId}: ${error.message}`);
-      throw error;
-    }
+    const org = await this.orgKycService.updateOrgKyc(organizationId, dto, userRole, userId);
+    return this.formatResponse(org);
   }
 
   /**
    * Step 2: Update Bank Details
-   * Same for all roles
    */
   async updateBankDetails(organizationId: string, dto: UserBankDto, userRole: UserRole): Promise<any> {
+    const org = await this.bankDetailsService.updateBankDetails(organizationId, dto, userRole);
+    return this.formatResponse(org);
+  }
+
+  /**
+   * Verified Bank Details (Penny Drop)
+   */
+  async verifyBankDetails(organizationId: string, accountNumber: string, ifsc: string): Promise<any> {
     try {
-      this.logger.log(`updateBankDetails: org=${organizationId}, role=${userRole}`);
+      this.logger.log(`Verifying bank details for org ${organizationId}`, "UserOnboardingService.verifyBankDetails");
 
-      const org = await this.orgModel.findById(organizationId);
-      if (!org) throw new NotFoundException("Organization not found");
+      const result = await this.integrationsService.verifyPennyDrop(accountNumber, ifsc);
 
-      this.checkEditPermission(org);
-
-      if (!org.primaryBankAccount) {
-        org.primaryBankAccount = { documents: [] };
-      }
-
-      org.primaryBankAccount = {
-        accountNumber: dto.accountNumber,
-        accountHolderName: dto.accountHolderName,
-        ifsc: dto.ifsc,
-        bankName: dto.bankName,
-        branchName: dto.branchName,
-        accountType: dto.accountType,
-
-        payoutMethod: dto.payoutMethod,
-        upiDetails: dto.upiDetails,
-
-        pennyDropStatus: dto.pennyDropStatus || "PENDING",
-        pennyDropScore: dto.pennyDropScore || 0,
-
-        documents: (dto.documents || []).map((doc) => ({
-          docType: doc.docType,
-          fileName: doc.fileName,
-          fileUrl: doc.fileUrl,
-          uploadedAt: new Date(doc.uploadedAt || new Date()),
-          status: doc.status,
-        })),
+      // Note: We don't save to DB here. Client must call updateBankDetails with the result status.
+      return {
+        verified: true,
+        accountName: result.registered_name || result.account_name || "Verified User", // Razorpay response fields vary
+        message: "Bank account verified successfully"
       };
-
-      if (!org.completedSteps.includes("bank-details")) {
-        org.completedSteps.push("bank-details");
-      }
-
-      await org.save();
-      this.logger.log(`Bank details updated for org ${organizationId}`);
-
-      return this.formatResponse(org);
     } catch (error) {
-      this.logger.error(`Error updating bank details for org ${organizationId}: ${error.message}`);
+      this.logger.error(`Penny drop verification failed: ${error.message}`);
       throw error;
     }
   }
 
   /**
    * Step 3: Update Compliance Docs
-   * Same for all roles
    */
   async updateComplianceDocs(organizationId: string, dto: any, userRole: UserRole): Promise<any> {
-    try {
-      this.logger.log(`updateComplianceDocs: org=${organizationId}, role=${userRole}`);
-
-      const org = await this.orgModel.findById(organizationId);
-      if (!org) throw new NotFoundException("Organization not found");
-
-      this.checkEditPermission(org);
-
-      if (!dto.warrantyAssurance || !dto.termsAccepted || !dto.amlCompliance) {
-        throw new BadRequestException("All declarations must be accepted");
-      }
-
-      if (!dto.documents || dto.documents.length === 0) {
-        throw new BadRequestException("At least one compliance document is required");
-      }
-
-      org.compliance = {
-        documents: dto.documents.map((doc) => ({
-          docType: doc.docType,
-          fileName: doc.fileName,
-          fileUrl: doc.fileUrl,
-          uploadedAt: new Date(doc.uploadedAt || new Date()),
-          status: doc.status,
-        })),
-        declarations: {
-          warrantyAssurance: dto.warrantyAssurance,
-          termsAccepted: dto.termsAccepted,
-          amlCompliance: dto.amlCompliance,
-        },
-      };
-
-      if (!org.completedSteps.includes("compliance-docs")) {
-        org.completedSteps.push("compliance-docs");
-      }
-
-      await org.save();
-      this.logger.log(`Compliance docs updated for org ${organizationId}`);
-
-      return this.formatResponse(org);
-    } catch (error) {
-      this.logger.error(`Error updating compliance docs for org ${organizationId}: ${error.message}`);
-      throw error;
-    }
+    const org = await this.complianceService.updateComplianceDocs(organizationId, dto, userRole);
+    return this.formatResponse(org);
   }
 
   async updateFleetAndCompliance(
@@ -254,35 +117,11 @@ export class UserOnboardingService {
     dto: FleetAndComplianceFormDataDto,
     userRole: UserRole,
   ): Promise<any> {
-    if (userRole !== UserRole.LOGISTIC) {
-      throw new ForbiddenException('Step "fleet-compliance" is only for logistic users');
-    }
-
-    const org = await this.orgModel.findById(organizationId);
-    if (!org) throw new NotFoundException('Organization not found');
-
-    if (org.isOnboardingLocked) {
-      throw new ForbiddenException(`Cannot edit onboarding. Current status: ${org.kycStatus}.`);
-    }
-
-    // Save/update fleet & compliance data
-    org.fleetAndCompliance = {
-      fleetTypes: dto.fleetTypes,
-      insuranceExpiry: dto.insuranceExpiry,
-      policyDocument: dto.policyDocument, // handle file upload as per your system
-      ewayBillIntegration: dto.ewayBillIntegration,
-      podMethod: dto.podMethod,
-    };
-
-    if (!org.completedSteps.includes('fleet-compliance')) {
-      org.completedSteps.push('fleet-compliance');
-    }
-
-    await org.save();
-
+    const org = await this.complianceService.updateFleetAndCompliance(organizationId, dto, userRole);
     return this.formatResponse(org);
   }
-  // ===== ROLE-SPECIFIC STEPS =====
+
+  // ===== ROLE-SPECIFIC STEPS (Still in main service for now) =====
 
   /**
    * Generic handler for role-specific steps

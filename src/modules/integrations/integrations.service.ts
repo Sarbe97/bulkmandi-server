@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { GstResponseDto } from './dto/gst-response.dto';
 import { IfscResponseDto } from './dto/ifsc-response.dto';
@@ -6,8 +7,10 @@ import { PincodeResponseDto, PostOfficeDto } from './dto/pincode-response.dto';
 import { FLEET_TYPES_MASTER } from './constants';
 
 @Injectable()
-export class UtilityApisService {
-  private readonly logger = new Logger(UtilityApisService.name);
+export class IntegrationsService {
+  private readonly logger = new Logger(IntegrationsService.name);
+
+  constructor(private configService: ConfigService) { }
 
   async getFleetTypes() {
     return FLEET_TYPES_MASTER;
@@ -99,8 +102,8 @@ export class UtilityApisService {
     try {
       const url = `https://api.razorpay.com/v1/penny-drop/validate`;
       const auth = {
-        username: process.env.RAZORPAY_KEY_ID,
-        password: process.env.RAZORPAY_KEY_SECRET,
+        username: this.configService.get<string>('RAZORPAY_KEY_ID'),
+        password: this.configService.get<string>('RAZORPAY_KEY_SECRET'),
       };
 
       const payload = {

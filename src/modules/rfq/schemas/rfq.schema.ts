@@ -97,8 +97,7 @@ export class Rfq {
   };
 
   // Quote tracking
-  @Prop({ type: [Types.ObjectId], ref: 'Quote', default: [] })
-  quoteIds!: Types.ObjectId[];
+  // quoteIds removed - queried via Quote.find({ rfqId })
 
   @Prop({ default: 0 })
   quotesCount!: number;

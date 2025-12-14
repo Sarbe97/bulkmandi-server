@@ -86,6 +86,18 @@ export class UserOnboardingController {
   }
 
   /**
+   * Verify Bank Details (Penny Drop)
+   */
+  @Post("bank/verify-penny-drop")
+  @ApiOperation({
+    summary: "Verify bank account using Penny Drop",
+    description: "Verifies account with razorpay. Returns verified name.",
+  })
+  async verifyBankDetails(@CurrentUser() user: any, @Body() body: { accountNumber: string; ifsc: string }): Promise<any> {
+    return this.service.verifyBankDetails(user.organizationId, body.accountNumber, body.ifsc);
+  }
+
+  /**
    * Step 3: Update Compliance Docs
    * Works for: Buyer, Seller, Logistic
    */

@@ -11,6 +11,11 @@ import { UserOnboardingService } from './services/user-onboarding.service';
 
 import { IdGeneratorService } from 'src/common/services/id-generator.service';
 
+import { OrgKycStepService } from './services/steps/org-kyc-step.service';
+import { BankDetailsStepService } from './services/steps/bank-details-step.service';
+import { ComplianceStepService } from './services/steps/compliance-step.service';
+import { IntegrationsModule } from '@modules/integrations/integrations.module';
+
 @Module({
   imports: [
     MongooseModule.forFeature([
@@ -18,9 +23,16 @@ import { IdGeneratorService } from 'src/common/services/id-generator.service';
       { name: User.name, schema: UserSchema },
     ]),
     KycModule,
+    IntegrationsModule, // ✅ Added IntegrationsModule
   ],
   controllers: [UserOnboardingController],
-  providers: [UserOnboardingService, IdGeneratorService],
+  providers: [
+    UserOnboardingService,
+    IdGeneratorService,
+    OrgKycStepService,
+    BankDetailsStepService,
+    ComplianceStepService,
+  ],
   exports: [UserOnboardingService],
 })
 export class UserOnboardingModule { }
