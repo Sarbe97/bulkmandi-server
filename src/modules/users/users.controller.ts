@@ -4,6 +4,7 @@ import { MongoIdValidationPipe } from '../../common/pipes/mongo-id-validation.pi
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UsersService } from './services/users.service';
+import { AdminGuard } from '../../common/guards/admin.guard';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -11,6 +12,27 @@ import { UsersService } from './services/users.service';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
+
+  @ApiOperation({ summary: 'Update user status' })
+  @UseGuards(AdminGuard)
+  @Patch(':id/status')
+  async updateStatus(@Param('id', MongoIdValidationPipe) id: string, @Body('isActive') isActive: boolean) {
+    return this.usersService.updateStatus(id, isActive);
+  }
+
+  @ApiOperation({ summary: 'Reset user password' })
+  @UseGuards(AdminGuard)
+  @Patch(':id/reset-password')
+  async resetPassword(@Param('id', MongoIdValidationPipe) id: string, @Body('newPassword') newPassword: string) {
+    return this.usersService.resetPassword(id, newPassword);
+  }
+
+  @ApiOperation({ summary: 'Get all users (Admin only)' })
+  @UseGuards(AdminGuard)
+  @Get()
+  async findAll() {
+    return this.usersService.findAll();
+  }
 
   @ApiOperation({ summary: 'Get user profile' })
   @Get('profile')
