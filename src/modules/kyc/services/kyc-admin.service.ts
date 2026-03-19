@@ -192,6 +192,8 @@ export class KycAdminService {
         bankScore: snapshot?.primaryBankAccount?.pennyDropScore || 0,
         riskLevel: "Low",
         riskRemarks: "",
+        status: kycCase.status || "SUBMITTED",
+        submissionNumber: kycCase.caseCode,
         submittedAt: kycCase.createdAt,
         age: this.kycHelperService.calculateAge(kycCase.createdAt),
       };
@@ -284,7 +286,7 @@ export class KycAdminService {
         pennyDropScore: org.primaryBankAccount?.pennyDropScore,
         documents: org.primaryBankAccount?.documents || [],
       },
-      complianceDocuments: org.complianceDocuments || [],
+      complianceDocuments: org.compliance?.documents || [],
       catalog: org.catalog || [],
       priceFloors: org.priceFloors || [],
       logisticsPreference: org.logisticsPreference,

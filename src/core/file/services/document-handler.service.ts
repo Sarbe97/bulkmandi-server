@@ -65,7 +65,7 @@ export class DocumentHandlerService {
       }
 
       // Upload file to storage
-      const folder = `documents/organizations/${organizationId}`;
+      const folder = `organizations/${organizationId}`;
       const fileName = `${docType}_${Date.now()}_${file.originalname}`;
 
       this.logger.log(

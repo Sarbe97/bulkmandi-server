@@ -1214,6 +1214,73 @@
         ]
       }
     },
+    "/api/v1/documents/{entityId}/upload": {
+      "post": {
+        "operationId": "DocumentsController_uploadDocument",
+        "parameters": [
+          {
+            "name": "entityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/v1/documents/file": {
+      "get": {
+        "operationId": "DocumentsController_getFile",
+        "parameters": [
+          {
+            "name": "url",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Fetch document file securely for admins",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
     "/api/v1/master-data/fleet-types": {
       "get": {
         "operationId": "MasterDataController_getFleetTypes",
@@ -3420,6 +3487,10 @@
         "type": "object",
         "properties": {}
       },
+      "UploadDocumentDto": {
+        "type": "object",
+        "properties": {}
+      },
       "CreateRfqDto": {
         "type": "object",
         "properties": {}
@@ -3461,10 +3532,6 @@
         "properties": {}
       },
       "UpdateMilestoneDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UploadDocumentDto": {
         "type": "object",
         "properties": {}
       },
