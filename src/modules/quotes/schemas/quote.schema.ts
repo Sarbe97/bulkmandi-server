@@ -28,6 +28,9 @@ export class Quote {
   pricePerMT!: number;
 
   @Prop({ required: true })
+  quantityMT!: number;
+
+  @Prop({ required: true })
   totalPriceBase!: number;
 
   @Prop({ required: true })
@@ -80,8 +83,8 @@ export class Quote {
   notes?: string;
 
   // Status
-  @Prop({ default: 'ACTIVE' })
-  status!: string; // ACTIVE | EXPIRED | WITHDRAWN | ACCEPTED | REJECTED
+  @Prop({ default: 'SUBMITTED' })
+  status!: string; // SUBMITTED | EXPIRED | WITHDRAWN | ACCEPTED | REJECTED
 
   @Prop()
   submittedAt?: Date;

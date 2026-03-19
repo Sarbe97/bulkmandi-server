@@ -1,8 +1,9 @@
 import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { KYCStatus } from '../../../common/constants/app.constants';
 
 export class UpdateKycStatusDto {
-  @IsEnum(['APPROVED', 'REJECTED', 'IN_REVIEW'])
-  status: string;
+  @IsEnum(KYCStatus)
+  status: KYCStatus;
 
   @IsOptional()
   @IsString()

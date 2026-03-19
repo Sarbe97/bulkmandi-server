@@ -2,22 +2,17 @@ export enum UserRole {
   BUYER = 'BUYER',
   SELLER = 'SELLER',
   ADMIN = 'ADMIN',
-  LOGISTIC  = 'LOGISTIC',
-  SUPER_ADMIN = 'SUPER_ADMIN', // Optional: for senior admins
+  LOGISTIC = 'LOGISTIC',
+  SUPER_ADMIN = 'SUPER_ADMIN',
 }
 
-export enum KycStatus {
-  DRAFT = 'DRAFT',
-  SUBMITTED = 'SUBMITTED',
-  IN_REVIEW = 'IN_REVIEW',
-  APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED',
-}
+// ❌ REMOVED: Duplicate KycStatus enum - Use KYCStatus from modules/kyc/kyc-status.constants.ts instead
 
 export enum RfqStatus {
   DRAFT = 'DRAFT',
   OPEN = 'OPEN',
   CLOSED = 'CLOSED',
+  AWARDED = 'AWARDED', // ✅ Added to match frontend
   EXPIRED = 'EXPIRED',
 }
 
@@ -27,12 +22,14 @@ export enum QuoteStatus {
   ACCEPTED = 'ACCEPTED',
   REJECTED = 'REJECTED',
   EXPIRED = 'EXPIRED',
+  WITHDRAWN = 'WITHDRAWN',
 }
 
 export enum OrderStatus {
   CREATED = 'CREATED',
   CONFIRMED = 'CONFIRMED',
   PAID = 'PAID',
+  IN_PROGRESS = 'IN_PROGRESS', // ✅ Added to match frontend
   DISPATCHED = 'DISPATCHED',
   DELIVERED = 'DELIVERED',
   COMPLETED = 'COMPLETED',
@@ -43,5 +40,10 @@ export enum DocumentType {
   GST_CERTIFICATE = 'GST_CERTIFICATE',
   PAN_CERTIFICATE = 'PAN_CERTIFICATE',
   CANCELLED_CHEQUE = 'CANCELLED_CHEQUE',
+  BANK_LETTER = 'BANK_LETTER',                 // ✅ Added
+  BUSINESS_LICENSE = 'BUSINESS_LICENSE',       // ✅ Added
   FACTORY_LICENSE = 'FACTORY_LICENSE',
+  INCORPORATION_CERT = 'INCORPORATION_CERT',   // ✅ Added
+  QA_CERTIFICATE = 'QA_CERTIFICATE',           // ✅ Added
+  COMPANY_PAN = 'COMPANY_PAN',                 // ✅ Added
 }

@@ -5,23 +5,39 @@ import { CreateShipmentDto } from "./dto/create-shipment.dto";
 import { UpdateMilestoneDto } from "./dto/update-milestone.dto";
 import { UploadDocumentDto } from "./dto/upload-document.dto";
 import { Shipment, ShipmentDocument } from "./schemas/shipment.schema";
+import { OrdersService } from "../orders/orders.service";
 
 @Injectable()
 export class ShipmentsService {
   constructor(
-    @InjectModel(Shipment.name) private shipmentModel: Model<ShipmentDocument>
-  ) {}
+    @InjectModel(Shipment.name) private shipmentModel: Model<ShipmentDocument>,
+    private readonly ordersService: OrdersService
+  ) { }
 
   async create(sellerId: string, dto: CreateShipmentDto) {
+    // 1. Validate Order
+    const order = await this.ordersService.findByIdOrFail(dto.orderId);
+    if (order.sellerId.toString() !== sellerId) {
+      throw new NotFoundException("Order not found or access denied");
+    }
+
+    // 2. Create Shipment
     const shipmentId = `SHP-${Date.now()}`;
     const shipment = new this.shipmentModel({
       ...dto,
       sellerId,
+      buyerId: order.buyerId,
+      carrierId: dto.carrierId, // Make sure DTO has this or handle logic
       shipmentId,
       status: "PICKUP_PLANNED",
       createdAt: new Date(),
     });
-    return shipment.save();
+    const savedShipment = await shipment.save();
+
+    // 3. Update Order
+    await this.ordersService.registerShipment(dto.orderId, savedShipment._id as any);
+
+    return savedShipment;
   }
 
   async findByBuyerId(buyerId: string, filters = {}, page = 1, limit = 20) {
@@ -99,7 +115,13 @@ export class ShipmentsService {
   async markDelivered(id: string) {
     const shipment = await this.shipmentModel.findById(id);
     if (!shipment) throw new NotFoundException("Shipment not found");
+
     shipment.status = "DELIVERED";
+    shipment.statusTimeline.push({ status: "DELIVERED", timestamp: new Date() });
+
+    // Sync with Order
+    await this.ordersService.updateStatus(shipment.orderId.toString(), 'DELIVERED');
+
     return shipment.save();
   }
 

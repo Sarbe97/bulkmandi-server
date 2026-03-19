@@ -214,6 +214,12 @@ export class Organization {
   @Prop({ type: Date, default: null })
   inviteCodeExpiry?: Date; // When the code expires
 
+  @Prop({ type: [String], default: [] })
+  lastRequestedFields?: string[]; // Fields that need update
+
+  @Prop()
+  lastAdminRemarks?: string; // Admin's message for info request
+
   @Prop({ type: Date, default: null })
   inviteCodeCreatedAt?: Date; // When admin created the code
 

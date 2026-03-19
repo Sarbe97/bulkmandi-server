@@ -8,10 +8,7 @@ import { IntegrationsService } from "./integrations.service";
 export class IntegrationsController {
   constructor(private readonly utilityApisService: IntegrationsService) { }
 
-  @Get("fleet-types")
-  async getFleetTypes() {
-    return this.utilityApisService.getFleetTypes();
-  }
+  // Note: fleet-types endpoint removed - use /master-data/fleet-types instead
 
   @Get("plant-location-suggestions")
   async plantLocationSuggestions(@Query("q") query: string): Promise<PostOfficeDto[]> {

@@ -8,6 +8,11 @@ import {
   IsString,
   Min,
 } from 'class-validator';
+import {
+  Incoterms,
+  AcceptanceWindow,
+  QCRequirement,
+} from '../../../common/constants/app.constants';
 
 export class BuyerPreferencesDto {
   @IsArray()
@@ -21,24 +26,22 @@ export class BuyerPreferencesDto {
   typicalMonthlyVolumeMT?: number;
 
   @IsArray()
-  @IsEnum(['DAP', 'EXW', 'FCA', 'CPT', 'CIP', 'DDP'], {
-    each: true,
-  })
+  @IsEnum(Incoterms, { each: true })
   @IsNotEmpty()
-  incoterms: string[];
- 
+  incoterms: Incoterms[];
+
   @IsArray()
   @IsString({ each: true })
   @IsNotEmpty()
   deliveryPins: string[];
 
-  @IsEnum(['24h', '48h', '72h'])
+  @IsEnum(AcceptanceWindow)
   @IsNotEmpty()
-  acceptanceWindow: string;
+  acceptanceWindow: AcceptanceWindow;
 
-  @IsEnum(['VISUAL_WEIGHT', 'LAB_REQUIRED'])
+  @IsEnum(QCRequirement)
   @IsNotEmpty()
-  qcRequirement: string;
+  qcRequirement: QCRequirement;
 
   @IsBoolean()
   @IsOptional()

@@ -19,6 +19,14 @@ import { UsersModule } from "./modules/users/users.module";
 import { RfqModule } from "@modules/rfq/rfq.module";
 import { QuotesModule } from "@modules/quotes/quotes.module";
 import { IntegrationsModule } from "./modules/integrations/integrations.module";
+import { CatalogModule } from "./modules/catalog/catalog.module";
+import { OrdersModule } from "./modules/orders/orders.module";
+import { PaymentsModule } from "./modules/payments/payments.module";
+import { ShipmentsModule } from "./modules/shipments/shipments.module";
+import { DisputesModule } from "./modules/disputes/disputes.module";
+import { SettlementsModule } from "./modules/settlements/settlements.module";
+import { AuditModule } from "./modules/audit/audit.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
 
 @Module({
   imports: [
@@ -38,19 +46,17 @@ import { IntegrationsModule } from "./modules/integrations/integrations.module";
     RfqModule,
     QuotesModule,
     IntegrationsModule,
-    // CatalogModule,
-
-    // OrdersModule,
-    // PaymentsModule,
-    // ShipmentsModule,
-    // DisputesModule,
-    // SettlementsModule,
-    // BuyerModule,
-    // SellerModule,
-
-    // ThreePLModule,
-    // AuditModule,
-    // NotificationsModule,
+    CatalogModule,
+    OrdersModule,
+    PaymentsModule,
+    ShipmentsModule,
+    DisputesModule,
+    SettlementsModule,
+    // BuyerModule, // Not found
+    // SellerModule, // Not found
+    // ThreePLModule, // Not found
+    AuditModule,
+    NotificationsModule,
 
   ],
   controllers: [AppController],

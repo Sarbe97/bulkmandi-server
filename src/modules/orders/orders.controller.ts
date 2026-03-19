@@ -21,7 +21,7 @@ import { OrdersService } from './orders.service';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(private readonly ordersService: OrdersService) { }
 
   @ApiOperation({ summary: 'Create order from accepted quote (Internal - called by quotes service)' })
   @Post()
@@ -31,34 +31,26 @@ export class OrdersController {
 
   @ApiOperation({ summary: 'Get my orders (Buyer/Seller)' })
   @Roles(UserRole.BUYER, UserRole.SELLER)
-  @Get('me')
+  @Get('my-orders')
   async getMyOrders(
     @CurrentUser() user: any,
     @Query('status') status?: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
   ) {
-    const role = user.role;
-    if (role === UserRole.BUYER) {
-      return this.ordersService.findByBuyerId(
-        user.organizationId,
-        { status },
-        page,
-        limit,
-      );
+    const filter: any = {};
+    if (status) filter.status = status;
+
+    if (user.role === UserRole.BUYER) {
+      return this.ordersService.findByBuyerId(user.organizationId, filter, page, limit);
     } else {
-      return this.ordersService.findBySellerId(
-        user.organizationId,
-        { status },
-        page,
-        limit,
-      );
+      return this.ordersService.findBySellerId(user.organizationId, filter, page, limit);
     }
   }
 
   @ApiOperation({ summary: 'Get order by ID' })
   @Roles(UserRole.BUYER, UserRole.SELLER, UserRole['3PL'], UserRole.ADMIN)
-  @Get(':id')
+  @Get('by-id/:id')
   async getOrderById(@Param('id') id: string, @CurrentUser() user: any) {
     return this.ordersService.findByIdOrFail(id);
   }

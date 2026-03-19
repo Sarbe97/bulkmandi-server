@@ -509,6 +509,8 @@ export class KycAdminService {
 
     org.isOnboardingLocked = false;
     org.kycStatus = KYCStatus.INFO_REQUESTED;
+    org.lastRequestedFields = fields; // ✅ Save fields
+    org.lastAdminRemarks = message;   // ✅ Save message
     await org.save();
     this.logger.log(`Organization unlocked after info request, orgId: ${org._id}`);
 

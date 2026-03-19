@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { QuotesModule } from '../quotes/quotes.module';
@@ -12,7 +12,7 @@ import { Order, OrderSchema } from './schemas/order.schema';
     MongooseModule.forFeature([
       { name: Order.name, schema: OrderSchema },
     ]),
-    QuotesModule,
+    forwardRef(() => QuotesModule),
     RfqModule,
     OrganizationsModule,
   ],
@@ -20,4 +20,4 @@ import { Order, OrderSchema } from './schemas/order.schema';
   providers: [OrdersService],
   exports: [OrdersService],
 })
-export class OrdersModule {}
+export class OrdersModule { }

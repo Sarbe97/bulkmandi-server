@@ -1,4 +1,5 @@
 import { IsBoolean, IsDateString, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Incoterms, RfqStatus } from '../../../common/constants/app.constants';
 
 
 export class CreateRfqDto {
@@ -38,8 +39,8 @@ export class CreateRfqDto {
   @IsDateString()
   deliveryBy: string;
 
-  @IsEnum(['DAP', 'FOB', 'CIF', 'EXW'])
-  incoterm: string;
+  @IsEnum(Incoterms)
+  incoterm: Incoterms;
 
   @IsString()
   @IsNotEmpty()
@@ -51,8 +52,8 @@ export class CreateRfqDto {
 
   @IsString()
   @IsOptional()
-  @IsEnum(['DRAFT', 'OPEN'])
-  status?: string;
+  @IsEnum(RfqStatus)
+  status?: RfqStatus;
 }
 
 

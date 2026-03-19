@@ -1,8 +1,11 @@
 import { Type } from 'class-transformer';
 import { ArrayMinSize, IsArray, IsEnum, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { DocumentDto } from './document.dto';
+import { EwayBillIntegration, EWAY_BILL_INTEGRATION_VALUES, POD_METHOD_VALUES } from '../../../common/constants/app.constants';
+import type { PodMethod } from '../../../common/constants/app.constants';
 
-export type FleetTypeOption = '20t_open' | '25t_trailer' | 'covered_16t' | string;
+// Fleet types are now managed in database via master-data module
+export type FleetTypeOption = string;
 
 export class FleetTypeItemDto {
   @IsString()
@@ -31,9 +34,9 @@ export class FleetAndComplianceFormDataDto {
   @Type(() => DocumentDto) // reuse your DocumentUpload DTO
   policyDocument?: DocumentDto;
 
-  @IsEnum(['api', 'manual'])
-  ewayBillIntegration: 'api' | 'manual';
+  @IsEnum(EWAY_BILL_INTEGRATION_VALUES)
+  ewayBillIntegration: EwayBillIntegration;
 
-  @IsEnum(['driver_app', 'pdf'])
-  podMethod: 'driver_app' | 'pdf';
+  @IsEnum(POD_METHOD_VALUES)
+  podMethod: PodMethod;
 }

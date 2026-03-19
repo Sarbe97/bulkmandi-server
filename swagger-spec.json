@@ -967,20 +967,6 @@
         ]
       }
     },
-    "/api/v1/utility-apis/fleet-types": {
-      "get": {
-        "operationId": "IntegrationsController_getFleetTypes",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Integrations"
-        ]
-      }
-    },
     "/api/v1/utility-apis/plant-location-suggestions": {
       "get": {
         "operationId": "IntegrationsController_plantLocationSuggestions",
@@ -1708,12 +1694,20 @@
         ]
       }
     },
-    "/api/v1/quotes/me": {
+    "/api/v1/quotes/my-quotes": {
       "get": {
         "operationId": "QuotesController_getMyQuotes",
         "parameters": [
           {
             "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rfqId",
             "required": true,
             "in": "query",
             "schema": {
@@ -1766,7 +1760,7 @@
         ]
       }
     },
-    "/api/v1/quotes/{id}": {
+    "/api/v1/quotes/by-id/{id}": {
       "get": {
         "operationId": "QuotesController_getQuoteById",
         "parameters": [
@@ -1796,7 +1790,7 @@
       }
     },
     "/api/v1/quotes/{id}/accept": {
-      "put": {
+      "post": {
         "operationId": "QuotesController_acceptQuote",
         "parameters": [
           {
@@ -1808,18 +1802,8 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AcceptQuoteDto"
-              }
-            }
-          }
-        },
         "responses": {
-          "200": {
+          "201": {
             "description": ""
           }
         },
@@ -1860,6 +1844,1429 @@
         "summary": "Withdraw quote (Seller)",
         "tags": [
           "Quotes"
+        ]
+      }
+    },
+    "/api/v1/quotes/{id}": {
+      "put": {
+        "operationId": "QuotesController_updateQuote",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQuoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update quote (Seller)",
+        "tags": [
+          "Quotes"
+        ]
+      }
+    },
+    "/api/v1/orders": {
+      "post": {
+        "operationId": "OrdersController_createOrder",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create order from accepted quote (Internal - called by quotes service)",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/api/v1/orders/my-orders": {
+      "get": {
+        "operationId": "OrdersController_getMyOrders",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get my orders (Buyer/Seller)",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/api/v1/orders/by-id/{id}": {
+      "get": {
+        "operationId": "OrdersController_getOrderById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get order by ID",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/status": {
+      "put": {
+        "operationId": "OrdersController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrderStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update order status (Seller/Admin)",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/dispatch-ready": {
+      "put": {
+        "operationId": "OrdersController_markDispatchReady",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark order as dispatch ready (Seller)",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/cancel": {
+      "put": {
+        "operationId": "OrdersController_cancelOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel order (Buyer/Seller/Admin)",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/documents": {
+      "get": {
+        "operationId": "OrdersController_getOrderDocuments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get order documents",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/documents/proforma-invoice": {
+      "post": {
+        "operationId": "OrdersController_uploadProformaInvoice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload proforma invoice (Seller)",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/documents/tax-invoice": {
+      "post": {
+        "operationId": "OrdersController_uploadTaxInvoice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload tax invoice (Seller)",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/api/v1/payments": {
+      "post": {
+        "operationId": "PaymentsController_createPayment",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Initiate payment for order (Buyer only)",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/api/v1/payments/{id}/verify": {
+      "put": {
+        "operationId": "PaymentsController_verifyUTR",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyUtrDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify payment with UTR",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/api/v1/payments/{id}": {
+      "get": {
+        "operationId": "PaymentsController_getPaymentById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get payment by ID",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/api/v1/payments/me": {
+      "get": {
+        "operationId": "PaymentsController_getMyPayments",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get my payments (Buyer)",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/api/v1/payments/order/{orderId}": {
+      "get": {
+        "operationId": "PaymentsController_getPaymentByOrderId",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get payment for order",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/api/v1/payments/{id}/release-escrow": {
+      "put": {
+        "operationId": "PaymentsController_releaseEscrow",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Release escrow (Admin only)",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/api/v1/payments/{id}/refund": {
+      "put": {
+        "operationId": "PaymentsController_refundPayment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Refund payment (Admin only)",
+        "tags": [
+          "Payments"
+        ]
+      }
+    },
+    "/api/v1/shipments": {
+      "post": {
+        "operationId": "ShipmentsController_createShipment",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShipmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create shipment (Seller assigns 3PL)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/me": {
+      "get": {
+        "operationId": "ShipmentsController_getMyShipments",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get my shipments",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/{id}": {
+      "get": {
+        "operationId": "ShipmentsController_getShipmentById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get shipment by ID",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/{id}/milestones": {
+      "post": {
+        "operationId": "ShipmentsController_updateMilestone",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMilestoneDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update milestone (3PL, Seller)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/{id}/documents": {
+      "post": {
+        "operationId": "ShipmentsController_uploadDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload document (Seller/3PL)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/{id}/pod": {
+      "post": {
+        "operationId": "ShipmentsController_uploadPOD",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload POD (3PL)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/{id}/documents/{docId}/verify": {
+      "put": {
+        "operationId": "ShipmentsController_verifyDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify document (Admin)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/{id}/tracking": {
+      "get": {
+        "operationId": "ShipmentsController_getTracking",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get shipment tracking",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/{id}/deliver": {
+      "put": {
+        "operationId": "ShipmentsController_markDelivered",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark shipment as delivered (3PL)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/disputes": {
+      "post": {
+        "operationId": "DisputesController_raiseDispute",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RaiseDisputeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Raise dispute (Buyer/Seller)",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/disputes/me": {
+      "get": {
+        "operationId": "DisputesController_getMyDisputes",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get my disputes",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/disputes/{id}": {
+      "get": {
+        "operationId": "DisputesController_getDisputeById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get dispute by ID",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/disputes/{id}/evidence": {
+      "post": {
+        "operationId": "DisputesController_uploadEvidence",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload evidence",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/disputes/{id}/resolve": {
+      "put": {
+        "operationId": "DisputesController_resolveDispute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveDisputeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Resolve dispute (Admin only)",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/disputes/{id}/assign": {
+      "put": {
+        "operationId": "DisputesController_assignDispute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Assign dispute to admin (Admin)",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/disputes/order/{orderId}": {
+      "get": {
+        "operationId": "DisputesController_getDisputesByOrder",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get disputes by order",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/disputes/order/{orderId}/window-status": {
+      "get": {
+        "operationId": "DisputesController_checkDisputeWindow",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check if dispute window is open",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/settlements/batches": {
+      "post": {
+        "operationId": "SettlementsController_createBatch",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBatchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create settlement batch (Admin only)",
+        "tags": [
+          "Settlements"
+        ]
+      },
+      "get": {
+        "operationId": "SettlementsController_getAllBatches",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all settlement batches (Admin)",
+        "tags": [
+          "Settlements"
+        ]
+      }
+    },
+    "/api/v1/settlements/batches/{id}": {
+      "get": {
+        "operationId": "SettlementsController_getBatchById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get settlement batch by ID",
+        "tags": [
+          "Settlements"
+        ]
+      }
+    },
+    "/api/v1/settlements/batches/{id}/run-payouts": {
+      "post": {
+        "operationId": "SettlementsController_runPayouts",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunPayoutsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Run payouts for batch (Admin)",
+        "tags": [
+          "Settlements"
+        ]
+      }
+    },
+    "/api/v1/settlements/payouts/me": {
+      "get": {
+        "operationId": "SettlementsController_getMyPayouts",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get my payouts (Seller/3PL)",
+        "tags": [
+          "Settlements"
+        ]
+      }
+    },
+    "/api/v1/settlements/payouts/{id}": {
+      "get": {
+        "operationId": "SettlementsController_getPayoutById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get payout by ID",
+        "tags": [
+          "Settlements"
+        ]
+      }
+    },
+    "/api/v1/settlements/payouts/{id}/confirm": {
+      "put": {
+        "operationId": "SettlementsController_confirmPayout",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark payout as confirmed (Admin)",
+        "tags": [
+          "Settlements"
+        ]
+      }
+    },
+    "/api/v1/settlements/summary": {
+      "get": {
+        "operationId": "SettlementsController_getSettlementSummary",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get settlement summary for period (Admin)",
+        "tags": [
+          "Settlements"
+        ]
+      }
+    },
+    "/api/v1/settlements/history/me": {
+      "get": {
+        "operationId": "SettlementsController_getMySettlementHistory",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get my settlement history (Seller/3PL)",
+        "tags": [
+          "Settlements"
         ]
       }
     }
@@ -1955,7 +3362,47 @@
         "type": "object",
         "properties": {}
       },
-      "AcceptQuoteDto": {
+      "CreateOrderDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateOrderStatusDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreatePaymentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "VerifyUtrDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateShipmentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateMilestoneDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UploadDocumentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RaiseDisputeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ResolveDisputeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateBatchDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RunPayoutsDto": {
         "type": "object",
         "properties": {}
       }

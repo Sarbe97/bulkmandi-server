@@ -364,6 +364,8 @@ export class UserOnboardingService {
       catalog: org.catalog || null,
       fleetAndCompliance: org.fleetAndCompliance || null,
       logisticsPreference: org.catalog?.logisticsPreference || null,
+      lastRequestedFields: org.lastRequestedFields || [],
+      lastAdminRemarks: org.lastAdminRemarks || null,
       createdAt: org.createdAt,
       updatedAt: org.updatedAt,
     };

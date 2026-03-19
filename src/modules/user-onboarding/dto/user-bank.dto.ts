@@ -1,8 +1,9 @@
 import { Transform, Type } from "class-transformer";
 import { IsArray, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, Matches, Max, Min, ValidateNested } from "class-validator";
 import { DocumentDto } from "./document.dto";
+import { AccountType, PennyDropStatus, VALIDATION_LIMITS } from '../../../common/constants/app.constants';
 
- 
+
 
 export class UserBankDto {
   @IsString()
@@ -29,9 +30,9 @@ export class UserBankDto {
   @IsOptional()
   branchName?: string;
 
-  @IsEnum(["SAVINGS", "CURRENT", "OD"])
+  @IsEnum(AccountType)
   @IsOptional()
-  accountType?: string;
+  accountType?: AccountType;
 
   @IsString()
   @IsNotEmpty()
@@ -42,14 +43,14 @@ export class UserBankDto {
   upiDetails: string;
 
   // Backend sets this after penny-drop verification
-  @IsEnum(["PENDING", "VERIFIED", "FAILED"])
+  @IsEnum(PennyDropStatus)
   @IsOptional()
-  pennyDropStatus?: string;
+  pennyDropStatus?: PennyDropStatus;
 
   @IsNumber()
   @IsOptional()
-  @Min(0)
-  @Max(100)
+  @Min(VALIDATION_LIMITS.PENNY_DROP_SCORE.MIN)
+  @Max(VALIDATION_LIMITS.PENNY_DROP_SCORE.MAX)
   pennyDropScore?: number;
 
   @IsArray()

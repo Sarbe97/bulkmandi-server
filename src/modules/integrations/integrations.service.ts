@@ -4,7 +4,6 @@ import axios from 'axios';
 import { GstResponseDto } from './dto/gst-response.dto';
 import { IfscResponseDto } from './dto/ifsc-response.dto';
 import { PincodeResponseDto, PostOfficeDto } from './dto/pincode-response.dto';
-import { FLEET_TYPES_MASTER } from './constants';
 
 @Injectable()
 export class IntegrationsService {
@@ -12,9 +11,7 @@ export class IntegrationsService {
 
   constructor(private configService: ConfigService) { }
 
-  async getFleetTypes() {
-    return FLEET_TYPES_MASTER;
-  }
+
 
   /**
    * Get plant location suggestions by pincode or post office name
