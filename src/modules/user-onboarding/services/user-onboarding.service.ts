@@ -17,7 +17,7 @@ import { OrgKycStepService } from "./steps/org-kyc-step.service";
 import { BankDetailsStepService } from "./steps/bank-details-step.service";
 import { ComplianceStepService } from "./steps/compliance-step.service";
 import { IntegrationsService } from "@modules/integrations/integrations.service";
-
+import { PreferencesService } from "@modules/preferences/preferences.service";
 
 // Define required steps per role
 const REQUIRED_STEPS_BY_ROLE = {
@@ -47,6 +47,7 @@ export class UserOnboardingService {
     private readonly bankDetailsService: BankDetailsStepService,
     private readonly complianceService: ComplianceStepService,
     private readonly integrationsService: IntegrationsService,
+    private readonly preferencesService: PreferencesService,
   ) { }
 
   /**
@@ -112,73 +113,21 @@ export class UserOnboardingService {
     return this.formatResponse(org);
   }
 
-  async updateFleetAndCompliance(
-    organizationId: string,
-    dto: FleetAndComplianceFormDataDto,
-    userRole: UserRole,
-  ): Promise<any> {
-    const org = await this.complianceService.updateFleetAndCompliance(organizationId, dto, userRole);
-    return this.formatResponse(org);
-  }
-
-  // ===== ROLE-SPECIFIC STEPS (Still in main service for now) =====
-
   /**
-   * Generic handler for role-specific steps
-   * Validates that step is allowed for role, then updates
+   * Decoupled Step Tracker
    */
-  async updateRoleSpecificStep(organizationId: string, stepKey: string, dto: any, userRole: UserRole, allowedRole: UserRole): Promise<any> {
-    try {
-      // Validate role
-      if (userRole !== allowedRole) {
-        throw new ForbiddenException(`Step '${stepKey}' is only available for ${allowedRole} users`);
-      }
+  async markStepComplete(organizationId: string, stepId: string): Promise<any> {
+    const org = await this.orgModel.findById(organizationId);
+    if (!org) throw new NotFoundException("Organization not found");
 
-      this.logger.log(`updateRoleSpecificStep: step=${stepKey}, org=${organizationId}, role=${userRole}`);
+    this.checkEditPermission(org);
 
-      const org = await this.orgModel.findById(organizationId);
-      if (!org) throw new NotFoundException("Organization not found");
-
-      this.checkEditPermission(org);
-
-      // Handle buyer-specific preferences
-      if (stepKey === "buyer-preferences") {
-        org.buyerPreferences = {
-          categories: dto.categories,
-          typicalMonthlyVolumeMT: dto.typicalMonthlyVolumeMT,
-          incoterms: dto.incoterms,
-          deliveryPins: dto.deliveryPins,
-          acceptanceWindow: dto.acceptanceWindow,
-          qcRequirement: dto.qcRequirement,
-          notifyEmail: dto.notifyEmail ?? true,
-          notifySMS: dto.notifySMS ?? true,
-          notifyWhatsApp: dto.notifyWhatsApp ?? false,
-          notes: dto.notes,
-        };
-      }
-
-      // Handle seller-specific catalog
-      if (stepKey === "catalog") {
-        org.catalog = dto;
-      }
-
-      // Handle LOGISTIC logistics (future)
-      if (stepKey === "logistics-prefs") {
-        org.catalog.logisticsPreference = dto;
-      }
-
-      if (!org.completedSteps.includes(stepKey)) {
-        org.completedSteps.push(stepKey);
-      }
-
+    if (!org.completedSteps.includes(stepId)) {
+      org.completedSteps.push(stepId);
       await org.save();
-      this.logger.log(`Step '${stepKey}' completed for org ${organizationId}`);
-
-      return this.formatResponse(org);
-    } catch (error) {
-      this.logger.error(`Error updating step '${stepKey}' for org ${organizationId}: ${error.message}`);
-      throw error;
     }
+
+    return this.formatResponse(org);
   }
 
   // ===== COMMON STATUS & SUBMISSION =====
@@ -249,17 +198,21 @@ export class UserOnboardingService {
           orgKyc: null,
           primaryBankAccount: null,
           compliance: null,
-          buyerPreferences: null,
-          catalog: null,
-          fleetAndCompliance: null,
-          logisticsPreference: null,
         };
       }
 
       const org = await this.orgModel.findById(organizationId);
       if (!org) throw new NotFoundException("Organization not found");
 
-      return this.formatResponse(org);
+      // Now fetch the related preferences dynamically based on role
+      const prefDoc = await this.preferencesService.getPreferences(organizationId, org.role);
+      const res = this.formatResponse(org);
+      
+      if (org.role === UserRole.BUYER) res.buyerPreferences = prefDoc;
+      if (org.role === UserRole.SELLER) res.catalog = prefDoc;
+      if (org.role === UserRole.LOGISTIC) res.fleetAndCompliance = prefDoc;
+      
+      return res;
     } catch (error) {
       this.logger.error(`Error getting onboarding data for org ${organizationId}: ${error.message}`);
       throw error;
@@ -360,10 +313,6 @@ export class UserOnboardingService {
       orgKyc: org.orgKyc || null,
       primaryBankAccount: org.primaryBankAccount || null,
       compliance: org.compliance || null,
-      buyerPreferences: org.buyerPreferences || null,
-      catalog: org.catalog || null,
-      fleetAndCompliance: org.fleetAndCompliance || null,
-      logisticsPreference: org.catalog?.logisticsPreference || null,
       lastRequestedFields: org.lastRequestedFields || [],
       lastAdminRemarks: org.lastAdminRemarks || null,
       createdAt: org.createdAt,

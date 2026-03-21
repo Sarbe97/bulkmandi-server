@@ -95,20 +95,6 @@
         ]
       }
     },
-    "/api/v1/auth/admin/create": {
-      "get": {
-        "operationId": "AuthController_createAdmin",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Authentication"
-        ]
-      }
-    },
     "/api/v1/auth/organizations/search": {
       "get": {
         "operationId": "AuthController_searchOrganizations",
@@ -168,21 +154,6 @@
           }
         },
         "summary": "Create new organization and link user",
-        "tags": [
-          "Authentication"
-        ]
-      }
-    },
-    "/api/v1/auth/organizations/join-with-code": {
-      "post": {
-        "operationId": "AuthController_joinWithCode",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Join organization using invite code",
         "tags": [
           "Authentication"
         ]
@@ -270,26 +241,6 @@
           }
         ],
         "summary": "Preview document inline",
-        "tags": [
-          "Organizations"
-        ]
-      }
-    },
-    "/api/v1/organizations/validate-invite-code": {
-      "post": {
-        "operationId": "OrganizationsController_validateCode",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Validate an invite code",
         "tags": [
           "Organizations"
         ]
@@ -891,23 +842,13 @@
         ]
       }
     },
-    "/api/v1/user/onboarding/buyer-preferences": {
-      "put": {
-        "description": "Set product categories, delivery pins, QC requirements, notifications",
-        "operationId": "UserOnboardingController_updateBuyerPreferences",
+    "/api/v1/user/onboarding/mark-step-complete": {
+      "post": {
+        "description": "Pushes the stepId into the completedSteps array.",
+        "operationId": "UserOnboardingController_markStepComplete",
         "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BuyerPreferencesDto"
-              }
-            }
-          }
-        },
         "responses": {
-          "200": {
+          "201": {
             "description": ""
           }
         },
@@ -916,67 +857,7 @@
             "bearer": []
           }
         ],
-        "summary": "Step 4 (Buyer Only): Update buyer preferences",
-        "tags": [
-          "User Onboarding (Buyer, Seller, Logistic)"
-        ]
-      }
-    },
-    "/api/v1/user/onboarding/catalog": {
-      "put": {
-        "description": "Set products, price floors, and logistics preferences",
-        "operationId": "UserOnboardingController_updateCatalog",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SellerCatalogDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Step 4 (Seller Only): Update product catalog and pricing",
-        "tags": [
-          "User Onboarding (Buyer, Seller, Logistic)"
-        ]
-      }
-    },
-    "/api/v1/user/onboarding/fleet-compliance": {
-      "put": {
-        "operationId": "UserOnboardingController_updateFleetAndCompliance",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FleetAndComplianceFormDataDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
+        "summary": "Mark a standalone step as complete",
         "tags": [
           "User Onboarding (Buyer, Seller, Logistic)"
         ]
@@ -1136,6 +1017,116 @@
         ]
       }
     },
+    "/api/v1/preferences": {
+      "get": {
+        "operationId": "PreferencesController_getMyPreferences",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get settings for current organization based on role",
+        "tags": [
+          "Preferences (Operational Config)"
+        ]
+      }
+    },
+    "/api/v1/preferences/buyer": {
+      "put": {
+        "operationId": "PreferencesController_updateBuyer",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBuyerPreferenceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upsert operational preferences for a Buyer",
+        "tags": [
+          "Preferences (Operational Config)"
+        ]
+      }
+    },
+    "/api/v1/preferences/seller": {
+      "put": {
+        "operationId": "PreferencesController_updateSeller",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSellerPreferenceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upsert operational preferences for a Seller",
+        "tags": [
+          "Preferences (Operational Config)"
+        ]
+      }
+    },
+    "/api/v1/preferences/logistic": {
+      "put": {
+        "operationId": "PreferencesController_updateLogistic",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLogisticPreferenceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upsert operational preferences for a Logistic Partner",
+        "tags": [
+          "Preferences (Operational Config)"
+        ]
+      }
+    },
     "/api/v1/admin/dashboard/stats": {
       "get": {
         "operationId": "AdminDashboardController_getStats",
@@ -1153,64 +1144,6 @@
         "summary": "Get admin dashboard statistics",
         "tags": [
           "Admin Dashboard"
-        ]
-      }
-    },
-    "/api/v1/admin/organizations/{orgCode}/create-invite-code": {
-      "post": {
-        "operationId": "AdminController_createInviteCode",
-        "parameters": [
-          {
-            "name": "orgCode",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create invite code for organization",
-        "tags": [
-          "Admin Organizations"
-        ]
-      }
-    },
-    "/api/v1/admin/organizations/{orgCode}/revoke-invite-code": {
-      "post": {
-        "operationId": "AdminController_revokeInviteCode",
-        "parameters": [
-          {
-            "name": "orgCode",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Revoke invite code",
-        "tags": [
-          "Admin Organizations"
         ]
       }
     },
@@ -1291,7 +1224,7 @@
           }
         },
         "tags": [
-          "MasterData"
+          "Master Data"
         ]
       },
       "post": {
@@ -1303,33 +1236,7 @@
           }
         },
         "tags": [
-          "MasterData"
-        ]
-      }
-    },
-    "/api/v1/master-data/product-categories": {
-      "get": {
-        "operationId": "MasterDataController_getProductCategories",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "MasterData"
-        ]
-      },
-      "post": {
-        "operationId": "MasterDataController_addProductCategory",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "MasterData"
+          "Master Data"
         ]
       }
     },
@@ -1343,21 +1250,479 @@
           }
         },
         "tags": [
-          "MasterData"
+          "Master Data"
         ]
       }
     },
-    "/api/v1/master-data/delete/product-categories": {
+    "/api/v1/master-data/product-categories": {
+      "get": {
+        "operationId": "MasterDataController_getProductCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-items": {
+      "get": {
+        "operationId": "MasterDataController_getAllCatalogItems",
+        "parameters": [
+          {
+            "name": "subcategory",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all catalog items, optionally filtered by subcategory",
+        "tags": [
+          "Master Data"
+        ]
+      },
       "post": {
-        "operationId": "MasterDataController_deleteProductCategory",
+        "operationId": "MasterDataController_createCatalogItem",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCatalogItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a new catalog item (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-items/subcategories": {
+      "get": {
+        "operationId": "MasterDataController_getSubcategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get distinct product subcategories",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-items/{slug}/filters": {
+      "get": {
+        "operationId": "MasterDataController_getItemFilters",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get filter options (cities, brands & attributes) for a product",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-items/{id}": {
+      "get": {
+        "operationId": "MasterDataController_getCatalogItemById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get catalog item by ID",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "put": {
+        "operationId": "MasterDataController_updateCatalogItem",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCatalogItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update a catalog item (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "delete": {
+        "operationId": "MasterDataController_deleteCatalogItem",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete (soft) a catalog item (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings/search": {
+      "get": {
+        "operationId": "MasterDataController_searchListings",
+        "parameters": [
+          {
+            "name": "itemSlug",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "brand",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "city",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Search listings with filters",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings": {
+      "get": {
+        "operationId": "MasterDataController_getAllCatalogListings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all catalog listings",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "post": {
+        "operationId": "MasterDataController_createCatalogListing",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCatalogListingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a new listing (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings/by-item/{itemId}": {
+      "get": {
+        "operationId": "MasterDataController_getListingsByItem",
+        "parameters": [
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get listings for a specific catalog item",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings/{id}": {
+      "get": {
+        "operationId": "MasterDataController_getCatalogListingById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get listing by ID",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "put": {
+        "operationId": "MasterDataController_updateCatalogListing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCatalogListingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update a listing (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "delete": {
+        "operationId": "MasterDataController_deleteCatalogListing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete (soft) a listing (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings/{id}/price-history": {
+      "get": {
+        "operationId": "MasterDataController_getPriceHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get price history for a listing",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "post": {
+        "operationId": "MasterDataController_addPriceHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Add a price history entry (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-summary": {
+      "get": {
+        "operationId": "MasterDataController_getCatalogSummary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get catalog data summary (counts)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/bulk/catalog-items": {
+      "post": {
+        "operationId": "MasterDataController_bulkUploadCatalogItems",
         "parameters": [],
         "responses": {
           "201": {
             "description": ""
           }
         },
+        "summary": "Bulk upload catalog items (Admin)",
         "tags": [
-          "MasterData"
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/bulk/catalog-listings": {
+      "post": {
+        "operationId": "MasterDataController_bulkUploadCatalogListings",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Bulk upload catalog listings (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/reset-test-data": {
+      "post": {
+        "operationId": "MasterDataController_resetTestData",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Reset Database for Testing (DANGER)",
+        "tags": [
+          "Master Data"
         ]
       }
     },
@@ -1622,190 +1987,6 @@
         "summary": "Close/Cancel RFQ (Buyer)",
         "tags": [
           "RFQ"
-        ]
-      }
-    },
-    "/api/v1/catalog": {
-      "post": {
-        "operationId": "CatalogController_createCatalog",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCatalogDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create my catalog (Seller only)",
-        "tags": [
-          "Catalog"
-        ]
-      }
-    },
-    "/api/v1/catalog/me": {
-      "get": {
-        "operationId": "CatalogController_getMyCatalog",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get my catalog",
-        "tags": [
-          "Catalog"
-        ]
-      },
-      "put": {
-        "operationId": "CatalogController_updateMyCatalog",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateCatalogDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Update my catalog",
-        "tags": [
-          "Catalog"
-        ]
-      }
-    },
-    "/api/v1/catalog/me/categories": {
-      "post": {
-        "operationId": "CatalogController_addCategory",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Add category to catalog",
-        "tags": [
-          "Catalog"
-        ]
-      }
-    },
-    "/api/v1/catalog/me/grades": {
-      "post": {
-        "operationId": "CatalogController_addGrade",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Add grade to catalog",
-        "tags": [
-          "Catalog"
-        ]
-      }
-    },
-    "/api/v1/catalog/org/{orgId}": {
-      "get": {
-        "operationId": "CatalogController_getCatalogByOrgId",
-        "parameters": [
-          {
-            "name": "orgId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get catalog by organization ID (Public)",
-        "tags": [
-          "Catalog"
-        ]
-      }
-    },
-    "/api/v1/catalog/search": {
-      "get": {
-        "operationId": "CatalogController_searchCatalogs",
-        "parameters": [
-          {
-            "name": "category",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "grade",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Search catalogs by category/grade",
-        "tags": [
-          "Catalog"
         ]
       }
     },
@@ -3414,6 +3595,109 @@
           "Settlements"
         ]
       }
+    },
+    "/api/v1/admin/onboarding/single": {
+      "post": {
+        "operationId": "AdminOnboardingController_onboardSingleUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FastTrackOnboardDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a single User, Organization, and Preference record instantly.",
+        "tags": [
+          "Admin Onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/bulk": {
+      "post": {
+        "operationId": "AdminOnboardingController_onboardBulkUsers",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "BUYER",
+                      "SELLER",
+                      "LOGISTIC"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bulk insert multiple organizations from a CSV file.",
+        "tags": [
+          "Admin Onboarding"
+        ]
+      }
+    },
+    "/api/v1/admin/onboarding/template": {
+      "get": {
+        "operationId": "AdminOnboardingController_getTemplate",
+        "parameters": [
+          {
+            "name": "role",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download the custom CSV template for the designated role.",
+        "tags": [
+          "Admin Onboarding"
+        ]
+      }
     }
   },
   "info": {
@@ -3475,19 +3759,235 @@
         "type": "object",
         "properties": {}
       },
-      "BuyerPreferencesDto": {
+      "UpdateBuyerPreferenceDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "typicalMonthlyVolumeMT": {
+            "type": "number"
+          },
+          "incoterms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "deliveryPins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "acceptanceWindow": {
+            "type": "string"
+          },
+          "qcRequirement": {
+            "type": "string"
+          },
+          "notifyEmail": {
+            "type": "boolean"
+          },
+          "notifySMS": {
+            "type": "boolean"
+          },
+          "notifyWhatsApp": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
       },
-      "SellerCatalogDto": {
+      "UpdateSellerPreferenceDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "catalogProducts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "plantLocations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "logisticsPreference": {
+            "type": "object"
+          }
+        }
       },
-      "FleetAndComplianceFormDataDto": {
+      "UpdateLogisticPreferenceDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "fleetTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "insuranceExpiry": {
+            "type": "string"
+          },
+          "policyDocument": {
+            "type": "object"
+          },
+          "ewayBillIntegration": {
+            "type": "string"
+          },
+          "podMethod": {
+            "type": "string"
+          }
+        }
       },
       "UploadDocumentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateCatalogItemDto": {
+        "type": "object",
+        "properties": {
+          "product_type": {
+            "type": "string",
+            "example": "Primary TMT"
+          },
+          "slug": {
+            "type": "string",
+            "example": "primary_tmt"
+          },
+          "category": {
+            "type": "string",
+            "example": "Mild Steel"
+          },
+          "subcategory": {
+            "type": "string",
+            "example": "Long Products"
+          },
+          "displayOrder": {
+            "type": "number",
+            "example": 2
+          },
+          "image": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string",
+            "example": "MT"
+          },
+          "hsnCode": {
+            "type": "string",
+            "example": "72142000"
+          },
+          "attributes": {
+            "type": "object",
+            "example": {
+              "grade": [
+                "Fe500",
+                "Fe500D"
+              ],
+              "size": [
+                "8mm",
+                "12mm"
+              ],
+              "finish": []
+            }
+          },
+          "search_keywords": {
+            "example": [
+              "tmt",
+              "steel"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "product_type",
+          "slug",
+          "category",
+          "subcategory"
+        ]
+      },
+      "UpdateCatalogItemDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateCatalogListingDto": {
+        "type": "object",
+        "properties": {
+          "catalogItemId": {
+            "type": "string",
+            "description": "CatalogItem ID or slug"
+          },
+          "brand": {
+            "type": "string",
+            "example": "Tata Tiscon"
+          },
+          "city": {
+            "type": "string",
+            "example": "Mumbai"
+          },
+          "basePrice": {
+            "type": "number",
+            "example": 52000
+          },
+          "currency": {
+            "type": "string",
+            "example": "INR"
+          },
+          "stockQty": {
+            "type": "number",
+            "example": 500
+          },
+          "moq": {
+            "type": "number",
+            "example": 5
+          },
+          "supplier_name": {
+            "type": "string",
+            "example": "ABC Steel"
+          },
+          "attributes": {
+            "type": "object",
+            "example": {
+              "grade": "Fe500",
+              "size": "12mm"
+            }
+          },
+          "lead_time": {
+            "type": "number",
+            "example": 2
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "catalogItemId",
+          "brand",
+          "city",
+          "basePrice",
+          "supplier_name",
+          "attributes"
+        ]
+      },
+      "UpdateCatalogListingDto": {
         "type": "object",
         "properties": {}
       },
@@ -3496,14 +3996,6 @@
         "properties": {}
       },
       "PublishRfqDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreateCatalogDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdateCatalogDto": {
         "type": "object",
         "properties": {}
       },
@@ -3550,6 +4042,102 @@
       "RunPayoutsDto": {
         "type": "object",
         "properties": {}
+      },
+      "FastTrackUserDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "seller1@bulkmandi.com"
+          },
+          "mobile": {
+            "type": "string",
+            "example": "9876543210"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "BUYER",
+              "SELLER",
+              "ADMIN",
+              "LOGISTIC",
+              "SUPER_ADMIN"
+            ]
+          }
+        },
+        "required": [
+          "email",
+          "mobile",
+          "firstName",
+          "lastName",
+          "role"
+        ]
+      },
+      "FastTrackOrganizationDto": {
+        "type": "object",
+        "properties": {
+          "legalName": {
+            "type": "string"
+          },
+          "tradeName": {
+            "type": "string"
+          },
+          "gstin": {
+            "type": "string",
+            "example": "07AAAAA0000A1Z5"
+          },
+          "pan": {
+            "type": "string",
+            "example": "AAAAA0000A"
+          },
+          "cin": {
+            "type": "string"
+          },
+          "registeredAddress": {
+            "type": "string"
+          },
+          "businessType": {
+            "type": "string"
+          },
+          "incorporationDate": {
+            "type": "string"
+          },
+          "primaryContactRole": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "legalName",
+          "gstin",
+          "pan",
+          "registeredAddress",
+          "businessType"
+        ]
+      },
+      "FastTrackOnboardDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/FastTrackUserDto"
+          },
+          "organization": {
+            "$ref": "#/components/schemas/FastTrackOrganizationDto"
+          },
+          "preferences": {
+            "type": "object",
+            "description": "Role-specific preferences (Buyer, Seller, or Logistic preferences)"
+          }
+        },
+        "required": [
+          "user",
+          "organization"
+        ]
       }
     }
   }

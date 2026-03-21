@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards, ConflictException } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { MongoIdValidationPipe } from '../../common/pipes/mongo-id-validation.pipe';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -44,13 +44,20 @@ export class UsersController {
   @Patch('profile')
   @ApiOperation({ summary: 'Update user profile' })
   async updateProfile(@CurrentUser() user: any, @Body() body: any) {
-    const { firstName, lastName, mobile } = body;
-    const updateData = { firstName, lastName, mobile };
+    try {
+      const { firstName, lastName, mobile } = body;
+      const updateData = { firstName, lastName, mobile };
 
-    // Remove undefined fields
-    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+      // Remove undefined fields
+      Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
-    return this.usersService.updateUser(user.userId, updateData);
+      return await this.usersService.updateUser(user.userId, updateData);
+    } catch (error: any) {
+      if (error.code === 11000) {
+        throw new ConflictException('This mobile number is already registered to another account.');
+      }
+      throw error;
+    }
   }
 
   @ApiOperation({ summary: 'Get user by ID' })

@@ -59,7 +59,6 @@ export class KycAdminService {
         orgKyc: org.orgKyc,
         primaryBankAccount: org.primaryBankAccount,
         compliance: org.compliance,
-        catalog: org.catalog,
       },
       submissionAttempt,
       activityLog: [
@@ -89,7 +88,6 @@ export class KycAdminService {
       orgKyc: org.orgKyc,
       primaryBankAccount: org.primaryBankAccount,
       compliance: org.compliance,
-      catalog: org.catalog,
     };
 
     kycCase.status = KYCStatus.SUBMITTED;
@@ -268,8 +266,6 @@ export class KycAdminService {
         registeredAddress: org.orgKyc?.registeredAddress,
         businessType: org.orgKyc?.businessType,
         incorporationDate: org.orgKyc?.incorporationDate,
-        inviteCode: org.inviteCode,
-        inviteCodeExpiry: org.inviteCodeExpiry,
       },
       contacts: {
         primary: org.orgKyc?.primaryContact,

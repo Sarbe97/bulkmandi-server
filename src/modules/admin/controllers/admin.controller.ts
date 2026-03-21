@@ -11,20 +11,4 @@ import { OrganizationsService } from "../../organizations/organizations.service"
 export class AdminController {
     constructor(private readonly organizationsService: OrganizationsService) { }
 
-    @Post(":orgCode/create-invite-code")
-    @ApiOperation({ summary: "Create invite code for organization" })
-    @ApiParam({ name: "orgCode" })
-    async createInviteCode(
-        @Param("orgCode") orgCode: string,
-        @Body() body: { expiryDays?: number }
-    ) {
-        return this.organizationsService.createInviteCode(orgCode, body.expiryDays);
-    }
-
-    @Post(":orgCode/revoke-invite-code")
-    @ApiOperation({ summary: "Revoke invite code" })
-    @ApiParam({ name: "orgCode" })
-    async revokeInviteCode(@Param("orgCode") orgCode: string) {
-        return this.organizationsService.revokeInviteCode(orgCode);
-    }
 }

@@ -59,39 +59,6 @@ export class ComplianceStepService {
         }
     }
 
-    async updateFleetAndCompliance(
-        organizationId: string,
-        dto: FleetAndComplianceFormDataDto,
-        userRole: UserRole,
-    ): Promise<OrganizationDocument> {
-        if (userRole !== UserRole.LOGISTIC) {
-            throw new ForbiddenException('Step "fleet-compliance" is only for logistic users');
-        }
-
-        const org = await this.orgModel.findById(organizationId);
-        if (!org) throw new NotFoundException('Organization not found');
-
-        this.checkEditPermission(org);
-
-        // Save/update fleet & compliance data
-        org.fleetAndCompliance = {
-            fleetTypes: dto.fleetTypes,
-            insuranceExpiry: dto.insuranceExpiry,
-            policyDocument: dto.policyDocument,
-            ewayBillIntegration: dto.ewayBillIntegration,
-            podMethod: dto.podMethod,
-        };
-
-        if (!org.completedSteps.includes('fleet-compliance')) {
-            org.completedSteps.push('fleet-compliance');
-        }
-
-        await org.save();
-        this.logger.log(`Fleet compliance updated for org ${organizationId}`);
-
-        return org;
-    }
-
     private checkEditPermission(org: OrganizationDocument): void {
         if (org.isOnboardingLocked) {
             throw new ForbiddenException(`Cannot edit onboarding. Current status: ${org.kycStatus}. You can only edit when status is DRAFT or REJECTED.`);

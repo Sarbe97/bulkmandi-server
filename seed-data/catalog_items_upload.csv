@@ -1,0 +1,14 @@
+category,subcategory,product_type,slug,displayOrder,description,unit,hsnCode,attributes,search_keywords,is_active
+Mild Steel,Semi-Finished,Sponge Pellet,sponge_pellet,1,,MT,,"{}","sponge, pellet, iron",true
+Mild Steel,Semi-Finished,MS Billets,ms_billets,2,,MT,,"{""grade"":[""IS2830""],""size"":[""100mm"",""130mm""]}","bits, billets",true
+Mild Steel,Long Products,TMT Bars (Primary),primary_tmt,1,,MT,,"{""grade"":[""Fe500"",""Fe500D""],""size"":[""8mm"",""10mm"",""12mm"",""16mm"",""20mm"",""25mm"",""32mm""]}","tmt, saria, reinforcement, rebar, steel rod",true
+Mild Steel,Long Products,TMT Bars (Secondary),secondary_tmt,2,,MT,,"{""grade"":[""Fe500"",""Fe500D"",""Fe550""],""size"":[""8mm"",""10mm"",""12mm"",""16mm""]}","tmt, saria, reinforcement, rebar, steel rod",true
+Mild Steel,Long Products,Wire Rod,wire_rod,3,,MT,,"{""grade"":[""SAE1006"",""SAE1008""],""size"":[""5.5mm"",""6mm"",""8mm""]}","wire, rod",true
+Non Ferrous,Long Products,Aluminium Wire Rod,aluminium_wire_rod,1,,MT,,"{""grade"":[""EC"",""Alloy""],""size"":[""9.5mm"",""12mm""]}","aluminium, wire, rod",true
+Non Ferrous,Long Products,CCR Wire Rod,ccr_wire_rod,2,,MT,,"{""grade"":[""Domestic""],""size"":[""8mm""]}","ccr, wire, rod",true
+Non Ferrous,Long Products,Copper Wire Rod,copper_wire_rod,3,,MT,,"{""grade"":[""ETP""],""size"":[""8mm""]}","copper, wire, rod",true
+Non Ferrous,Long Products,Copper Cathode,copper_cathode,4,,MT,,"{}","copper, cathode",true
+Non Ferrous,Semi-Finished,Aluminium Ingot,aluminium_ingot,1,,MT,,"{""grade"":[""P1020""]}","aluminium, ingot",true
+Non Ferrous,Semi-Finished,Aluminium T/Sow Ingot,aluminium_t_sow_ingot,2,,MT,,"{""grade"":[""P1020""]}","aluminium, t, sow, ingot",true
+Non Ferrous,Semi-Finished,Lead Ingot,lead_ingot,3,,MT,,"{}","lead, ingot",true
+Non Ferrous,Semi-Finished,Zinc Ingot,zinc_ingot,4,,MT,,"{}","zinc, ingot",true

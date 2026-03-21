@@ -7,7 +7,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-class PlantLocationDto {
+export class PlantLocationDto {
   @IsString()
   @IsOptional()
   street?: string;

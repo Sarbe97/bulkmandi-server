@@ -1,6 +1,7 @@
 // server/src/modules/user-onboarding/user-onboarding.module.ts
 
 import { KycModule } from '@modules/kyc/kyc.module';
+import { PreferencesModule } from '@modules/preferences/preferences.module';
 import { Organization, OrganizationSchema } from '@modules/organizations/schemas/organization.schema';
 import { User, UserSchema } from '@modules/users/schemas/user.schema';
 import { Module } from '@nestjs/common';
@@ -24,6 +25,7 @@ import { IntegrationsModule } from '@modules/integrations/integrations.module';
     ]),
     KycModule,
     IntegrationsModule, // ✅ Added IntegrationsModule
+    PreferencesModule,
   ],
   controllers: [UserOnboardingController],
   providers: [

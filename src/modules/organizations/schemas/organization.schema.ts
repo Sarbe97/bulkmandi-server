@@ -5,15 +5,6 @@ import { UserRole } from "src/common/enums";
 export type OrganizationDocument = Organization & Document;
 
 @Schema({ _id: false })
-export class PlantLocation {
-  @Prop() name?: string;
-  @Prop() city?: string;
-  @Prop() state?: string;
-  @Prop() pincode?: string;
-  @Prop() country?: string;
-}
-
-@Schema({ _id: false })
 export class Contact {
   @Prop() name?: string;
   @Prop() email?: string;
@@ -32,7 +23,6 @@ export class OrgKyc {
   @Prop() businessType?: string;
   @Prop() incorporationDate?: string;
   @Prop({ type: [String], default: [] }) serviceStates?: string[];
-  @Prop({ type: [PlantLocation], default: [] }) plantLocations?: PlantLocation[];
   @Prop({ type: Contact }) primaryContact?: Contact;
 }
 ///////////
@@ -64,30 +54,6 @@ export class BankAccount {
   // @Prop({ type: Declarations, default: {} }) declarations?: Declarations;
 }
 ///////////
-@Schema({ _id: false })
-export class CatalogProduct {
-  @Prop() category: string;
-  @Prop() isSelected: boolean;
-  @Prop({ type: [String] }) grades: string[];
-  @Prop() moqPerOrder: number;
-  @Prop() stdLeadTime: number;
-  @Prop({ type: [String], default: [] }) availability: string[];
-  @Prop() pricePerMT: number;
-}
-
-@Schema({ _id: false })
-export class LogisticsPreference {
-  @Prop({ default: false }) usePlatform3PL: boolean;
-  @Prop({ default: false }) selfPickupAllowed: boolean;
-}
-
-@Schema({ _id: false })
-export class Catalog {
-  @Prop({ type: [CatalogProduct], default: [] }) catalogProducts: CatalogProduct[];
-  @Prop({ type: [PlantLocation], default: [] }) plantLocations: PlantLocation[];
-  // priceFloors removed
-  @Prop({ type: LogisticsPreference }) logisticsPreference: LogisticsPreference;
-}
 
 //////////////////
 
@@ -103,39 +69,7 @@ export class Compliance {
   @Prop({ type: [DocumentUpload], default: [] }) documents?: DocumentUpload[];
   @Prop({ type: Declarations, default: {} }) declarations?: Declarations;
 }
-
-///////////////
-@Schema()
-export class BuyerPreferences {
-  @Prop() categories: string[];
-  @Prop() typicalMonthlyVolumeMT?: number;
-  @Prop() incoterms: string[];
-  @Prop() deliveryPins: string[];
-  @Prop() acceptanceWindow: string;
-  @Prop() qcRequirement: string;
-  @Prop() notifyEmail?: boolean;
-  @Prop() notifySMS?: boolean;
-  @Prop() notifyWhatsApp?: boolean;
-  @Prop() notes?: string;
-}
-
-/////
-
-@Schema()
-export class FleetTypeItem {
-  @Prop() type: string;
-  @Prop() label: string;
-  @Prop() vehicleCount: number;
-}
-
-@Schema()
-export class FleetAndCompliance {
-  @Prop({ type: [FleetTypeItem], default: [] }) fleetTypes: FleetTypeItem[];
-  @Prop() insuranceExpiry: string;
-  @Prop() policyDocument: DocumentUpload; // your file schema
-  @Prop() ewayBillIntegration: string; // api | manual
-  @Prop() podMethod: string; // driver_app | pdf
-}
+///////////
 ///////////
 @Schema({ timestamps: true })
 export class Organization {
@@ -159,15 +93,6 @@ export class Organization {
 
   @Prop({ type: Compliance, default: {} })
   compliance?: Compliance;
-
-  @Prop({ type: Catalog, default: {} })
-  catalog?: Catalog;
-
-  @Prop({ type: BuyerPreferences, default: {} })
-  buyerPreferences?: BuyerPreferences;
-
-  @Prop({ type: FleetAndCompliance, default: null })
-  fleetAndCompliance?: FleetAndCompliance;
 
   @Prop({ type: Declarations })
   declarations?: Declarations;
@@ -208,20 +133,11 @@ export class Organization {
   @Prop()
   submissionRemarks?: string;
 
-  @Prop({ default: null })
-  inviteCode?: string; // e.g., "A4K9PX" - Single code for team invites
-
-  @Prop({ type: Date, default: null })
-  inviteCodeExpiry?: Date; // When the code expires
-
   @Prop({ type: [String], default: [] })
   lastRequestedFields?: string[]; // Fields that need update
 
   @Prop()
   lastAdminRemarks?: string; // Admin's message for info request
-
-  @Prop({ type: Date, default: null })
-  inviteCodeCreatedAt?: Date; // When admin created the code
 
   createdAt?: Date;
   updatedAt?: Date;

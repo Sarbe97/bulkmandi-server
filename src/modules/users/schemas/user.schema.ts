@@ -12,7 +12,7 @@ export class User {
   @Prop({ required: true })
   password: string;
 
-  @Prop()
+  @Prop({ unique: true, sparse: true })
   mobile: string;
 
   @Prop()
@@ -50,9 +50,6 @@ export class User {
 
   @Prop()
   lastLoginIp: string; // NEW: Track login IP
-
-  @Prop({ default: null })
-  usedInviteCode?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

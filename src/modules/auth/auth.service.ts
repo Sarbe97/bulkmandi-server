@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConflictException, Injectable, Logger, OnModuleInit, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { InjectModel } from "@nestjs/mongoose";
@@ -10,7 +10,9 @@ import { Organization, OrganizationDocument } from "../organizations/schemas/org
 import { User, UserDocument } from "../users/schemas/user.schema";
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectModel(User.name)
     private userModel: Model<UserDocument>,
@@ -21,6 +23,15 @@ export class AuthService {
     private idGenerator: IdGeneratorService,
     private configService: ConfigService,
   ) { }
+
+  async onModuleInit() {
+    this.logger.log('Initializing Auth Service...');
+    try {
+      await this.seedFirstAdmin();
+    } catch (error) {
+      this.logger.error('Failed to seed first admin user', error);
+    }
+  }
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.userModel.findOne({ email: email.toLowerCase() });
@@ -98,7 +109,9 @@ export class AuthService {
         id: user._id.toString(),
         email: user.email,
         role: user.role,
-        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        mobile: user.mobile,
       },
     };
 
@@ -171,6 +184,9 @@ export class AuthService {
         id: savedUser._id.toString(),
         email: savedUser.email,
         role: savedUser.role,
+        firstName: savedUser.firstName,
+        lastName: savedUser.lastName,
+        mobile: savedUser.mobile,
         needsOrgSelection: true, // Frontend will show organization selection modal
       },
     };
@@ -204,12 +220,14 @@ export class AuthService {
     });
 
     if (existingAdmin) {
+      this.logger.log('Admin user already exists. Skipping seed.');
       return {
         message: "Admin user already exists",
         email: existingAdmin.email,
       };
     }
 
+    this.logger.log('Seeding initial super admin account...');
     // Create first admin with dummy data
     const hashedPassword = await bcrypt.hash("qwerty123", 10);
 
@@ -235,7 +253,7 @@ export class AuthService {
       },
       credentials: {
         email: "admin@bulkmandi.com",
-        password: "Admin@123",
+        password: "qwerty123",
       },
     };
   }

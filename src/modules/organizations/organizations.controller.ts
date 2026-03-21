@@ -106,9 +106,4 @@ export class OrganizationsController {
     }
   }
 
-  @Post("validate-invite-code")
-  @ApiOperation({ summary: "Validate an invite code" })
-  async validateCode(@Body() body: { inviteCode: string }) {
-    return this.organizationsService.validateInviteCode(body.inviteCode);
-  }
 }

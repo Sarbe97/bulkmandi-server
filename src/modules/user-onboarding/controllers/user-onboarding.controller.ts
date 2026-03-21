@@ -114,35 +114,16 @@ export class UserOnboardingController {
   // ===== ROLE-SPECIFIC STEPS =====
 
   /**
-   * Step 4 (Buyer Only): Update Buyer Preferences
+   * Mark a step as complete (used after hitting external Preference domains)
    */
-  @Put("buyer-preferences")
+  @Post("mark-step-complete")
   @ApiOperation({
-    summary: "Step 4 (Buyer Only): Update buyer preferences",
-    description: "Set product categories, delivery pins, QC requirements, notifications",
+    summary: "Mark a standalone step as complete",
+    description: "Pushes the stepId into the completedSteps array.",
   })
-  async updateBuyerPreferences(@CurrentUser() user: any, @Body() dto: BuyerPreferencesDto): Promise<any> {
-    this.logger.log(`PUT user/onboarding/buyer-preferences by user=${user.userId}`);
-    return this.service.updateRoleSpecificStep(user.organizationId, "buyer-preferences", dto, user.role, UserRole.BUYER);
-  }
-
-  /**
-   * Step 4 (Seller Only): Update Catalog & Price
-   */
-  @Put("catalog")
-  @ApiOperation({
-    summary: "Step 4 (Seller Only): Update product catalog and pricing",
-    description: "Set products, price floors, and logistics preferences",
-  })
-  async updateCatalog(@CurrentUser() user: any, @Body() dto: SellerCatalogDto): Promise<any> {
-    this.logger.log(`PUT user/onboarding/catalog by user=${user.userId}`);
-    return this.service.updateRoleSpecificStep(user.organizationId, "catalog", dto, user.role, UserRole.SELLER);
-  }
-
-  @Put("fleet-compliance")
-  @UseGuards(JwtAuthGuard)
-  async updateFleetAndCompliance(@CurrentUser() user: any, @Body() dto: FleetAndComplianceFormDataDto) {
-    return this.service.updateFleetAndCompliance(user.organizationId, dto, user.role);
+  async markStepComplete(@CurrentUser() user: any, @Body() body: { stepId: string }): Promise<any> {
+    this.logger.log(`POST user/onboarding/mark-step-complete stepId=${body.stepId} by user=${user.userId}`);
+    return this.service.markStepComplete(user.organizationId, body.stepId);
   }
   // ===== COMMON SUBMISSION & STATUS ENDPOINTS =====
 

@@ -1,4 +1,4 @@
-import { PlantLocationDto } from '@modules/catalog/dto/create-catalog.dto';
+import { PlantLocationDto } from './user-org-kyc.dto';
 import { Type } from 'class-transformer';
 import {
   IsArray,

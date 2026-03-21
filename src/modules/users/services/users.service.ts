@@ -2,11 +2,15 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
+import { Organization, OrganizationDocument } from '../../organizations/schemas/organization.schema';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) { }
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Organization.name) private orgModel: Model<OrganizationDocument>,
+  ) { }
 
   async findAll(): Promise<User[]> {
     return this.userModel
@@ -53,6 +57,31 @@ export class UsersService {
   }
 
   async updateUser(userId: string, updateData: Partial<User>) {
-    return this.userModel.findByIdAndUpdate(userId, updateData, { new: true }).exec();
+    const user = await this.userModel.findByIdAndUpdate(userId, updateData, { new: true }).exec();
+
+    // Sync with Organization if user belongs to one
+    if (user && user.organizationId) {
+      if (updateData.firstName !== undefined || updateData.lastName !== undefined || updateData.mobile !== undefined) {
+        const setFields: Record<string, any> = {};
+        
+        if (updateData.firstName !== undefined || updateData.lastName !== undefined) {
+          const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+          setFields['orgKyc.primaryContact.name'] = fullName;
+        }
+        
+        if (updateData.mobile !== undefined) {
+          setFields['orgKyc.primaryContact.mobile'] = user.mobile;
+        }
+        
+        if (Object.keys(setFields).length > 0) {
+          await this.orgModel.updateOne(
+            { _id: user.organizationId },
+            { $set: setFields }
+          );
+        }
+      }
+    }
+
+    return user;
   }
 }

@@ -37,10 +37,7 @@ export class AuthController {
     return this.authService.refreshAccessToken(refreshToken);
   }
 
-  @Get('admin/create')
-  async createAdmin() {
-    return this.authService.seedFirstAdmin();
-  }
+
 
   // ===== NEW: Organization Selection Endpoints =====
 
@@ -89,16 +86,6 @@ export class AuthController {
       legalName: body.legalName,
       role: user.role, // Enforce user's role
     });
-  }
-
-  @Post('organizations/join-with-code')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Join organization using invite code' })
-  async joinWithCode(
-    @CurrentUser() user: any,
-    @Body() body: { inviteCode: string },
-  ) {
-    return this.orgService.joinWithInviteCode(user.userId, body.inviteCode);
   }
 
   @Get('organizations/check-name')
