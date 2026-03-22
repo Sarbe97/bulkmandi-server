@@ -7,12 +7,14 @@ import { Quote, QuoteSchema } from './schemas/quote.schema';
 
 import { AuthModule } from '../auth/auth.module';
 import { OrdersModule } from '../orders/orders.module';
+import { OrganizationsModule } from '../organizations/organizations.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Quote.name, schema: QuoteSchema }]),
     MongooseModule.forFeature([{ name: Rfq.name, schema: RfqSchema }]),
     forwardRef(() => OrdersModule),
+    OrganizationsModule,
     AuthModule,
   ],
 

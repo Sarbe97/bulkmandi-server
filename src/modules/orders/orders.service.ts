@@ -1,7 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { OrganizationsService } from '../organizations/organizations.service';
+import { PaymentsService } from '../payments/payments.service';
+import { DisputesService } from '../disputes/disputes.service';
 import { RfqService } from '../rfq/rfq.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { Order, OrderDocument } from './schemas/order.schema';
@@ -12,6 +14,8 @@ export class OrdersService {
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     private readonly rfqService: RfqService,
     private readonly orgService: OrganizationsService,
+    @Inject(forwardRef(() => PaymentsService)) private readonly paymentsService: PaymentsService,
+    @Inject(forwardRef(() => DisputesService)) private readonly disputesService: DisputesService,
   ) { }
 
   async create(dto: CreateOrderDto) {
@@ -47,7 +51,15 @@ export class OrdersService {
       rfq.product?.millTcRequired ? 'Mill TC Required' : ''
     ].filter(Boolean).join(', ');
 
-    // 6. Create Order
+    // 6. Calculate Taxes (GST @ 18% on base + freight)
+    const TAX_RATE = 18; // GST percentage
+    const baseAmount = quote.totalPriceBase || (quote.pricePerMT * quote.quantityMT);
+    const freightTotal = quote.totalFreight || (quote.freightPerMT * quote.quantityMT);
+    const subTotal = baseAmount + freightTotal;
+    const taxAmount = Math.round(subTotal * (TAX_RATE / 100));
+    const grandTotal = subTotal + taxAmount;
+
+    // 7. Create Order with PAYMENT_PENDING status (buyer must pay to escrow)
     const order = new this.orderModel({
       orderId,
       rfqId: rfq._id, // ObjectId
@@ -65,22 +77,23 @@ export class OrdersService {
       pricing: {
         pricePerMT: quote.pricePerMT,
         quantityMT: quote.quantityMT,
-        baseAmount: quote.totalPriceBase,
+        baseAmount,
         freightPerMT: quote.freightPerMT,
-        freightTotal: quote.totalFreight,
-        taxRate: 0, // Placeholder
-        taxAmount: quote.totalTaxes || 0,
-        grandTotal: quote.grandTotal,
-        currency: quote.currency
+        freightTotal,
+        taxRate: TAX_RATE,
+        taxAmount,
+        grandTotal,
+        currency: quote.currency || 'INR'
       },
       incoterm: rfq.incoterm,
       deliveryPin: rfq.targetPin,
       deliveryCity: 'N/A', // TODO: Fetch from PIN
       deliveryState: 'N/A',
       deliveryBy: deliveryDate,
-      status: 'CONFIRMED',
+      status: 'PAYMENT_PENDING',
       lifecycle: {
-        confirmedAt: new Date()
+        confirmedAt: new Date(),
+        paymentPendingAt: new Date()
       }
     });
 
@@ -138,6 +151,70 @@ export class OrdersService {
     order.lifecycle.cancelledAt = new Date();
     // Optionally record cancellation reason/user
     return order.save();
+  }
+
+  // ─── Delivery Decision ──────────────────────────────────────
+
+  /**
+   * Buyer accepts delivery → order COMPLETED → Stage 2 escrow released
+   */
+  async acceptDelivery(orderId: string, buyerId: string) {
+    const order = await this.orderModel.findById(orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.buyerId.toString() !== buyerId) throw new BadRequestException('Not your order');
+    if (order.status !== 'DELIVERED') throw new BadRequestException('Order is not in DELIVERED status');
+
+    order.status = 'COMPLETED';
+    order.lifecycle.completedAt = new Date();
+    await order.save();
+
+    // Release Stage 2 escrow (remaining 20%)
+    try {
+      await this.paymentsService.releaseStage2(orderId);
+    } catch (err) {
+      console.warn('Stage 2 escrow release failed:', err.message);
+    }
+
+    return order;
+  }
+
+  /**
+   * Buyer disputes delivery → escrow Stage 2 held → dispute created
+   */
+  async disputeDelivery(
+    orderId: string,
+    buyerId: string,
+    disputeData: { disputeType: string; description: string; claimValue?: number },
+  ) {
+    const order = await this.orderModel.findById(orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.buyerId.toString() !== buyerId) throw new BadRequestException('Not your order');
+    if (order.status !== 'DELIVERED') throw new BadRequestException('Order is not in DELIVERED status');
+
+    // Hold Stage 2 escrow (20% stays locked)
+    try {
+      await this.paymentsService.holdStage2(orderId);
+    } catch (err) {
+      console.warn('Stage 2 escrow hold failed:', err.message);
+    }
+
+    // Create dispute record
+    const dispute = await this.disputesService.raise(buyerId, {
+      orderId,
+      disputeType: disputeData.disputeType,
+      description: disputeData.description,
+      claimantRole: 'BUYER',
+      respondentId: order.sellerId.toString(),
+      respondentRole: 'SELLER',
+      claimValue: disputeData.claimValue || order.pricing.grandTotal * 0.20,
+    });
+
+    // Mark order as disputed
+    order.disputeIds.push(dispute._id as any);
+    order.lifecycle.disputedAt = new Date();
+    await order.save();
+
+    return { order, dispute };
   }
 
   // Placeholder for getDocuments and uploadDocument; requires file storage logic

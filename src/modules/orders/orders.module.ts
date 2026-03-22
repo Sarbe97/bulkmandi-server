@@ -1,6 +1,8 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { OrganizationsModule } from '../organizations/organizations.module';
+import { PaymentsModule } from '../payments/payments.module';
+import { DisputesModule } from '../disputes/disputes.module';
 import { QuotesModule } from '../quotes/quotes.module';
 import { RfqModule } from '../rfq/rfq.module';
 import { OrdersController } from './orders.controller';
@@ -13,6 +15,8 @@ import { Order, OrderSchema } from './schemas/order.schema';
       { name: Order.name, schema: OrderSchema },
     ]),
     forwardRef(() => QuotesModule),
+    forwardRef(() => PaymentsModule),
+    forwardRef(() => DisputesModule),
     RfqModule,
     OrganizationsModule,
   ],

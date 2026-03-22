@@ -62,6 +62,31 @@ export class Payment {
   @Prop()
   escrowReleaseReason?: string;
 
+  // Escrow staged release (80% on LR, 20% on POD acceptance)
+  @Prop({ default: 80 })
+  escrowStage1Percent!: number;
+
+  @Prop({ default: 20 })
+  escrowStage2Percent!: number;
+
+  @Prop({ default: 0 })
+  escrowStage1Amount!: number;
+
+  @Prop({ default: 0 })
+  escrowStage2Amount!: number;
+
+  @Prop({ default: 'PENDING' })
+  escrowStage1Status!: string; // PENDING | RELEASED
+
+  @Prop({ default: 'PENDING' })
+  escrowStage2Status!: string; // PENDING | RELEASED | DISPUTED
+
+  @Prop()
+  escrowStage1ReleasedAt?: Date;
+
+  @Prop()
+  escrowStage2ReleasedAt?: Date;
+
   // Payer/Payee
   @Prop({ type: Types.ObjectId, ref: 'Organization', required: true })
   payerId!: Types.ObjectId;

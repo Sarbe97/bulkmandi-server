@@ -74,6 +74,18 @@ export class FastTrackOrganizationDto {
   @IsString()
   @IsOptional()
   primaryContactRole?: string;
+
+  // Bank Info
+  @ApiPropertyOptional()
+  @IsObject()
+  @IsOptional()
+  bankDetails?: {
+    accountName: string;
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+    branchName?: string;
+  };
 }
 
 export class FastTrackOnboardDto {
@@ -87,8 +99,13 @@ export class FastTrackOnboardDto {
   @Type(() => FastTrackOrganizationDto)
   organization: FastTrackOrganizationDto;
 
-  @ApiPropertyOptional({ description: 'Role-specific preferences (Buyer, Seller, or Logistic preferences)' })
-  @IsObject()
+  @ApiPropertyOptional({ description: 'Role-specific preferences' })
   @IsOptional()
+  @IsObject()
   preferences?: Record<string, any>;
+
+  @ApiPropertyOptional({ enum: ['ADMIN_SINGLE', 'ADMIN_BULK'] })
+  @IsOptional()
+  @IsEnum(['ADMIN_SINGLE', 'ADMIN_BULK'])
+  creationSource?: 'ADMIN_SINGLE' | 'ADMIN_BULK';
 }

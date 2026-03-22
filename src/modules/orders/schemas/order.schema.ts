@@ -68,7 +68,7 @@ export class Order {
 
   // Status lifecycle
   @Prop({ default: 'CONFIRMED' })
-  status!: string; // CONFIRMED | PAYMENT_PENDING | PAID | DISPATCH_PREP | IN_TRANSIT | DELIVERED | CANCELLED
+  status!: string; // CONFIRMED | PAYMENT_PENDING | PAID | DISPATCH_PREP | IN_TRANSIT | DELIVERED | COMPLETED | CANCELLED
 
   @Prop({ type: Object, default: {} })
   lifecycle!: {
@@ -76,6 +76,9 @@ export class Order {
     paymentPendingAt?: Date;
     paidAt?: Date;
     dispatchPrepAt?: Date;
+    deliveredAt?: Date;
+    completedAt?: Date;
+    disputedAt?: Date;
     cancelledAt?: Date;
   };
 

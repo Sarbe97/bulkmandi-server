@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, Inject, forwardRef } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { CreateShipmentDto } from "./dto/create-shipment.dto";
@@ -6,12 +6,14 @@ import { UpdateMilestoneDto } from "./dto/update-milestone.dto";
 import { UploadDocumentDto } from "./dto/upload-document.dto";
 import { Shipment, ShipmentDocument } from "./schemas/shipment.schema";
 import { OrdersService } from "../orders/orders.service";
+import { PaymentsService } from "../payments/payments.service";
 
 @Injectable()
 export class ShipmentsService {
   constructor(
     @InjectModel(Shipment.name) private shipmentModel: Model<ShipmentDocument>,
-    private readonly ordersService: OrdersService
+    @Inject(forwardRef(() => OrdersService)) private readonly ordersService: OrdersService,
+    @Inject(forwardRef(() => PaymentsService)) private readonly paymentsService: PaymentsService,
   ) { }
 
   async create(sellerId: string, dto: CreateShipmentDto) {
@@ -82,20 +84,32 @@ export class ShipmentsService {
     return shipment.save();
   }
 
-  // Update uploadDocument
+  // Upload document + trigger escrow Stage 1 on LR
   async uploadDocument(id: string, dto: UploadDocumentDto, userId: string) {
     const shipment = await this.shipmentModel.findById(id);
     if (!shipment) throw new NotFoundException("Shipment not found");
     shipment.documents.push({
-      docId: `DOC-${Date.now()}`, // generate new docId
+      docId: `DOC-${Date.now()}`,
       docType: dto.docType,
       fileUrl: dto.fileUrl,
-      fileHash: "", // fill in if you hash files
+      fileHash: "",
       uploadedAt: new Date(),
       uploadedBy: userId,
       verified: false,
     });
-    return shipment.save();
+    await shipment.save();
+
+    // Trigger escrow Stage 1 release when Lorry Receipt is uploaded
+    if (dto.docType === 'LORRY_RECEIPT') {
+      try {
+        await this.paymentsService.releaseStage1(shipment.orderId.toString());
+      } catch (err) {
+        // Log but don't fail the doc upload if escrow release fails
+        console.warn('Stage 1 escrow release failed:', err.message);
+      }
+    }
+
+    return shipment;
   }
 
   async uploadPOD(

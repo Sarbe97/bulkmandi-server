@@ -6,6 +6,7 @@ import { Organization, OrganizationDocument } from '../organizations/schemas/org
 import { AuthService } from '../auth/auth.service';
 import { PreferencesService } from '../preferences/preferences.service';
 import { IdGeneratorService } from '../../common/services/id-generator.service';
+import { KycCase, KycCaseDocument } from '../kyc/schemas/kyc.schema';
 import { FastTrackOnboardDto } from './dto/admin-onboarding.dto';
 import { UserRole } from '../../common/enums';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -19,6 +20,7 @@ export class AdminOnboardingService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Organization.name) private organizationModel: Model<OrganizationDocument>,
+    @InjectModel(KycCase.name) private kycCaseModel: Model<KycCaseDocument>,
     private authService: AuthService,
     private preferencesService: PreferencesService,
     private idGenerator: IdGeneratorService,
@@ -92,6 +94,12 @@ export class AdminOnboardingService {
           mobile: userDto.mobile,
           role: orgDto.primaryContactRole || 'Owner',
         },
+
+        // Creation Source Traceability
+        creationSource: dto.creationSource || 'ADMIN_SINGLE',
+
+        // Bank Details explicit capture
+        ...(orgDto.bankDetails && { primaryBankAccount: orgDto.bankDetails }),
       };
 
       const newOrg = new this.organizationModel(orgPayload);
@@ -99,6 +107,27 @@ export class AdminOnboardingService {
 
       // Bind the User -> Organization ID
       await this.userModel.findByIdAndUpdate(userId, { organizationId: createdOrg._id });
+
+      // Build an auto-approved proxy KYC timeline object so the Dashboard viewer works
+      const dummyCase = new this.kycCaseModel({
+        organizationId: createdOrg._id,
+        organizationCode: orgCode,
+        caseCode: `FASTRK-${orgCode}-001`,
+        status: "APPROVED",
+        submissionAttempt: 1,
+        submittedAt: new Date(),
+        reviewedAt: new Date(),
+        reviewedBy: 'FAST-TRACK-SYSTEM',
+        submittedData: {
+            orgKyc: orgPayload,
+            primaryBankAccount: orgPayload.primaryBankAccount || null,
+        },
+        activityLog: [
+            { action: "SUBMITTED", timestamp: new Date(), performedBy: "SYSTEM", remarks: "Fast-Track Auto Submit" },
+            { action: "APPROVED", timestamp: new Date(), performedBy: "SYSTEM", remarks: "Fast-Track Auto Approve" }
+        ],
+      });
+      await dummyCase.save();
 
     } catch (e: any) {
       this.logger.error("Organization creation failed", e);
@@ -171,11 +200,20 @@ export class AdminOnboardingService {
                 pan: row.pan,
                 businessType: row.businessType || 'Private Limited',
                 registeredAddress: row.registeredAddress || 'Registered HQ',
+                ...(row.bankAccountName && {
+                    bankDetails: {
+                        accountName: row.bankAccountName,
+                        accountNumber: row.bankAccountNumber,
+                        ifscCode: row.bankIfscCode,
+                        bankName: row.bankName || 'NOT SPECIFIED',
+                    }
+                }),
             },
             // We serialize any extra columns starting with pref_
             preferences: Object.keys(row)
                  .filter(k => k.startsWith('pref_'))
                  .reduce((acc, k) => { acc[k.replace('pref_', '')] = row[k]; return acc; }, {}),
+            creationSource: 'ADMIN_BULK'
           };
           results.push(dto);
         })

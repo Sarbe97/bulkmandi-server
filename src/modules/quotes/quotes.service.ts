@@ -5,6 +5,7 @@ import { Rfq, RfqDocument } from '../rfq/schemas/rfq.schema';
 import { CreateQuoteDto } from './dto/create-quote.dto';
 import { Quote, QuoteDocument } from './schemas/quote.schema';
 import { OrdersService } from '../orders/orders.service';
+import { OrganizationsService } from '../organizations/organizations.service';
 import { QuoteStatus } from 'src/common/constants/app.constants';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class QuotesService {
     @InjectModel(Quote.name) private quoteModel: Model<QuoteDocument>,
     @InjectModel(Rfq.name) private rfqModel: Model<RfqDocument>,
     @Inject(forwardRef(() => OrdersService)) private ordersService: OrdersService,
+    private readonly orgService: OrganizationsService,
   ) { }
 
   async findByRfqId(rfqId: string) {
@@ -33,20 +35,31 @@ export class QuotesService {
     const quoteId = `QUOTE-${Date.now()}`;
     const validityExpiresAt = new Date(Date.now() + dto.validityHours * 60 * 60 * 1000);
 
+    // Fetch actual seller organization name
+    let sellerOrgName = 'Unknown Seller';
+    try {
+      const sellerOrg = await this.orgService.getOrganization(sellerId);
+      sellerOrgName = sellerOrg.legalName || sellerOrgName;
+    } catch {
+      // Fallback if org lookup fails
+    }
+
     const quote = new this.quoteModel({
       quoteId,
       rfqId: dto.rfqId, // Store string ID
       sellerId,
-      sellerOrgName: "Seller Org", // TODO: Fetch actua org name
+      sellerOrgName,
       pricePerMT: dto.pricePerMT,
       quantityMT: dto.quantityMT,
       freightPerMT: dto.freightPerMT,
       totalFreight: freightTotal,
       totalPriceBase: baseAmount,
       grandTotal,
+      currency: 'INR',
       leadDays: dto.leadDays,
       validityHours: dto.validityHours,
       validityExpiresAt,
+      paymentTerms: dto.paymentTerms || '',
       notes: dto.notes || '',
       status: QuoteStatus.SUBMITTED,
       submittedAt: new Date()

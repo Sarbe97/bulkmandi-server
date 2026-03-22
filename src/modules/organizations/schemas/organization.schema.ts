@@ -82,6 +82,9 @@ export class Organization {
   @Prop({ required: true })
   legalName!: string;
 
+  @Prop({ type: String, enum: ['SELF', 'ADMIN_SINGLE', 'ADMIN_BULK'], default: 'SELF' })
+  creationSource!: string;
+
   @Prop({ type: String, enum: UserRole, required: true })
   role!: UserRole;
 

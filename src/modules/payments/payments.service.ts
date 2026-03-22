@@ -19,20 +19,58 @@ export class PaymentsService {
     if (order.buyerId.toString() !== orgId) throw new BadRequestException('This order does not belong to you');
     const existing = await this.paymentModel.findOne({ orderId: dto.orderId });
     if (existing) throw new BadRequestException('Payment already initiated');
+
+    const paymentId = `PAY-${Date.now()}`;
+    const isAutoVerify = dto.paymentMethod === 'UPI' || dto.paymentMethod === 'NETBANKING';
+
     const payment = new this.paymentModel({
-      paymentId: `PAY-${Date.now()}`,
+      paymentId,
       orderId: dto.orderId,
-      amount: order.pricing.grandTotal, // or main payable field
+      amount: order.pricing.grandTotal,
       currency: 'INR',
       paymentMethod: dto.paymentMethod,
       escrowHoldAmount: order.pricing.grandTotal,
       escrowHoldStatus: 'ACTIVE',
+      // Staged escrow: 80% on LR, 20% on delivery acceptance
+      escrowStage1Percent: 80,
+      escrowStage2Percent: 20,
+      escrowStage1Amount: Math.round(order.pricing.grandTotal * 0.80),
+      escrowStage2Amount: Math.round(order.pricing.grandTotal * 0.20),
+      escrowStage1Status: 'PENDING',
+      escrowStage2Status: 'PENDING',
       payerId: orgId,
-      status: 'INITIATED',
-      statusTimeline: [{ status: 'INITIATED', timestamp: new Date() }],
+      status: isAutoVerify ? 'VERIFIED' : 'INITIATED',
+      statusTimeline: isAutoVerify
+        ? [
+            { status: 'INITIATED', timestamp: new Date() },
+            { status: 'VERIFIED', timestamp: new Date() },
+          ]
+        : [{ status: 'INITIATED', timestamp: new Date() }],
       initiatedAt: new Date(),
+      ...(isAutoVerify && {
+        utr: `AUTO-${Date.now()}`,
+        bankVerifiedAt: new Date(),
+        bankVerificationMethod: 'GATEWAY',
+      }),
     });
-    return payment.save();
+
+    const savedPayment = await payment.save();
+
+    // For auto-verified payments (UPI / Netbanking sandbox), update order to PAID immediately
+    if (isAutoVerify) {
+      order.status = 'PAID';
+      order.lifecycle.paidAt = new Date();
+      order.payment = {
+        paymentId: savedPayment.paymentId,
+        paymentMethod: dto.paymentMethod,
+        utr: `AUTO-${Date.now()}`,
+        escrowHolds: order.pricing.grandTotal,
+        escrowReleased: false,
+      };
+      await order.save();
+    }
+
+    return savedPayment;
   }
 
   async verifyUTR(paymentId: string, dto: VerifyUtrDto) {
@@ -43,8 +81,22 @@ export class PaymentsService {
     payment.bankVerifiedAt = new Date();
     payment.statusTimeline.push({ status: 'VERIFIED', timestamp: new Date() });
     await payment.save();
-    // Update the order status as PAID
-    await this.orderModel.findByIdAndUpdate(payment.orderId, { status: 'PAID' });
+
+    // Update the order status to PAID with payment details
+    const order = await this.orderModel.findById(payment.orderId);
+    if (order) {
+      order.status = 'PAID';
+      order.lifecycle.paidAt = new Date();
+      order.payment = {
+        paymentId: payment.paymentId,
+        paymentMethod: payment.paymentMethod,
+        utr: dto.utr,
+        escrowHolds: payment.escrowHoldAmount,
+        escrowReleased: false,
+      };
+      await order.save();
+    }
+
     return payment;
   }
 
@@ -74,5 +126,70 @@ export class PaymentsService {
   async refund(paymentId: string, amount: number, reason: string) {
     // Implement actual refund logic
     return { paymentId, amount, refunded: true, reason };
+  }
+
+  // ─── Staged Escrow Release ────────────────────────────────
+
+  /**
+   * Stage 1: Release 80% to seller when LR (Lorry Receipt) is uploaded
+   */
+  async releaseStage1(orderId: string) {
+    const payment = await this.paymentModel.findOne({ orderId });
+    if (!payment) throw new NotFoundException('Payment not found for this order');
+    if (payment.escrowStage1Status === 'RELEASED') return payment; // Idempotent
+
+    payment.escrowStage1Status = 'RELEASED';
+    payment.escrowStage1ReleasedAt = new Date();
+    payment.statusTimeline.push({ status: 'STAGE1_RELEASED', timestamp: new Date() });
+    await payment.save();
+
+    // Update order's escrow info
+    const order = await this.orderModel.findById(orderId);
+    if (order) {
+      order.payment.escrowHolds = payment.escrowStage2Amount; // Only Stage 2 remains held
+      await order.save();
+    }
+
+    return payment;
+  }
+
+  /**
+   * Stage 2: Release remaining 20% to seller when buyer accepts delivery
+   */
+  async releaseStage2(orderId: string) {
+    const payment = await this.paymentModel.findOne({ orderId });
+    if (!payment) throw new NotFoundException('Payment not found for this order');
+    if (payment.escrowStage2Status === 'RELEASED') return payment; // Idempotent
+
+    payment.escrowStage2Status = 'RELEASED';
+    payment.escrowStage2ReleasedAt = new Date();
+    payment.escrowHoldStatus = 'RELEASED'; // Fully released
+    payment.escrowReleaseAt = new Date();
+    payment.escrowReleaseReason = 'Buyer accepted delivery';
+    payment.statusTimeline.push({ status: 'STAGE2_RELEASED', timestamp: new Date() });
+    await payment.save();
+
+    // Update order's escrow info
+    const order = await this.orderModel.findById(orderId);
+    if (order) {
+      order.payment.escrowHolds = 0;
+      order.payment.escrowReleased = true;
+      order.payment.escrowReleasedAt = new Date();
+      await order.save();
+    }
+
+    return payment;
+  }
+
+  /**
+   * Hold Stage 2 when buyer raises a dispute — 20% stays in escrow
+   */
+  async holdStage2(orderId: string) {
+    const payment = await this.paymentModel.findOne({ orderId });
+    if (!payment) throw new NotFoundException('Payment not found for this order');
+
+    payment.escrowStage2Status = 'DISPUTED';
+    payment.statusTimeline.push({ status: 'STAGE2_DISPUTED', timestamp: new Date() });
+    return payment.save();
   }
 }

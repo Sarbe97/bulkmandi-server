@@ -9,10 +9,13 @@ import {
   Query,
   Res,
   BadRequestException,
+  Param,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
+import { DocumentHandlerService } from '../../core/file/services/document-handler.service';
+import { multerOptions } from '../user-onboarding/config/multer.config';
 
 import { AdminOnboardingService } from './admin-onboarding.service';
 import { FastTrackOnboardDto } from './dto/admin-onboarding.dto';
@@ -25,7 +28,10 @@ import { UserRole } from '../../common/enums';
 @UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('admin/onboarding')
 export class AdminOnboardingController {
-  constructor(private readonly adminOnboardingService: AdminOnboardingService) {}
+  constructor(
+    private readonly adminOnboardingService: AdminOnboardingService,
+    private readonly documentHandlerService: DocumentHandlerService,
+  ) {}
 
   @Post('single')
   @ApiOperation({ summary: 'Create a single User, Organization, and Preference record instantly.' })
@@ -74,5 +80,20 @@ export class AdminOnboardingController {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename=BulkMandi_${role}_Onboarding.csv`);
     res.send(templateContent);
+  }
+
+  @Post(':orgId/documents')
+  @ApiOperation({ summary: 'Upload an admin-provided document to an explicitly stated Organization ID' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('document', multerOptions))
+  async uploadAdminDocument(
+    @Param('orgId') orgId: string,
+    @Body() body: { docType: string },
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('File is required');
+    if (!body.docType) throw new BadRequestException('docType is required');
+
+    return this.documentHandlerService.uploadDocument(orgId, file, body.docType);
   }
 }

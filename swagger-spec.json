@@ -2500,6 +2500,64 @@
         ]
       }
     },
+    "/api/v1/orders/{id}/accept-delivery": {
+      "put": {
+        "operationId": "OrdersController_acceptDelivery",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Accept delivery — triggers Stage 2 escrow release (Buyer)",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/dispute-delivery": {
+      "put": {
+        "operationId": "OrdersController_disputeDelivery",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dispute delivery — holds Stage 2 escrow (Buyer)",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
     "/api/v1/payments": {
       "post": {
         "operationId": "PaymentsController_createPayment",
@@ -2727,6 +2785,265 @@
         "summary": "Refund payment (Admin only)",
         "tags": [
           "Payments"
+        ]
+      }
+    },
+    "/api/v1/disputes": {
+      "post": {
+        "operationId": "DisputesController_raiseDispute",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RaiseDisputeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Raise dispute (Buyer/Seller)",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/disputes/me": {
+      "get": {
+        "operationId": "DisputesController_getMyDisputes",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get my disputes",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/disputes/{id}": {
+      "get": {
+        "operationId": "DisputesController_getDisputeById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get dispute by ID",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/disputes/{id}/evidence": {
+      "post": {
+        "operationId": "DisputesController_uploadEvidence",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload evidence",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/disputes/{id}/resolve": {
+      "put": {
+        "operationId": "DisputesController_resolveDispute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveDisputeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Resolve dispute (Admin only)",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/disputes/{id}/assign": {
+      "put": {
+        "operationId": "DisputesController_assignDispute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Assign dispute to admin (Admin)",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/disputes/order/{orderId}": {
+      "get": {
+        "operationId": "DisputesController_getDisputesByOrder",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get disputes by order",
+        "tags": [
+          "Disputes"
+        ]
+      }
+    },
+    "/api/v1/disputes/order/{orderId}/window-status": {
+      "get": {
+        "operationId": "DisputesController_checkDisputeWindow",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Check if dispute window is open",
+        "tags": [
+          "Disputes"
         ]
       }
     },
@@ -3033,265 +3350,6 @@
         "summary": "Mark shipment as delivered (3PL)",
         "tags": [
           "Shipments"
-        ]
-      }
-    },
-    "/api/v1/disputes": {
-      "post": {
-        "operationId": "DisputesController_raiseDispute",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RaiseDisputeDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Raise dispute (Buyer/Seller)",
-        "tags": [
-          "Disputes"
-        ]
-      }
-    },
-    "/api/v1/disputes/me": {
-      "get": {
-        "operationId": "DisputesController_getMyDisputes",
-        "parameters": [
-          {
-            "name": "status",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get my disputes",
-        "tags": [
-          "Disputes"
-        ]
-      }
-    },
-    "/api/v1/disputes/{id}": {
-      "get": {
-        "operationId": "DisputesController_getDisputeById",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get dispute by ID",
-        "tags": [
-          "Disputes"
-        ]
-      }
-    },
-    "/api/v1/disputes/{id}/evidence": {
-      "post": {
-        "operationId": "DisputesController_uploadEvidence",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Upload evidence",
-        "tags": [
-          "Disputes"
-        ]
-      }
-    },
-    "/api/v1/disputes/{id}/resolve": {
-      "put": {
-        "operationId": "DisputesController_resolveDispute",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResolveDisputeDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Resolve dispute (Admin only)",
-        "tags": [
-          "Disputes"
-        ]
-      }
-    },
-    "/api/v1/disputes/{id}/assign": {
-      "put": {
-        "operationId": "DisputesController_assignDispute",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Assign dispute to admin (Admin)",
-        "tags": [
-          "Disputes"
-        ]
-      }
-    },
-    "/api/v1/disputes/order/{orderId}": {
-      "get": {
-        "operationId": "DisputesController_getDisputesByOrder",
-        "parameters": [
-          {
-            "name": "orderId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get disputes by order",
-        "tags": [
-          "Disputes"
-        ]
-      }
-    },
-    "/api/v1/disputes/order/{orderId}/window-status": {
-      "get": {
-        "operationId": "DisputesController_checkDisputeWindow",
-        "parameters": [
-          {
-            "name": "orderId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Check if dispute window is open",
-        "tags": [
-          "Disputes"
         ]
       }
     },
@@ -3698,6 +3756,35 @@
           "Admin Onboarding"
         ]
       }
+    },
+    "/api/v1/admin/onboarding/{orgId}/documents": {
+      "post": {
+        "operationId": "AdminOnboardingController_uploadAdminDocument",
+        "parameters": [
+          {
+            "name": "orgId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload an admin-provided document to an explicitly stated Organization ID",
+        "tags": [
+          "Admin Onboarding"
+        ]
+      }
     }
   },
   "info": {
@@ -4019,19 +4106,19 @@
         "type": "object",
         "properties": {}
       },
-      "CreateShipmentDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdateMilestoneDto": {
-        "type": "object",
-        "properties": {}
-      },
       "RaiseDisputeDto": {
         "type": "object",
         "properties": {}
       },
       "ResolveDisputeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateShipmentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateMilestoneDto": {
         "type": "object",
         "properties": {}
       },
@@ -4110,6 +4197,9 @@
           },
           "primaryContactRole": {
             "type": "string"
+          },
+          "bankDetails": {
+            "type": "object"
           }
         },
         "required": [
@@ -4131,7 +4221,14 @@
           },
           "preferences": {
             "type": "object",
-            "description": "Role-specific preferences (Buyer, Seller, or Logistic preferences)"
+            "description": "Role-specific preferences"
+          },
+          "creationSource": {
+            "type": "string",
+            "enum": [
+              "ADMIN_SINGLE",
+              "ADMIN_BULK"
+            ]
           }
         },
         "required": [

@@ -4,8 +4,9 @@ export class RaiseDisputeDto {
   @IsMongoId()
   orderId: string;
 
+  @IsOptional()
   @IsMongoId()
-  shipmentId: string;
+  shipmentId?: string;
 
   @IsString()
   disputeType: string; // SHORTAGE | QC_FAILURE | DOCS_MISSING | DAMAGE | OTHER
@@ -13,7 +14,15 @@ export class RaiseDisputeDto {
   @IsNumber()
   claimValue: number;
 
-  @IsOptional()
   @IsString()
-  description?: string;
+  description: string;
+
+  @IsString()
+  claimantRole: string; // BUYER | SELLER
+
+  @IsMongoId()
+  respondentId: string;
+
+  @IsString()
+  respondentRole: string; // BUYER | SELLER
 }

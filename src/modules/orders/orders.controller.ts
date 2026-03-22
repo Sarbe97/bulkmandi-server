@@ -115,4 +115,25 @@ export class OrdersController {
   ) {
     return this.ordersService.uploadDocument(id, 'taxInvoice', body);
   }
+
+  @ApiOperation({ summary: 'Accept delivery — triggers Stage 2 escrow release (Buyer)' })
+  @Roles(UserRole.BUYER)
+  @Put(':id/accept-delivery')
+  async acceptDelivery(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    return this.ordersService.acceptDelivery(id, user.organizationId);
+  }
+
+  @ApiOperation({ summary: 'Dispute delivery — holds Stage 2 escrow (Buyer)' })
+  @Roles(UserRole.BUYER)
+  @Put(':id/dispute-delivery')
+  async disputeDelivery(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: { disputeType: string; description: string; claimValue?: number },
+  ) {
+    return this.ordersService.disputeDelivery(id, user.organizationId, body);
+  }
 }
