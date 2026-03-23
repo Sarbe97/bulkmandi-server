@@ -35,6 +35,17 @@ export class CatalogItem {
   @Prop({ type: Object, default: {} })
   attributes: Record<string, any>; // e.g. { grade: ["Fe500","Fe500D"], size: ["8mm","12mm"], finish: [] }
 
+  @Prop({ type: Object, default: {} })
+  specifications: {
+    is_lme_linked?: boolean;
+    standard?: string;
+    gst_rate?: number;
+    min_order_quantity?: number;
+  };
+
+  @Prop({ default: false })
+  showOnHome: boolean;
+
   @Prop({ default: true })
   isActive: boolean;
 

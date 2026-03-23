@@ -69,7 +69,10 @@ export class MasterDataService implements OnModuleInit {
       if (fs.existsSync(itemsPath)) {
         const itemRows = this.parseCsvToJson(fs.readFileSync(itemsPath, 'utf8'));
         const resultItems = await this.bulkUploadCatalogItems(itemRows);
-        this.logger.log(`Seeded catalog items: ${resultItems.created} created.`);
+        this.logger.log(`Seeded catalog items: ${resultItems.created} created, ${resultItems.updated} updated. Errors: ${resultItems.errors.length}`);
+        if (resultItems.errors.length > 0) {
+          this.logger.error(`Catalog items seed errors: ${JSON.stringify(resultItems.errors)}`);
+        }
       }
 
       if (fs.existsSync(listingsPath)) {
@@ -275,7 +278,7 @@ export class MasterDataService implements OnModuleInit {
 
     const listings = await this.catalogListingModel
       .find(query)
-      .populate('catalogItemId', 'product_type slug subcategory unit image attributes')
+      .populate('catalogItemId', 'product_type slug subcategory unit image attributes specifications showOnHome')
       .sort({ basePrice: 1 });
 
     return listings;
@@ -370,6 +373,22 @@ export class MasterDataService implements OnModuleInit {
           }
         }
 
+        // Parse specifications JSON string from CSV
+        let specifications: any = {};
+        if (typeof row.specifications === 'string' && row.specifications.trim()) {
+          let specStr = row.specifications.trim();
+          if (specStr.startsWith('"') && specStr.endsWith('"')) {
+            specStr = specStr.replace(/^"|"$/g, '').replace(/""/g, '"').trim();
+          }
+          try {
+            specifications = JSON.parse(specStr);
+          } catch (e: any) {
+            this.logger.warn(`Row ${i + 1}: Invalid specifications JSON. Error: ${e.message}`);
+          }
+        }
+
+        const showOnHome = row.showOnHome === 'true' || row.showOnHome === '1' || row.showOnHome === true;
+
         // Ensure attributes is an object
         if (!attributes) attributes = {};
 
@@ -384,6 +403,8 @@ export class MasterDataService implements OnModuleInit {
               hsnCode: row.hsnCode || existing.hsnCode,
               image: row.image || existing.image,
               attributes: row.attributes ? attributes : existing.attributes,
+              specifications: row.specifications ? specifications : existing.specifications,
+              showOnHome: row.showOnHome !== undefined ? showOnHome : existing.showOnHome,
               search_keywords: row.search_keywords ? search_keywords : existing.search_keywords,
               isActive,
             },
@@ -398,6 +419,8 @@ export class MasterDataService implements OnModuleInit {
             hsnCode: row.hsnCode || '',
             image: row.image || '',
             attributes,
+            specifications,
+            showOnHome,
             search_keywords,
             isActive,
           });

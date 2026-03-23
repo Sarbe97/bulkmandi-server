@@ -3998,6 +3998,19 @@
               "type": "string"
             }
           },
+          "specifications": {
+            "type": "object",
+            "example": {
+              "is_lme_linked": true,
+              "standard": "IS 1786:2008",
+              "gst_rate": 18,
+              "min_order_quantity": 25
+            }
+          },
+          "showOnHome": {
+            "type": "boolean",
+            "example": true
+          },
           "isActive": {
             "type": "boolean",
             "example": true

@@ -55,6 +55,16 @@ export class CreateCatalogItemDto {
   @IsString({ each: true })
   search_keywords?: string[];
 
+  @ApiPropertyOptional({ example: { is_lme_linked: true, standard: 'IS 1786:2008', gst_rate: 18, min_order_quantity: 25 } })
+  @IsOptional()
+  @IsObject()
+  specifications?: Record<string, any>;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  showOnHome?: boolean;
+
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()
@@ -73,6 +83,8 @@ export class UpdateCatalogItemDto {
   @IsOptional() @IsString() hsnCode?: string;
   @IsOptional() @IsObject() attributes?: Record<string, any>;
   @IsOptional() @IsString({ each: true }) search_keywords?: string[];
+  @IsOptional() @IsObject() specifications?: Record<string, any>;
+  @IsOptional() @IsBoolean() showOnHome?: boolean;
   @IsOptional() @IsBoolean() isActive?: boolean;
 }
 

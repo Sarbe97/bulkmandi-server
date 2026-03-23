@@ -27,10 +27,10 @@ export class AdminOnboardingService {
   ) {}
 
   /**
-   * Generates a secure random 8-character password
+   * Returns the default temporary password 'qwerty123'
    */
   private generateTempPassword(): string {
-    return Math.random().toString(36).slice(-8) + 'A1!'; // Basic complexity
+    return 'qwerty123';
   }
 
   /**
@@ -173,9 +173,11 @@ export class AdminOnboardingService {
   }
 
   /**
-   * Bulk onboard users from a mapped CSV stream
+   * Bulk onboard users from a mapped CSV stream.
+   * If assignedRole is provided, it acts as a default/override. 
+   * Otherwise, the 'role' column in the CSV is used.
    */
-  async processBulkCSV(fileBuffer: Buffer, assignedRole: UserRole): Promise<any> {
+  async processBulkCSV(fileBuffer: Buffer, assignedRole?: UserRole): Promise<any> {
     return new Promise((resolve, reject) => {
       const results: any[] = [];
       const errors: any[] = [];
@@ -185,6 +187,14 @@ export class AdminOnboardingService {
       stream
         .pipe(csvParser())
         .on('data', (row: any) => {
+          // Determine role: Row-level role takes precedence, then method-level assignedRole
+          const rowRole = (row.role?.toUpperCase() as UserRole) || assignedRole;
+
+          if (![UserRole.BUYER, UserRole.SELLER, UserRole.LOGISTIC].includes(rowRole)) {
+              errors.push({ email: row.email, error: `Invalid or missing role: ${row.role || 'N/A'}` });
+              return;
+          }
+
           // Construct the FastTrackOnboardDto payload shape from row headers
           const dto: FastTrackOnboardDto = {
             user: {
@@ -192,7 +202,7 @@ export class AdminOnboardingService {
                 mobile: row.mobile,
                 firstName: row.firstName,
                 lastName: row.lastName,
-                role: assignedRole,
+                role: rowRole,
             },
             organization: {
                 legalName: row.legalName,
@@ -211,7 +221,7 @@ export class AdminOnboardingService {
             },
             // We serialize any extra columns starting with pref_
             preferences: Object.keys(row)
-                 .filter(k => k.startsWith('pref_'))
+                 .filter(k => k.startsWith('pref_') && row[k])
                  .reduce((acc, k) => { acc[k.replace('pref_', '')] = row[k]; return acc; }, {}),
             creationSource: 'ADMIN_BULK'
           };
@@ -234,10 +244,14 @@ export class AdminOnboardingService {
     });
   }
 
-  generateCsvTemplate(role: UserRole): string {
-    const baseHeaders = 'email,mobile,firstName,lastName,legalName,gstin,pan,businessType,registeredAddress';
+  generateCsvTemplate(role?: UserRole): string {
+    const baseHeaders = 'role,email,mobile,firstName,lastName,legalName,gstin,pan,businessType,registeredAddress,bankAccountName,bankAccountNumber,bankIfscCode,bankName';
+    
     if (role === UserRole.SELLER) return baseHeaders + ',pref_capacityMT,pref_certifications\n';
     if (role === UserRole.LOGISTIC) return baseHeaders + ',pref_maxCapacityMT\n';
-    return baseHeaders + ',pref_procurementCategories\n';
+    if (role === UserRole.BUYER) return baseHeaders + ',pref_procurementCategories\n';
+    
+    // Universal Template
+    return baseHeaders + ',pref_capacityMT,pref_maxCapacityMT,pref_procurementCategories\n';
   }
 }

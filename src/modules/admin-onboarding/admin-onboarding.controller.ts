@@ -54,11 +54,12 @@ export class AdminOnboardingController {
   @UseInterceptors(FileInterceptor('file'))
   async onboardBulkUsers(
     @UploadedFile() file: Express.Multer.File,
-    @Body('role') role: UserRole, // Body field for the form-data
+    @Body('role') role?: UserRole, // Body field for the form-data (Optional if CSV has role)
   ) {
     if (!file) throw new BadRequestException('A valid .csv file is required.');
-    if (![UserRole.BUYER, UserRole.SELLER, UserRole.LOGISTIC].includes(role)) {
-      throw new BadRequestException('Valid role is required in the form data.');
+    
+    if (role && ![UserRole.BUYER, UserRole.SELLER, UserRole.LOGISTIC].includes(role)) {
+      throw new BadRequestException('If provided, role must be a valid UserRole.');
     }
 
     // Pass the buffer stream down to the service for native CSV parsing out of memory
@@ -71,8 +72,8 @@ export class AdminOnboardingController {
     @Query('role') role: UserRole,
     @Res() res: any,
   ) {
-    if (![UserRole.BUYER, UserRole.SELLER, UserRole.LOGISTIC].includes(role)) {
-      throw new BadRequestException('Valid role query parameter is required.');
+    if (role && ![UserRole.BUYER, UserRole.SELLER, UserRole.LOGISTIC].includes(role)) {
+      throw new BadRequestException('If provided, role query parameter must be valid.');
     }
 
     const templateContent = this.adminOnboardingService.generateCsvTemplate(role);

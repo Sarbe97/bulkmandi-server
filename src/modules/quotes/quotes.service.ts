@@ -64,7 +64,14 @@ export class QuotesService {
       status: QuoteStatus.SUBMITTED,
       submittedAt: new Date()
     });
-    return quote.save();
+
+    const savedQuote = await quote.save();
+
+    // Increment RFQ quotesCount
+    rfq.quotesCount = (rfq.quotesCount || 0) + 1;
+    await rfq.save();
+
+    return savedQuote;
   }
 
   async findBySellerId(sellerId: string, filter: Record<string, any> = {}, page = 1, limit = 20) {
@@ -121,7 +128,16 @@ export class QuotesService {
     const quote = await this.quoteModel.findOne({ quoteId: id });
     if (!quote || quote.sellerId.toString() !== sellerId) throw new NotFoundException('Quote not found');
     quote.status = QuoteStatus.WITHDRAWN;
-    return quote.save();
+    const result = await quote.save();
+
+    // Decrement RFQ quotesCount
+    const rfq = await this.rfqModel.findOne({ rfqId: quote.rfqId });
+    if (rfq) {
+      rfq.quotesCount = Math.max(0, (rfq.quotesCount || 0) - 1);
+      await rfq.save();
+    }
+
+    return result;
   }
 
   async update(id: string, sellerId: string, dto: CreateQuoteDto) {
