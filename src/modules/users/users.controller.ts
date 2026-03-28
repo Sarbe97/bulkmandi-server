@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, UseGuards, ConflictException, Res } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Delete, UseGuards, ConflictException, ForbiddenException, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { MongoIdValidationPipe } from '../../common/pipes/mongo-id-validation.pipe';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -37,6 +37,16 @@ export class UsersController {
   @Patch(':id/reset-password')
   async resetPassword(@Param('id', MongoIdValidationPipe) id: string, @Body('newPassword') newPassword: string) {
     return this.usersService.resetPassword(id, newPassword);
+  }
+
+  @ApiOperation({ summary: 'Delete user (Dev mode only)' })
+  @UseGuards(AdminGuard)
+  @Delete(':id')
+  async deleteUser(@Param('id', MongoIdValidationPipe) id: string) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new ForbiddenException('Deletion is not allowed in production');
+    }
+    return this.usersService.deleteUser(id);
   }
 
   @ApiOperation({ summary: 'Get all users (Admin only)' })

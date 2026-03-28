@@ -36,12 +36,18 @@ export class AuthService implements OnModuleInit {
   }
 
   async validateUser(email: string, password: string): Promise<any> {
+    this.logger.debug(`Validating user email: '${email.toLowerCase()}'`);
     const user = await this.userModel.findOne({ email: email.toLowerCase() });
     if (!user) {
+      this.logger.warn(`validateUser: User not found in database with email: '${email.toLowerCase()}'`);
       return null;
     }
     const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      this.logger.warn(`validateUser: Password mismatch for email: '${email.toLowerCase()}'`);
+    }
     if (user && isPasswordValid) {
+      this.logger.debug(`validateUser: Successful hash validation for email: '${email.toLowerCase()}'`);
       const { password, ...result } = user.toObject();
       return result;
     }
@@ -49,6 +55,7 @@ export class AuthService implements OnModuleInit {
   }
 
   async login(loginDto: { email: string; password: string; ip?: string }) {
+    this.logger.log(`Attempting login API request for email: '${loginDto.email}'`);
     const user = await this.validateUser(loginDto.email, loginDto.password);
 
     if (!user) {
