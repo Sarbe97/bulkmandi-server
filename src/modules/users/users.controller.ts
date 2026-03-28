@@ -43,8 +43,8 @@ export class UsersController {
   @UseGuards(AdminGuard)
   @Delete(':id')
   async deleteUser(@Param('id', MongoIdValidationPipe) id: string) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new ForbiddenException('Deletion is not allowed in production');
+    if (process.env.TEST_MODE !== 'true') {
+      throw new ForbiddenException('Deletion is only allowed when TEST_MODE=true in .env');
     }
     return this.usersService.deleteUser(id);
   }
