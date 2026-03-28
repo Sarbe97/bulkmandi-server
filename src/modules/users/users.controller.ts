@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, UseGuards, ConflictException } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards, ConflictException, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { MongoIdValidationPipe } from '../../common/pipes/mongo-id-validation.pipe';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -12,6 +12,18 @@ import { AdminGuard } from '../../common/guards/admin.guard';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
+
+  @ApiOperation({ summary: 'Export all users to CSV' })
+  @UseGuards(AdminGuard)
+  @Get('export-csv')
+  async exportCsv(@Res() res: any) {
+    const csv = await this.usersService.downloadUsersCsv();
+    const filename = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(csv);
+  }
 
   @ApiOperation({ summary: 'Update user status' })
   @UseGuards(AdminGuard)

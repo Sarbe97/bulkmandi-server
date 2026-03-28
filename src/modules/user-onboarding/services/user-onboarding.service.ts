@@ -238,10 +238,9 @@ export class UserOnboardingService {
         throw new ForbiddenException(`Onboarding is already locked with status: ${org.kycStatus}`);
       }
 
-      // ✅ Check for duplicate organization name (excluding self)
+      // ✅ Check for duplicate organization name (excluding self) globally
       const duplicate = await this.orgModel.findOne({
         legalName: new RegExp(`^${org.legalName}$`, 'i'),
-        role: org.role,
         kycStatus: { $in: ['SUBMITTED', 'APPROVED', 'REJECTED'] },
         _id: { $ne: org._id },
       });

@@ -28,6 +28,8 @@ import { AuditModule } from "./modules/audit/audit.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { PreferencesModule } from "./modules/preferences/preferences.module";
 import { AdminOnboardingModule } from './modules/admin-onboarding/admin-onboarding.module';
+import { DevModule } from './modules/dev/dev.module';
+import { OtpModule } from './modules/otp/otp.module';
 
 @Module({
   imports: [
@@ -52,6 +54,7 @@ import { AdminOnboardingModule } from './modules/admin-onboarding/admin-onboardi
     ShipmentsModule,
     DisputesModule,
     SettlementsModule,
+    DevModule,
     // BuyerModule, // Not found
     // SellerModule, // Not found
     // ThreePLModule, // Not found
@@ -59,6 +62,7 @@ import { AdminOnboardingModule } from './modules/admin-onboarding/admin-onboardi
     NotificationsModule,
     PreferencesModule,
     AdminOnboardingModule,
+    OtpModule,
 
   ],
   controllers: [AppController],

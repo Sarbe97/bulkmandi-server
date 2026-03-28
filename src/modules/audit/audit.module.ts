@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AuditController } from './audit.controller';
 import { AuditService } from './audit.service';
-import { AuditInterceptor } from './interceptors/audit.interceptor';
 import { AuditLog, AuditLogSchema } from './schemas/audit-log.schema';
 
 @Module({
@@ -10,7 +10,8 @@ import { AuditLog, AuditLogSchema } from './schemas/audit-log.schema';
       { name: AuditLog.name, schema: AuditLogSchema },
     ]),
   ],
-  providers: [AuditService, AuditInterceptor],
-  exports: [AuditService, AuditInterceptor],
+  controllers: [AuditController],
+  providers: [AuditService],
+  exports: [AuditService],
 })
 export class AuditModule {}

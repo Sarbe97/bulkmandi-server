@@ -28,8 +28,9 @@ export class User {
   role: UserRole; // SELLER, BUYER, THREE_PL, ADMIN
 
   // For non-admin users (SELLER, BUYER, LOGISTIC)
-  @Prop({ type: Types.ObjectId, ref: "Organization", required: false })
-  organizationId: Types.ObjectId; //
+  // unique: true + sparse: true → enforces 1 user per org; allows multiple nulls (pre-onboarding)
+  @Prop({ type: Types.ObjectId, ref: "Organization", required: false, unique: true, sparse: true })
+  organizationId: Types.ObjectId;
 
 
   // For ADMIN users only
@@ -50,6 +51,9 @@ export class User {
 
   @Prop()
   lastLoginIp: string; // NEW: Track login IP
+
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

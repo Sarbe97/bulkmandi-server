@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/co
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { AdminGuard } from "src/common/guards/admin.guard";
 import { CustomLoggerService } from "src/core/logger/custom.logger.service";
+import { AuditService } from "../audit/audit.service";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { KycAdminService } from "./services/kyc-admin.service";
@@ -14,6 +15,7 @@ export class KycController {
   constructor(
     private readonly kycAdminService: KycAdminService,
     private readonly logger: CustomLoggerService,
+    private readonly auditService: AuditService,
   ) { }
 
   @Get("queue")
@@ -53,7 +55,19 @@ export class KycController {
     @Body() body: { remarks?: string }
   ) {
     this.logger.log(`POST /admin/kyc/case/${caseIdOrCode}/approve called by userId: ${user.userId} with remarks: ${body.remarks}`, "KycController");
-    return this.kycAdminService.approveKycCase(caseIdOrCode, user.userId, body.remarks);
+    const result = await this.kycAdminService.approveKycCase(caseIdOrCode, user.userId, body.remarks);
+
+    this.auditService.log({
+      action: 'KYC_APPROVED',
+      module: 'KYC',
+      entityType: 'KYC_CASE',
+      entityIdStr: caseIdOrCode,
+      actorId: user.userId,
+      afterState: { status: 'APPROVED', remarks: body.remarks },
+      description: `KYC case ${caseIdOrCode} approved by admin ${user.userId}`,
+    });
+
+    return result;
   }
 
   @Post("case/:caseIdOrCode/reject")
@@ -72,7 +86,20 @@ export class KycController {
       `POST /admin/kyc/case/${caseIdOrCode}/reject called by userId: ${user.userId} with rejectionReason: ${body.rejectionReason}`,
       "KycController",
     );
-    return this.kycAdminService.rejectKycCase(caseIdOrCode, user.userId, body.rejectionReason);
+    const result = await this.kycAdminService.rejectKycCase(caseIdOrCode, user.userId, body.rejectionReason);
+
+    this.auditService.log({
+      action: 'KYC_REJECTED',
+      module: 'KYC',
+      entityType: 'KYC_CASE',
+      entityIdStr: caseIdOrCode,
+      actorId: user.userId,
+      afterState: { status: 'REJECTED', rejectionReason: body.rejectionReason },
+      description: `KYC case ${caseIdOrCode} rejected by admin ${user.userId}`,
+      severity: 'WARNING',
+    });
+
+    return result;
   }
 
   @Post("case/:caseId/request-info")
@@ -83,7 +110,19 @@ export class KycController {
       `POST /admin/kyc/case/${caseId}/request-info called by userId: ${user.userId} with fields: ${body.fields.join(", ")}`,
       "KycController",
     );
-    return this.kycAdminService.requestMoreInfo(caseId, user.userId, body.message, body.fields);
+    const result = await this.kycAdminService.requestMoreInfo(caseId, user.userId, body.message, body.fields);
+
+    this.auditService.log({
+      action: 'KYC_INFO_REQUESTED',
+      module: 'KYC',
+      entityType: 'KYC_CASE',
+      entityIdStr: caseId,
+      actorId: user.userId,
+      afterState: { fields: body.fields, message: body.message },
+      description: `Additional info requested for KYC case ${caseId}: [${body.fields.join(', ')}]`,
+    });
+
+    return result;
   }
 
   @Post("case/:caseId/watchlist")
@@ -94,7 +133,20 @@ export class KycController {
       `POST /admin/kyc/case/${caseId}/watchlist called by userId: ${user.userId} with reason: ${body.reason} and tags: ${body.tags.join(", ")}`,
       "KycController",
     );
-    return this.kycAdminService.addToWatchlist(caseId, user.userId, body.reason, body.tags);
+    const result = await this.kycAdminService.addToWatchlist(caseId, user.userId, body.reason, body.tags);
+
+    this.auditService.log({
+      action: 'KYC_WATCHLISTED',
+      module: 'KYC',
+      entityType: 'KYC_CASE',
+      entityIdStr: caseId,
+      actorId: user.userId,
+      afterState: { tags: body.tags, reason: body.reason },
+      description: `KYC case ${caseId} added to watchlist by admin ${user.userId}: ${body.reason}`,
+      severity: 'WARNING',
+    });
+
+    return result;
   }
 
   @Get("history/:orgId")
@@ -112,6 +164,18 @@ export class KycController {
       `POST /admin/kyc/case/${caseId}/unlock-for-update called by userId: ${user.userId} with remarks: ${body.remarks}`,
       "KycController",
     );
-    return this.kycAdminService.unlockForUpdate(caseId, user.userId, body.remarks);
+    const result = await this.kycAdminService.unlockForUpdate(caseId, user.userId, body.remarks);
+
+    this.auditService.log({
+      action: 'KYC_UNLOCKED',
+      module: 'KYC',
+      entityType: 'KYC_CASE',
+      entityIdStr: caseId,
+      actorId: user.userId,
+      afterState: { status: 'UNLOCKED_FOR_UPDATE', remarks: body.remarks },
+      description: `KYC case ${caseId} unlocked for updates by admin ${user.userId}`,
+    });
+
+    return result;
   }
 }

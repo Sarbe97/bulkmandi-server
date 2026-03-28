@@ -551,24 +551,93 @@ export class MasterDataService implements OnModuleInit {
   // ══════════════════════════════════════════
 
   async resetTestData() {
-    this.logger.warn('DANGER: resetTestData() called. Wiping all collections except masterdatas and non-admin users...');
-    const collections = await this.connection.db.collections();
+    this.logger.warn('⚠️  DANGER: resetTestData() called. Starting selective wipe...');
 
-    for (const collection of collections) {
-      if (collection.collectionName === 'masterdatas' || collection.collectionName === 'system.views') {
-        // Skip fundamental configurations and system tables
+    // ── Collections to completely wipe (transactional data) ──────────────────
+    const WIPE_COLLECTIONS = [
+      'rfqs',
+      'quotes',
+      'orders',
+      'shipments',
+      'payments',
+      'settlementbatches',
+      'payouts',
+      'disputes',
+      'notifications',
+      'otps',
+      'buyerpreferences',
+      'sellerpreferences',
+      'logisticpreferences',
+      'auditlogs',
+    ];
+
+    // ── Collections to NEVER touch ───────────────────────────────────────────
+    const PRESERVE_COLLECTIONS = [
+      'users',            // All users preserved
+      'masterdatas',      // Fleet types, product categories (seed data)
+      'catalogitems',     // Product catalog (seed data)
+      'cataloglistings',  // Price listings (seed data)
+      'system.views',
+    ];
+
+    const report: Record<string, { action: string; count: number }> = {};
+    const allCollections = await this.connection.db.collections();
+
+    for (const collection of allCollections) {
+      const name = collection.collectionName.toLowerCase();
+
+      if (PRESERVE_COLLECTIONS.includes(name)) {
+        const count = await collection.countDocuments();
+        report[name] = { action: 'preserved', count };
+        this.logger.log(`✅ Preserved: ${name} (${count} docs)`);
         continue;
-      } else if (collection.collectionName === 'users') {
-        // Preserve users who have the role ADMIN
-        await collection.deleteMany({ role: { $ne: 'ADMIN' } });
-        this.logger.log(`Wiped users (preserved ADMINs)`);
-      } else {
-        // Delete everything else
-        await collection.deleteMany({});
-        this.logger.log(`Wiped collection: ${collection.collectionName}`);
       }
+
+      if (name === 'organizations') {
+        // Reset org KYC to DRAFT so re-onboarding can be tested.
+        // Keeps org + user link intact so users don't need to re-register.
+        const result = await collection.updateMany({}, {
+          $set: {
+            kycStatus: 'DRAFT',
+            isVerified: false,
+            isOnboardingLocked: false,
+            completedSteps: [],
+            orgKyc: {},
+            primaryBankAccount: {},
+            compliance: { documents: [], declarations: {} },
+            rejectionReason: null,
+            kycApprovedAt: null,
+            kycApprovedBy: null,
+            submittedAt: null,
+            submissionRemarks: null,
+            lastRequestedFields: [],
+            lastAdminRemarks: null,
+          },
+        });
+        report[name] = { action: 'reset-to-draft', count: result.modifiedCount };
+        this.logger.log(`🔄 Reset to DRAFT: ${name} (${result.modifiedCount} orgs)`);
+        continue;
+      }
+
+      if (WIPE_COLLECTIONS.includes(name)) {
+        const result = await collection.deleteMany({});
+        report[name] = { action: 'wiped', count: result.deletedCount };
+        this.logger.log(`🗑️  Wiped: ${name} (${result.deletedCount} docs)`);
+        continue;
+      }
+
+      // Unknown collection — log but don't touch
+      const count = await collection.countDocuments();
+      report[name] = { action: 'skipped (unknown)', count };
+      this.logger.warn(`⏭️  Skipped unknown collection: ${name} (${count} docs)`);
     }
-    this.logger.log('Database reset complete.');
-    return { success: true, message: 'All test data wiped successfully. You may need to restart the server to re-seed default catalog data.' };
+
+    this.logger.log('✅ Database reset complete.');
+    return {
+      success: true,
+      message: 'Test data wiped. Users and catalog data preserved. Organizations reset to DRAFT for re-onboarding.',
+      report,
+    };
   }
 }
+

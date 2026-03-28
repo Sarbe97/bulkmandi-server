@@ -224,10 +224,9 @@ export class OrganizationsService {
   /**
    * Check if organization name exists (excluding DRAFT status)
    */
-  async checkOrgNameAvailability(legalName: string, role: UserRole): Promise<{ available: boolean; message?: string }> {
+  async checkOrgNameAvailability(legalName: string): Promise<{ available: boolean; message?: string }> {
     const existing = await this.orgModel.findOne({
       legalName: new RegExp(`^${legalName}$`, 'i'),
-      role,
       kycStatus: { $in: ['SUBMITTED', 'APPROVED', 'REJECTED', 'INFO_REQUESTED'] },
     });
 
@@ -385,10 +384,9 @@ export class OrganizationsService {
       throw new BadRequestException('Organization role must match user role');
     }
 
-    // Check if organization name already exists for this role
+    // Check if organization name already exists globally
     const existingOrg = await this.orgModel.findOne({
       legalName: new RegExp(`^${orgData.legalName}$`, 'i'),
-      role: orgData.role,
     });
 
     if (existingOrg) {

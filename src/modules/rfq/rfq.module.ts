@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { RfqController } from './rfq.controller';
@@ -13,6 +14,7 @@ import { Rfq, RfqSchema } from './schemas/rfq.schema';
     ]),
     OrganizationsModule,
     AuthModule,
+    AuditModule,
   ],
 
 

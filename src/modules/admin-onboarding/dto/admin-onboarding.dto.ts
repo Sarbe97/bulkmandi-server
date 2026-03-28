@@ -75,14 +75,21 @@ export class FastTrackOrganizationDto {
   @IsOptional()
   primaryContactRole?: string;
 
+  @ApiPropertyOptional()
+  @IsArray()
+  @IsOptional()
+  @IsString({ each: true })
+  serviceStates?: string[];
+
   // Bank Info
   @ApiPropertyOptional()
   @IsObject()
   @IsOptional()
   bankDetails?: {
-    accountName: string;
     accountNumber: string;
-    ifscCode: string;
+    accountHolderName: string;
+    accountType: string;
+    ifsc: string;
     bankName: string;
     branchName?: string;
   };

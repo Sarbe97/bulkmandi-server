@@ -4,6 +4,7 @@ import { JwtService } from "@nestjs/jwt";
 import { InjectModel } from "@nestjs/mongoose";
 import * as bcrypt from "bcrypt";
 import { Model } from "mongoose";
+import { AuditService } from "../audit/audit.service";
 import { UserRole } from "src/common/enums";
 import { IdGeneratorService } from "src/common/services/id-generator.service";
 import { Organization, OrganizationDocument } from "../organizations/schemas/organization.schema";
@@ -22,6 +23,7 @@ export class AuthService implements OnModuleInit {
     private jwtService: JwtService,
     private idGenerator: IdGeneratorService,
     private configService: ConfigService,
+    private readonly auditService: AuditService,
   ) { }
 
   async onModuleInit() {
@@ -50,6 +52,17 @@ export class AuthService implements OnModuleInit {
     const user = await this.validateUser(loginDto.email, loginDto.password);
 
     if (!user) {
+      // Log failed login attempt
+      this.auditService.log({
+        action: 'LOGIN_FAILED',
+        module: 'AUTH',
+        entityType: 'USER',
+        afterState: { email: loginDto.email },
+        userIp: loginDto.ip,
+        actorType: 'USER',
+        severity: 'WARNING',
+        description: `Failed login attempt for email: ${loginDto.email}`,
+      });
       throw new UnauthorizedException("Invalid email or password");
     }
 
@@ -124,6 +137,18 @@ export class AuthService implements OnModuleInit {
       response.user.permissions = user.permissions;
     }
 
+    // Log successful login (fire-and-forget)
+    this.auditService.log({
+      action: 'USER_LOGIN',
+      module: 'AUTH',
+      entityType: 'USER',
+      entityId: user._id,
+      actorId: user._id,
+      userIp: loginDto.ip,
+      afterState: { email: user.email, role: user.role },
+      description: `User ${user.email} (${user.role}) logged in`,
+    });
+
     return response;
   }
 
@@ -161,9 +186,19 @@ export class AuthService implements OnModuleInit {
       firstName,
       lastName,
       role,
-      organizationId: null, // User must select/create organization next
+      organizationId: undefined, // undefined prevents MongoDB sparse index duplicate key error
     });
     const savedUser = await newUser.save();
+
+    // Log new user registration
+    this.auditService.log({
+      action: 'USER_REGISTER',
+      module: 'AUTH',
+      entityType: 'USER',
+      entityId: savedUser._id as any,
+      afterState: { email: savedUser.email, role: savedUser.role },
+      description: `New user registered: ${savedUser.email} (${savedUser.role})`,
+    });
 
     // Generate JWT token
     const payload = {

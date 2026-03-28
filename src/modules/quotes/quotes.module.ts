@@ -5,6 +5,7 @@ import { QuotesController } from './quotes.controller';
 import { QuotesService } from './quotes.service';
 import { Quote, QuoteSchema } from './schemas/quote.schema';
 
+import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { OrdersModule } from '../orders/orders.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
@@ -16,9 +17,11 @@ import { OrganizationsModule } from '../organizations/organizations.module';
     forwardRef(() => OrdersModule),
     OrganizationsModule,
     AuthModule,
+    AuditModule,
   ],
 
   providers: [QuotesService],
   controllers: [QuotesController],
+  exports: [QuotesService],
 })
 export class QuotesModule { }

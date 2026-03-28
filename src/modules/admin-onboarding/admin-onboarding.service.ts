@@ -45,7 +45,6 @@ export class AdminOnboardingService {
     // ------------- STEP 1: CREATE USER -------------
     let authResult: any;
     try {
-      // Re-using the public authService method. This provisions the User account into Mongo via bcrypt hashing.
       authResult = await this.authService.register({
         email: userDto.email,
         mobile: userDto.mobile,
@@ -67,32 +66,32 @@ export class AdminOnboardingService {
     try {
       const orgCode = await this.idGenerator.generateOrgCode(orgDto.legalName);
 
-      // Admin onboarding dictates they are fully verified out of the gate.
       const orgPayload = {
         orgCode,
         orgId: orgCode,
         legalName: orgDto.legalName,
-        tradeName: orgDto.tradeName || orgDto.legalName,
         role: userDto.role,
-        // KYC Docs Auto-Approval flag
         kycStatus: "APPROVED",
-        isProfileComplete: true,
+        isVerified: true,
         isOnboardingLocked: true, 
         
-        // Detailed Fields
-        gstin: orgDto.gstin,
-        pan: orgDto.pan,
-        cin: orgDto.cin,
-        registeredAddress: orgDto.registeredAddress,
-        businessType: orgDto.businessType,
-        incorporationDate: orgDto.incorporationDate,
-        
-        // Single Primary Contact bound to user details
-        primaryContact: {
-          name: `${userDto.firstName} ${userDto.lastName}`.trim(),
-          email: userDto.email,
-          mobile: userDto.mobile,
-          role: orgDto.primaryContactRole || 'Owner',
+        // Nested OrgKyc structure
+        orgKyc: {
+          legalName: orgDto.legalName,
+          tradeName: orgDto.tradeName || orgDto.legalName,
+          gstin: orgDto.gstin,
+          pan: orgDto.pan,
+          cin: orgDto.cin,
+          registeredAddress: orgDto.registeredAddress,
+          businessType: orgDto.businessType,
+          incorporationDate: orgDto.incorporationDate,
+          serviceStates: orgDto.serviceStates || [],
+          primaryContact: {
+            name: `${userDto.firstName} ${userDto.lastName}`.trim(),
+            email: userDto.email,
+            mobile: userDto.mobile,
+            role: orgDto.primaryContactRole || 'Owner',
+          },
         },
 
         // Creation Source Traceability
@@ -108,7 +107,7 @@ export class AdminOnboardingService {
       // Bind the User -> Organization ID
       await this.userModel.findByIdAndUpdate(userId, { organizationId: createdOrg._id });
 
-      // Build an auto-approved proxy KYC timeline object so the Dashboard viewer works
+      // Build an auto-approved proxy KYC timeline object
       const dummyCase = new this.kycCaseModel({
         organizationId: createdOrg._id,
         organizationCode: orgCode,
@@ -119,7 +118,7 @@ export class AdminOnboardingService {
         reviewedAt: new Date(),
         reviewedBy: 'FAST-TRACK-SYSTEM',
         submittedData: {
-            orgKyc: orgPayload,
+            orgKyc: orgPayload.orgKyc,
             primaryBankAccount: orgPayload.primaryBankAccount || null,
         },
         activityLog: [
@@ -131,63 +130,48 @@ export class AdminOnboardingService {
 
     } catch (e: any) {
       this.logger.error("Organization creation failed", e);
-      // Optional: Compensating action to delete User if Org fails
       await this.userModel.findByIdAndDelete(userId);
       throw new InternalServerErrorException("Failed to construct Organization. Contact Support.");
     }
 
     const orgIdString = createdOrg._id.toString();
-    const mockUserCtx = { userId, organizationId: orgIdString, role: userDto.role };
 
     // ------------- STEP 3: UPSERT PREFERENCES -------------
     if (preferences) {
       try {
-        if (userDto.role === UserRole.BUYER) {
-          await this.preferencesService.upsertBuyerPreference(orgIdString, preferences as any);
-        } else if (userDto.role === UserRole.SELLER) {
-          await this.preferencesService.upsertSellerPreference(orgIdString, preferences as any);
-        } else if (userDto.role === UserRole.LOGISTIC) {
-          await this.preferencesService.upsertLogisticPreference(orgIdString, preferences as any);
-        }
+        if (userDto.role === UserRole.BUYER) await this.preferencesService.upsertBuyerPreference(orgIdString, preferences as any);
+        else if (userDto.role === UserRole.SELLER) await this.preferencesService.upsertSellerPreference(orgIdString, preferences as any);
+        else if (userDto.role === UserRole.LOGISTIC) await this.preferencesService.upsertLogisticPreference(orgIdString, preferences as any);
       } catch (e) {
         this.logger.warn(`Organization created, but preferences serialization failed: ${e.message}`);
-        // We do not abort the transaction here, as preferences can be patched later.
       }
     } else {
-        // Create an empty skeleton preference table
         if (userDto.role === UserRole.BUYER) await this.preferencesService.upsertBuyerPreference(orgIdString, { procurementCategories: [] } as any);
         if (userDto.role === UserRole.SELLER) await this.preferencesService.upsertSellerPreference(orgIdString, { capacityMT: 100 } as any);
         if (userDto.role === UserRole.LOGISTIC) await this.preferencesService.upsertLogisticPreference(orgIdString, { maxCapacityMT: 100 } as any);
     }
-
-    // ------------- STEP 4: EMAIL / COMMS -------------
-    // In a real production system, dispatch an SES / SMTP email here containing `userDto.email` and `tempPassword`.
 
     return {
       success: true,
       message: 'Fast-Track account successfully generated.',
       userId,
       organizationId: orgIdString,
-      tempPassword, // WARNING: Only return in secure API payload for admin to copy/paste if no SMTP.
+      tempPassword,
     };
   }
 
   /**
    * Bulk onboard users from a mapped CSV stream.
-   * If assignedRole is provided, it acts as a default/override. 
-   * Otherwise, the 'role' column in the CSV is used.
    */
   async processBulkCSV(fileBuffer: Buffer, assignedRole?: UserRole): Promise<any> {
     return new Promise((resolve, reject) => {
       const results: any[] = [];
       const errors: any[] = [];
-      
       const stream = Readable.from(fileBuffer);
       
       stream
         .pipe(csvParser())
         .on('data', (row: any) => {
-          // Determine role: Row-level role takes precedence, then method-level assignedRole
           const rowRole = (row.role?.toUpperCase() as UserRole) || assignedRole;
 
           if (![UserRole.BUYER, UserRole.SELLER, UserRole.LOGISTIC].includes(rowRole)) {
@@ -195,7 +179,6 @@ export class AdminOnboardingService {
               return;
           }
 
-          // Construct the FastTrackOnboardDto payload shape from row headers
           const dto: FastTrackOnboardDto = {
             user: {
                 email: row.email,
@@ -206,20 +189,23 @@ export class AdminOnboardingService {
             },
             organization: {
                 legalName: row.legalName,
+                tradeName: row.tradeName,
                 gstin: row.gstin,
                 pan: row.pan,
+                cin: row.cin,
                 businessType: row.businessType || 'Private Limited',
+                incorporationDate: row.incorporationDate,
                 registeredAddress: row.registeredAddress || 'Registered HQ',
-                ...(row.bankAccountName && {
-                    bankDetails: {
-                        accountName: row.bankAccountName,
-                        accountNumber: row.bankAccountNumber,
-                        ifscCode: row.bankIfscCode,
-                        bankName: row.bankName || 'NOT SPECIFIED',
-                    }
-                }),
+                serviceStates: row.serviceStates ? row.serviceStates.split(';').map(s => s.trim()) : [],
+                bankDetails: (row.bankAccountNumber || row.bankIfsc) ? {
+                    accountNumber: row.bankAccountNumber,
+                    accountHolderName: row.bankAccountHolderName || `${row.firstName} ${row.lastName}`.trim(),
+                    accountType: row.bankAccountType || 'Current',
+                    ifsc: row.bankIfsc,
+                    bankName: row.bankName || 'NOT SPECIFIED',
+                    branchName: row.branchName || '',
+                } : undefined,
             },
-            // We serialize any extra columns starting with pref_
             preferences: Object.keys(row)
                  .filter(k => k.startsWith('pref_') && row[k])
                  .reduce((acc, k) => { acc[k.replace('pref_', '')] = row[k]; return acc; }, {}),
@@ -228,7 +214,6 @@ export class AdminOnboardingService {
           results.push(dto);
         })
         .on('end', async () => {
-          // Execute sequentially to avoid saturating Node DB pool or rate limit constraints
           const successLogs = [];
           for (let i = 0; i < results.length; i++) {
             try {
@@ -245,13 +230,12 @@ export class AdminOnboardingService {
   }
 
   generateCsvTemplate(role?: UserRole): string {
-    const baseHeaders = 'role,email,mobile,firstName,lastName,legalName,gstin,pan,businessType,registeredAddress,bankAccountName,bankAccountNumber,bankIfscCode,bankName';
+    const baseHeaders = 'role,email,mobile,firstName,lastName,legalName,tradeName,gstin,pan,cin,businessType,incorporationDate,registeredAddress,serviceStates,bankAccountNumber,bankAccountHolderName,bankAccountType,bankIfsc,bankName,branchName';
     
     if (role === UserRole.SELLER) return baseHeaders + ',pref_capacityMT,pref_certifications\n';
     if (role === UserRole.LOGISTIC) return baseHeaders + ',pref_maxCapacityMT\n';
     if (role === UserRole.BUYER) return baseHeaders + ',pref_procurementCategories\n';
     
-    // Universal Template
     return baseHeaders + ',pref_capacityMT,pref_maxCapacityMT,pref_procurementCategories\n';
   }
 }

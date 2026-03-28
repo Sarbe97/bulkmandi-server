@@ -15,6 +15,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { VerifyUtrDto } from './dto/verify-utr.dto';
 import { PaymentsService } from './payments.service';
+import { KycGuard } from 'src/common/guards/kyc.guard';
 
 @ApiTags('Payments')
 @ApiBearerAuth()
@@ -25,6 +26,7 @@ export class PaymentsController {
 
   @ApiOperation({ summary: 'Initiate payment for order (Buyer only)' })
   @Roles(UserRole.BUYER)
+  @UseGuards(KycGuard)
   @Post()
   async createPayment(
     @CurrentUser() user: any,
@@ -35,6 +37,7 @@ export class PaymentsController {
 
   @ApiOperation({ summary: 'Verify payment with UTR' })
   @Roles(UserRole.BUYER)
+  @UseGuards(KycGuard)
   @Put(':id/verify')
   async verifyUTR(
     @CurrentUser() user: any,

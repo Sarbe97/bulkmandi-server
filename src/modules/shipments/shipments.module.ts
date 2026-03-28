@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AuditModule } from '../audit/audit.module';
 import { OrdersModule } from '../orders/orders.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { PaymentsModule } from '../payments/payments.module';
@@ -15,6 +16,7 @@ import { ShipmentsService } from './shipments.service';
     forwardRef(() => OrdersModule),
     OrganizationsModule,
     forwardRef(() => PaymentsModule),
+    AuditModule,
   ],
   controllers: [ShipmentsController],
   providers: [ShipmentsService],

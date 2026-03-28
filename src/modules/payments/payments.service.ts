@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { AuditService } from '../audit/audit.service';
 import { Order, OrderDocument } from '../orders/schemas/order.schema';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { VerifyUtrDto } from './dto/verify-utr.dto';
@@ -10,7 +11,8 @@ import { Payment, PaymentDocument } from './schemas/payment.schema';
 export class PaymentsService {
   constructor(
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
-    @InjectModel(Order.name) private orderModel: Model<OrderDocument>
+    @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
+    private readonly auditService: AuditService,
   ) {}
 
   async create(orgId: string, dto: CreatePaymentDto) {
@@ -55,6 +57,17 @@ export class PaymentsService {
     });
 
     const savedPayment = await payment.save();
+
+    this.auditService.log({
+      action: 'PAYMENT_ESCROW_INITIATED',
+      module: 'PAYMENT',
+      entityType: 'PAYMENT',
+      entityId: savedPayment._id as any,
+      entityIdStr: savedPayment.paymentId,
+      actorId: orgId,
+      afterState: { paymentId: savedPayment.paymentId, orderId: dto.orderId, amount: order.pricing.grandTotal, method: dto.paymentMethod },
+      description: `Payment ${savedPayment.paymentId} initiated for Order ${dto.orderId}`,
+    });
 
     // For auto-verified payments (UPI / Netbanking sandbox), update order to PAID immediately
     if (isAutoVerify) {
@@ -114,6 +127,17 @@ export class PaymentsService {
     return this.paymentModel.findOne({ orderId });
   }
 
+  async findAll(filter: Record<string, any> = {}, page = 1, limit = 20) {
+    const validFilters = Object.fromEntries(
+      Object.entries(filter).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    );
+    return this.paymentModel
+      .find(validFilters)
+      .sort({ initiatedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+  }
+
   async releaseEscrow(paymentId: string, adminId: string, reason: string) {
     const payment = await this.paymentModel.findOne({ paymentId });
     if (!payment) throw new NotFoundException('Payment record not found');
@@ -143,10 +167,21 @@ export class PaymentsService {
     payment.statusTimeline.push({ status: 'STAGE1_RELEASED', timestamp: new Date() });
     await payment.save();
 
+    this.auditService.log({
+      action: 'ESCROW_STAGE1_RELEASED',
+      module: 'PAYMENT',
+      entityType: 'PAYMENT',
+      entityId: payment._id as any,
+      entityIdStr: payment.paymentId,
+      actorType: 'SYSTEM',
+      afterState: { escrowStage1Status: 'RELEASED', amount: payment.escrowStage1Amount, orderId },
+      description: `Escrow Stage 1 (80%) released for Order ${orderId} on LR upload`,
+    });
+
     // Update order's escrow info
     const order = await this.orderModel.findById(orderId);
     if (order) {
-      order.payment.escrowHolds = payment.escrowStage2Amount; // Only Stage 2 remains held
+      order.payment.escrowHolds = payment.escrowStage2Amount;
       await order.save();
     }
 
@@ -163,11 +198,22 @@ export class PaymentsService {
 
     payment.escrowStage2Status = 'RELEASED';
     payment.escrowStage2ReleasedAt = new Date();
-    payment.escrowHoldStatus = 'RELEASED'; // Fully released
+    payment.escrowHoldStatus = 'RELEASED';
     payment.escrowReleaseAt = new Date();
     payment.escrowReleaseReason = 'Buyer accepted delivery';
     payment.statusTimeline.push({ status: 'STAGE2_RELEASED', timestamp: new Date() });
     await payment.save();
+
+    this.auditService.log({
+      action: 'ESCROW_STAGE2_RELEASED',
+      module: 'PAYMENT',
+      entityType: 'PAYMENT',
+      entityId: payment._id as any,
+      entityIdStr: payment.paymentId,
+      actorType: 'SYSTEM',
+      afterState: { escrowStage2Status: 'RELEASED', amount: payment.escrowStage2Amount, orderId },
+      description: `Escrow Stage 2 (20%) fully released for Order ${orderId} — buyer accepted delivery`,
+    });
 
     // Update order's escrow info
     const order = await this.orderModel.findById(orderId);
@@ -190,6 +236,20 @@ export class PaymentsService {
 
     payment.escrowStage2Status = 'DISPUTED';
     payment.statusTimeline.push({ status: 'STAGE2_DISPUTED', timestamp: new Date() });
-    return payment.save();
+    const saved = await payment.save();
+
+    this.auditService.log({
+      action: 'ESCROW_STAGE2_HELD',
+      module: 'PAYMENT',
+      entityType: 'PAYMENT',
+      entityId: saved._id as any,
+      entityIdStr: saved.paymentId,
+      actorType: 'SYSTEM',
+      afterState: { escrowStage2Status: 'DISPUTED', amount: saved.escrowStage2Amount, orderId },
+      description: `Escrow Stage 2 (20%) held pending dispute resolution for Order ${orderId}`,
+      severity: 'WARNING',
+    });
+
+    return saved;
   }
 }

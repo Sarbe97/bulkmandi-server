@@ -15,6 +15,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrdersService } from './orders.service';
+import { KycGuard } from 'src/common/guards/kyc.guard';
 
 @ApiTags('Orders')
 @ApiBearerAuth()
@@ -24,6 +25,7 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) { }
 
   @ApiOperation({ summary: 'Create order from accepted quote (Internal - called by quotes service)' })
+  @UseGuards(KycGuard)
   @Post()
   async createOrder(@Body() createOrderDto: CreateOrderDto) {
     return this.ordersService.create(createOrderDto);
@@ -57,6 +59,7 @@ export class OrdersController {
 
   @ApiOperation({ summary: 'Update order status (Seller/Admin)' })
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @UseGuards(KycGuard)
   @Put(':id/status')
   async updateStatus(
     @CurrentUser() user: any,
@@ -68,6 +71,7 @@ export class OrdersController {
 
   @ApiOperation({ summary: 'Mark order as dispatch ready (Seller)' })
   @Roles(UserRole.SELLER)
+  @UseGuards(KycGuard)
   @Put(':id/dispatch-ready')
   async markDispatchReady(
     @CurrentUser() user: any,
@@ -78,6 +82,7 @@ export class OrdersController {
 
   @ApiOperation({ summary: 'Cancel order (Buyer/Seller/Admin)' })
   @Roles(UserRole.BUYER, UserRole.SELLER, UserRole.ADMIN)
+  @UseGuards(KycGuard)
   @Put(':id/cancel')
   async cancelOrder(
     @CurrentUser() user: any,
@@ -96,6 +101,7 @@ export class OrdersController {
 
   @ApiOperation({ summary: 'Upload proforma invoice (Seller)' })
   @Roles(UserRole.SELLER)
+  @UseGuards(KycGuard)
   @Post(':id/documents/proforma-invoice')
   async uploadProformaInvoice(
     @CurrentUser() user: any,
@@ -107,6 +113,7 @@ export class OrdersController {
 
   @ApiOperation({ summary: 'Upload tax invoice (Seller)' })
   @Roles(UserRole.SELLER)
+  @UseGuards(KycGuard)
   @Post(':id/documents/tax-invoice')
   async uploadTaxInvoice(
     @CurrentUser() user: any,
@@ -118,6 +125,7 @@ export class OrdersController {
 
   @ApiOperation({ summary: 'Accept delivery — triggers Stage 2 escrow release (Buyer)' })
   @Roles(UserRole.BUYER)
+  @UseGuards(KycGuard)
   @Put(':id/accept-delivery')
   async acceptDelivery(
     @CurrentUser() user: any,
@@ -128,6 +136,7 @@ export class OrdersController {
 
   @ApiOperation({ summary: 'Dispute delivery — holds Stage 2 escrow (Buyer)' })
   @Roles(UserRole.BUYER)
+  @UseGuards(KycGuard)
   @Put(':id/dispute-delivery')
   async disputeDelivery(
     @CurrentUser() user: any,

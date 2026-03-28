@@ -1,4 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { AuditModule } from '../audit/audit.module';
+import { OrganizationsModule } from '../organizations/organizations.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { OrdersModule } from '../orders/orders.module'; // Import OrdersModule which exports OrderModel
 import { Order, OrderSchema } from '../orders/schemas/order.schema';
@@ -11,6 +13,8 @@ import { Payment, PaymentSchema } from './schemas/payment.schema';
     MongooseModule.forFeature([{ name: Payment.name, schema: PaymentSchema }]),
     MongooseModule.forFeature([{ name: Order.name, schema: OrderSchema }]),
     forwardRef(() => OrdersModule), // Add this so Nest can resolve OrderModel
+    OrganizationsModule,
+    AuditModule,
   ],
   controllers: [PaymentsController],
   providers: [PaymentsService],

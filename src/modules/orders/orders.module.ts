@@ -4,6 +4,7 @@ import { OrganizationsModule } from '../organizations/organizations.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { DisputesModule } from '../disputes/disputes.module';
 import { QuotesModule } from '../quotes/quotes.module';
+import { AuditModule } from '../audit/audit.module';
 import { RfqModule } from '../rfq/rfq.module';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
@@ -19,6 +20,7 @@ import { Order, OrderSchema } from './schemas/order.schema';
     forwardRef(() => DisputesModule),
     RfqModule,
     OrganizationsModule,
+    AuditModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

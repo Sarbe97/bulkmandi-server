@@ -15,6 +15,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { AcceptQuoteDto } from './dto/accept-quote.dto';
 import { CreateQuoteDto } from './dto/create-quote.dto';
 import { QuotesService } from './quotes.service';
+import { KycGuard } from 'src/common/guards/kyc.guard';
 
 @ApiTags('Quotes')
 @ApiBearerAuth()
@@ -25,6 +26,7 @@ export class QuotesController {
 
   @ApiOperation({ summary: 'Submit quote for RFQ (Seller only)' })
   @Roles(UserRole.SELLER)
+  @UseGuards(KycGuard)
   @Post()
   async submitQuote(@CurrentUser() user: any, @Body() dto: CreateQuoteDto) {
     return this.quotesService.create(user.organizationId, dto);
@@ -64,6 +66,7 @@ export class QuotesController {
 
   @ApiOperation({ summary: 'Accept quote (Buyer only)' })
   @Roles(UserRole.BUYER)
+  @UseGuards(KycGuard)
   @Post(':id/accept')
   async acceptQuote(
     @CurrentUser() user: any,
@@ -74,12 +77,14 @@ export class QuotesController {
 
   @ApiOperation({ summary: 'Withdraw quote (Seller)' })
   @Roles(UserRole.SELLER)
+  @UseGuards(KycGuard)
   @Put(':id/withdraw')
   async withdrawQuote(@CurrentUser() user: any, @Param('id') id: string) {
     return this.quotesService.withdraw(id, user.organizationId);
   }
   @ApiOperation({ summary: 'Update quote (Seller)' })
   @Roles(UserRole.SELLER)
+  @UseGuards(KycGuard)
   @Put(':id')
   async updateQuote(
     @CurrentUser() user: any,

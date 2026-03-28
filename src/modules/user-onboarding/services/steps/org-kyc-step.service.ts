@@ -43,6 +43,14 @@ export class OrgKycStepService {
                 await org.save();
                 organizationId = org._id.toString();
 
+                // Guard: one user per org — ensure no other user is already linked to this org
+                const alreadyLinked = await this.userModel.findOne({ organizationId: org._id, _id: { $ne: userId } });
+                if (alreadyLinked) {
+                    // Roll back the org creation
+                    await this.orgModel.deleteOne({ _id: org._id });
+                    throw new ConflictException('This organization already has a registered user. Each organization can have only one account.');
+                }
+
                 // Link to User
                 await this.userModel.findByIdAndUpdate(userId, { organizationId: org._id });
                 this.logger.log(`Created new Organization ${organizationId} and linked to user ${userId}`);
@@ -50,7 +58,22 @@ export class OrgKycStepService {
 
             this.checkEditPermission(org);
 
-            // Check for duplicates
+            // Check for duplicates — include DRAFT to block early-stage conflicts
+            if (dto.legalName) {
+                const existingName = await this.orgModel.findOne({
+                    legalName: new RegExp(`^${dto.legalName.trim()}$`, 'i'),
+                    _id: { $ne: org._id },
+                    kycStatus: { $in: ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'INFO_REQUESTED'] },
+                });
+                if (existingName) {
+                    throw new ConflictException(`An organization with the name "${dto.legalName}" already exists in the system.`);
+                }
+            }
+
+            if (dto.incorporationDate && new Date(dto.incorporationDate) > new Date()) {
+                throw new ConflictException("Incorporation date cannot be in the future.");
+            }
+
             if (dto.gstin) {
                 const existingGstin = await this.orgModel.findOne({
                     "orgKyc.gstin": dto.gstin,

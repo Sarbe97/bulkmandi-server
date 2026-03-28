@@ -246,6 +246,26 @@
         ]
       }
     },
+    "/api/v1/users/export-csv": {
+      "get": {
+        "operationId": "UsersController_exportCsv",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Export all users to CSV",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
     "/api/v1/users/{id}/status": {
       "patch": {
         "operationId": "UsersController_updateStatus",
@@ -388,6 +408,238 @@
         "summary": "Get user by ID",
         "tags": [
           "Users"
+        ]
+      }
+    },
+    "/api/v1/v1/user/dashboard/stats": {
+      "get": {
+        "operationId": "UserDashboardController_getDashboardStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserDashboard"
+        ]
+      }
+    },
+    "/api/v1/admin/audit": {
+      "get": {
+        "operationId": "AuditController_getActivityLog",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "ISO date string (e.g. 2026-12-31)",
+            "schema": {}
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "ISO date string (e.g. 2026-01-01)",
+            "schema": {}
+          },
+          {
+            "name": "severity",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "INFO",
+                "WARNING",
+                "ERROR"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "actorId",
+            "required": false,
+            "in": "query",
+            "description": "User ObjectId",
+            "schema": {}
+          },
+          {
+            "name": "entityId",
+            "required": false,
+            "in": "query",
+            "description": "MongoDB ObjectId or business ID like RFQ-xxx",
+            "schema": {}
+          },
+          {
+            "name": "entityType",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "description": "e.g. RFQ_CREATED, KYC_APPROVED",
+            "schema": {}
+          },
+          {
+            "name": "module",
+            "required": false,
+            "in": "query",
+            "description": "Business domain: AUTH|RFQ|QUOTE|ORDER|SHIPMENT|KYC|PAYMENT|SETTLEMENT|ORG",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get paginated activity log (admin only)",
+        "tags": [
+          "Admin — Activity Log"
+        ]
+      }
+    },
+    "/api/v1/admin/audit/filters": {
+      "get": {
+        "operationId": "AuditController_getFilterOptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get available filter options (modules & actions) for dropdowns",
+        "tags": [
+          "Admin — Activity Log"
+        ]
+      }
+    },
+    "/api/v1/admin/audit/entity/{entityType}/{entityId}": {
+      "get": {
+        "operationId": "AuditController_getEntityLog",
+        "parameters": [
+          {
+            "name": "entityType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all audit logs for a specific entity (e.g., a single RFQ, Order, etc.)",
+        "tags": [
+          "Admin — Activity Log"
+        ]
+      }
+    },
+    "/api/v1/admin/audit/actor/{actorId}": {
+      "get": {
+        "operationId": "AuditController_getActorLog",
+        "parameters": [
+          {
+            "name": "actorId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all audit logs for a specific user (actor)",
+        "tags": [
+          "Admin — Activity Log"
         ]
       }
     },
@@ -1147,297 +1399,12 @@
         ]
       }
     },
-    "/api/v1/documents/{entityId}/upload": {
-      "post": {
-        "operationId": "DocumentsController_uploadDocument",
+    "/api/v1/admin/organizations": {
+      "get": {
+        "operationId": "AdminController_getAllOrganizations",
         "parameters": [
           {
-            "name": "entityId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UploadDocumentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Documents"
-        ]
-      }
-    },
-    "/api/v1/documents/file": {
-      "get": {
-        "operationId": "DocumentsController_getFile",
-        "parameters": [
-          {
-            "name": "url",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Fetch document file securely for admins",
-        "tags": [
-          "Documents"
-        ]
-      }
-    },
-    "/api/v1/master-data/fleet-types": {
-      "get": {
-        "operationId": "MasterDataController_getFleetTypes",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "post": {
-        "operationId": "MasterDataController_addFleetType",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/delete/fleet-types": {
-      "post": {
-        "operationId": "MasterDataController_deleteFleetType",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/product-categories": {
-      "get": {
-        "operationId": "MasterDataController_getProductCategories",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-items": {
-      "get": {
-        "operationId": "MasterDataController_getAllCatalogItems",
-        "parameters": [
-          {
-            "name": "subcategory",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get all catalog items, optionally filtered by subcategory",
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "post": {
-        "operationId": "MasterDataController_createCatalogItem",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCatalogItemDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Create a new catalog item (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-items/subcategories": {
-      "get": {
-        "operationId": "MasterDataController_getSubcategories",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get distinct product subcategories",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-items/{slug}/filters": {
-      "get": {
-        "operationId": "MasterDataController_getItemFilters",
-        "parameters": [
-          {
-            "name": "slug",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get filter options (cities, brands & attributes) for a product",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-items/{id}": {
-      "get": {
-        "operationId": "MasterDataController_getCatalogItemById",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get catalog item by ID",
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "put": {
-        "operationId": "MasterDataController_updateCatalogItem",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateCatalogItemDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Update a catalog item (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "delete": {
-        "operationId": "MasterDataController_deleteCatalogItem",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Delete (soft) a catalog item (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-listings/search": {
-      "get": {
-        "operationId": "MasterDataController_searchListings",
-        "parameters": [
-          {
-            "name": "itemSlug",
+            "name": "role",
             "required": false,
             "in": "query",
             "schema": {
@@ -1445,7 +1412,7 @@
             }
           },
           {
-            "name": "brand",
+            "name": "kycStatus",
             "required": false,
             "in": "query",
             "schema": {
@@ -1453,175 +1420,11 @@
             }
           },
           {
-            "name": "city",
-            "required": false,
+            "name": "page",
+            "required": true,
             "in": "query",
             "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Search listings with filters",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-listings": {
-      "get": {
-        "operationId": "MasterDataController_getAllCatalogListings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get all catalog listings",
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "post": {
-        "operationId": "MasterDataController_createCatalogListing",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCatalogListingDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Create a new listing (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-listings/by-item/{itemId}": {
-      "get": {
-        "operationId": "MasterDataController_getListingsByItem",
-        "parameters": [
-          {
-            "name": "itemId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get listings for a specific catalog item",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-listings/{id}": {
-      "get": {
-        "operationId": "MasterDataController_getCatalogListingById",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get listing by ID",
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "put": {
-        "operationId": "MasterDataController_updateCatalogListing",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateCatalogListingDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Update a listing (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "delete": {
-        "operationId": "MasterDataController_deleteCatalogListing",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Delete (soft) a listing (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-listings/{id}/price-history": {
-      "get": {
-        "operationId": "MasterDataController_getPriceHistory",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
+              "type": "number"
             }
           },
           {
@@ -1638,91 +1441,157 @@
             "description": ""
           }
         },
-        "summary": "Get price history for a listing",
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "post": {
-        "operationId": "MasterDataController_addPriceHistory",
-        "parameters": [
+        "security": [
           {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
+            "bearer": []
           }
         ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Add a price history entry (Admin)",
+        "summary": "Get all organizations (Admin)",
         "tags": [
-          "Master Data"
+          "Admin Management"
         ]
       }
     },
-    "/api/v1/master-data/catalog-summary": {
+    "/api/v1/admin/rfqs": {
       "get": {
-        "operationId": "MasterDataController_getCatalogSummary",
-        "parameters": [],
+        "operationId": "AdminController_getAllRfqs",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
           }
         },
-        "summary": "Get catalog data summary (counts)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all RFQs (Admin)",
         "tags": [
-          "Master Data"
+          "Admin Management"
         ]
       }
     },
-    "/api/v1/master-data/bulk/catalog-items": {
-      "post": {
-        "operationId": "MasterDataController_bulkUploadCatalogItems",
-        "parameters": [],
+    "/api/v1/admin/quotes": {
+      "get": {
+        "operationId": "AdminController_getAllQuotes",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
-          "201": {
+          "200": {
             "description": ""
           }
         },
-        "summary": "Bulk upload catalog items (Admin)",
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all Quotes (Admin)",
         "tags": [
-          "Master Data"
+          "Admin Management"
         ]
       }
     },
-    "/api/v1/master-data/bulk/catalog-listings": {
-      "post": {
-        "operationId": "MasterDataController_bulkUploadCatalogListings",
-        "parameters": [],
+    "/api/v1/admin/payments": {
+      "get": {
+        "operationId": "AdminController_getAllPayments",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "escrowHoldStatus",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
-          "201": {
+          "200": {
             "description": ""
           }
         },
-        "summary": "Bulk upload catalog listings (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/reset-test-data": {
-      "post": {
-        "operationId": "MasterDataController_resetTestData",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
+        "security": [
+          {
+            "bearer": []
           }
-        },
-        "summary": "Reset Database for Testing (DANGER)",
+        ],
+        "summary": "Get all Payments/Escrow (Admin)",
         "tags": [
-          "Master Data"
+          "Admin Management"
         ]
       }
     },
@@ -1829,6 +1698,33 @@
           }
         ],
         "summary": "Update RFQ (Buyer only - Drafts)",
+        "tags": [
+          "RFQ"
+        ]
+      },
+      "delete": {
+        "operationId": "RfqController_deleteRFQ",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete RFQ (Buyer)",
         "tags": [
           "RFQ"
         ]
@@ -3353,6 +3249,585 @@
         ]
       }
     },
+    "/api/v1/documents/{entityId}/upload": {
+      "post": {
+        "operationId": "DocumentsController_uploadDocument",
+        "parameters": [
+          {
+            "name": "entityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/v1/documents/file": {
+      "get": {
+        "operationId": "DocumentsController_getFile",
+        "parameters": [
+          {
+            "name": "url",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Fetch document file securely for admins",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/v1/master-data/fleet-types": {
+      "get": {
+        "operationId": "MasterDataController_getFleetTypes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "post": {
+        "operationId": "MasterDataController_addFleetType",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/delete/fleet-types": {
+      "post": {
+        "operationId": "MasterDataController_deleteFleetType",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/product-categories": {
+      "get": {
+        "operationId": "MasterDataController_getProductCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-items": {
+      "get": {
+        "operationId": "MasterDataController_getAllCatalogItems",
+        "parameters": [
+          {
+            "name": "subcategory",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all catalog items, optionally filtered by subcategory",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "post": {
+        "operationId": "MasterDataController_createCatalogItem",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCatalogItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a new catalog item (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-items/subcategories": {
+      "get": {
+        "operationId": "MasterDataController_getSubcategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get distinct product subcategories",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-items/{slug}/filters": {
+      "get": {
+        "operationId": "MasterDataController_getItemFilters",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get filter options (cities, brands & attributes) for a product",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-items/{id}": {
+      "get": {
+        "operationId": "MasterDataController_getCatalogItemById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get catalog item by ID",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "put": {
+        "operationId": "MasterDataController_updateCatalogItem",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCatalogItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update a catalog item (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "delete": {
+        "operationId": "MasterDataController_deleteCatalogItem",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete (soft) a catalog item (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings/search": {
+      "get": {
+        "operationId": "MasterDataController_searchListings",
+        "parameters": [
+          {
+            "name": "itemSlug",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "brand",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "city",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Search listings with filters",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings": {
+      "get": {
+        "operationId": "MasterDataController_getAllCatalogListings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all catalog listings",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "post": {
+        "operationId": "MasterDataController_createCatalogListing",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCatalogListingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a new listing (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings/by-item/{itemId}": {
+      "get": {
+        "operationId": "MasterDataController_getListingsByItem",
+        "parameters": [
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get listings for a specific catalog item",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings/{id}": {
+      "get": {
+        "operationId": "MasterDataController_getCatalogListingById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get listing by ID",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "put": {
+        "operationId": "MasterDataController_updateCatalogListing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCatalogListingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update a listing (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "delete": {
+        "operationId": "MasterDataController_deleteCatalogListing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete (soft) a listing (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings/{id}/price-history": {
+      "get": {
+        "operationId": "MasterDataController_getPriceHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get price history for a listing",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "post": {
+        "operationId": "MasterDataController_addPriceHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Add a price history entry (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-summary": {
+      "get": {
+        "operationId": "MasterDataController_getCatalogSummary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get catalog data summary (counts)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/bulk/catalog-items": {
+      "post": {
+        "operationId": "MasterDataController_bulkUploadCatalogItems",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Bulk upload catalog items (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/bulk/catalog-listings": {
+      "post": {
+        "operationId": "MasterDataController_bulkUploadCatalogListings",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Bulk upload catalog listings (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/reset-test-data": {
+      "post": {
+        "operationId": "MasterDataController_resetTestData",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Reset Database for Testing (DANGER)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
     "/api/v1/settlements/batches": {
       "post": {
         "operationId": "SettlementsController_createBatch",
@@ -3654,6 +4129,52 @@
         ]
       }
     },
+    "/api/v1/dev/reset-order/{orderId}": {
+      "post": {
+        "operationId": "DevController_resetOrder",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dev"
+        ]
+      }
+    },
+    "/api/v1/dev/reset-batch/{batchId}": {
+      "post": {
+        "operationId": "DevController_resetBatch",
+        "parameters": [
+          {
+            "name": "batchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dev"
+        ]
+      }
+    },
     "/api/v1/admin/onboarding/single": {
       "post": {
         "operationId": "AdminOnboardingController_onboardSingleUser",
@@ -3783,6 +4304,39 @@
         "summary": "Upload an admin-provided document to an explicitly stated Organization ID",
         "tags": [
           "Admin Onboarding"
+        ]
+      }
+    },
+    "/api/v1/otp/send": {
+      "post": {
+        "operationId": "OtpController_sendOtp",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "OTP sent successfully"
+          }
+        },
+        "summary": "Send OTP (Email/Phone)",
+        "tags": [
+          "OTP"
+        ]
+      }
+    },
+    "/api/v1/otp/verify": {
+      "post": {
+        "operationId": "OtpController_verifyOtp",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OTP verified successfully"
+          },
+          "400": {
+            "description": "Invalid or expired OTP"
+          }
+        },
+        "summary": "Verify OTP",
+        "tags": [
+          "OTP"
         ]
       }
     }
@@ -3932,6 +4486,50 @@
             "type": "string"
           }
         }
+      },
+      "CreateRfqDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PublishRfqDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateQuoteDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateOrderDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateOrderStatusDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreatePaymentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "VerifyUtrDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RaiseDisputeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ResolveDisputeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateShipmentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateMilestoneDto": {
+        "type": "object",
+        "properties": {}
       },
       "UploadDocumentDto": {
         "type": "object",
@@ -4091,50 +4689,6 @@
         "type": "object",
         "properties": {}
       },
-      "CreateRfqDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "PublishRfqDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreateQuoteDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreateOrderDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdateOrderStatusDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreatePaymentDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "VerifyUtrDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "RaiseDisputeDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "ResolveDisputeDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreateShipmentDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdateMilestoneDto": {
-        "type": "object",
-        "properties": {}
-      },
       "CreateBatchDto": {
         "type": "object",
         "properties": {}
@@ -4210,6 +4764,12 @@
           },
           "primaryContactRole": {
             "type": "string"
+          },
+          "serviceStates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "bankDetails": {
             "type": "object"

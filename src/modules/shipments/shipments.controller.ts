@@ -18,6 +18,7 @@ import { CreateShipmentDto } from './dto/create-shipment.dto';
 import { UpdateMilestoneDto } from './dto/update-milestone.dto';
 import { UploadDocumentDto } from './dto/upload-document.dto';
 import { ShipmentsService } from './shipments.service';
+import { KycGuard } from 'src/common/guards/kyc.guard';
 
 @ApiTags('Shipments')
 @ApiBearerAuth()
@@ -28,6 +29,7 @@ export class ShipmentsController {
 
   @ApiOperation({ summary: 'Create shipment (Seller assigns 3PL)' })
   @Roles(UserRole.SELLER)
+  @UseGuards(KycGuard)
   @Post()
   async createShipment(
     @CurrentUser() user: any,
@@ -79,6 +81,7 @@ export class ShipmentsController {
 
   @ApiOperation({ summary: 'Update milestone (3PL, Seller)' })
   @Roles(UserRole['3PL'], UserRole.SELLER)
+  @UseGuards(KycGuard)
   @Post(':id/milestones')
   async updateMilestone(
     @CurrentUser() user: any,
@@ -90,6 +93,7 @@ export class ShipmentsController {
 
   @ApiOperation({ summary: 'Upload document (Seller/3PL)' })
   @Roles(UserRole.SELLER, UserRole['3PL'])
+  @UseGuards(KycGuard)
   @Post(':id/documents')
   async uploadDocument(
     @CurrentUser() user: any,
@@ -105,6 +109,7 @@ export class ShipmentsController {
 
   @ApiOperation({ summary: 'Upload POD (3PL)' })
   @Roles(UserRole['3PL'])
+  @UseGuards(KycGuard)
   @Post(':id/pod')
   async uploadPOD(
     @CurrentUser() user: any,
@@ -133,6 +138,7 @@ export class ShipmentsController {
 
   @ApiOperation({ summary: 'Mark shipment as delivered (3PL)' })
   @Roles(UserRole['3PL'])
+  @UseGuards(KycGuard)
   @Put(':id/deliver')
   async markDelivered(
     @CurrentUser() user: any,

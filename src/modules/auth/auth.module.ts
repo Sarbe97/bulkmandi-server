@@ -7,7 +7,8 @@ import { PassportModule } from "@nestjs/passport";
 import { IdGeneratorService } from "src/common/services/id-generator.service";
 import { KycCase, KycCaseSchema } from "../kyc/schemas/kyc.schema";
 import { Organization, OrganizationSchema } from "../organizations/schemas/organization.schema";
-import { OrganizationsModule } from "../organizations/organizations.module";
+import { AuditModule } from '../audit/audit.module';
+import { OrganizationsModule } from '../organizations/organizations.module'; // ✅ Added OrganizationsModule
 import { User, UserSchema } from "../users/schemas/user.schema";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
@@ -35,6 +36,7 @@ import { LocalStrategy } from "./strategies/local.strategy";
       { name: KycCase.name, schema: KycCaseSchema },
     ]),
     OrganizationsModule, // ✅ Added OrganizationsModule
+    AuditModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, LocalStrategy, IdGeneratorService],

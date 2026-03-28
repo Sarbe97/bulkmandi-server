@@ -96,6 +96,6 @@ export class AuthController {
     @Query('name') name: string,
     @CurrentUser() user: any,
   ) {
-    return this.orgService.checkOrgNameAvailability(name, user.role);
+    return this.orgService.checkOrgNameAvailability(name);
   }
 }

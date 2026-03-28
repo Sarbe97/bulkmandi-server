@@ -2,7 +2,7 @@ import {
   Body,
   Controller, Get,
   Param,
-  Post, Put,
+  Post, Put, Delete,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -16,6 +16,7 @@ import { CustomLoggerService } from '@core/logger/custom.logger.service';
 import { CreateRfqDto } from './dto/create-rfq.dto';
 import { PublishRfqDto } from './dto/publish-rfq.dto';
 import { RfqService } from './rfq.service';
+import { KycGuard } from 'src/common/guards/kyc.guard';
 
 @ApiTags('RFQ')
 @ApiBearerAuth()
@@ -30,6 +31,7 @@ export class RfqController {
 
   @ApiOperation({ summary: 'Create RFQ (Buyer only)' })
   @Roles(UserRole.BUYER)
+  @UseGuards(KycGuard)
   @Post()
   async createRFQ(@CurrentUser() user: any, @Body() createRfqDto: CreateRfqDto) {
     return this.rfqService.create(user.organizationId, createRfqDto);
@@ -37,6 +39,7 @@ export class RfqController {
 
   @ApiOperation({ summary: 'Publish RFQ (Buyer only)' })
   @Roles(UserRole.BUYER)
+  @UseGuards(KycGuard)
   @Put(':id/publish')
   async publishRFQ(@CurrentUser() user: any, @Param('id') id: string, @Body() publishRfqDto: PublishRfqDto) {
     return this.rfqService.publish(id, user.organizationId);
@@ -44,6 +47,7 @@ export class RfqController {
 
   @ApiOperation({ summary: 'Update RFQ (Buyer only - Drafts)' })
   @Roles(UserRole.BUYER)
+  @UseGuards(KycGuard)
   @Put(':id')
   async updateRFQ(@CurrentUser() user: any, @Param('id') id: string, @Body() createRfqDto: CreateRfqDto) {
     return this.rfqService.update(id, user.organizationId, createRfqDto);
@@ -75,5 +79,12 @@ export class RfqController {
   @Put(':id/close')
   async closeRFQ(@CurrentUser() user: any, @Param('id') id: string) {
     return this.rfqService.close(id, user.organizationId);
+  }
+
+  @ApiOperation({ summary: 'Delete RFQ (Buyer)' })
+  @Roles(UserRole.BUYER)
+  @Delete(':id')
+  async deleteRFQ(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.rfqService.deleteRfq(id, user.organizationId);
   }
 }

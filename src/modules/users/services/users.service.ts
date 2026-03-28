@@ -84,4 +84,79 @@ export class UsersService {
 
     return user;
   }
+
+  /**
+   * Generates a CSV string of all users for bulk onboarding purposes, 
+   * including organization KYC and verification details.
+   */
+  async downloadUsersCsv(): Promise<string> {
+    const users = await this.userModel.find().populate('organizationId').exec();
+    
+    const headers = [
+      'Email', 'First Name', 'Last Name', 'Mobile', 'Role', 'User Status', 'Joined At',
+      'Organization Name', 'Org Code', 'Trade Name', 'GSTIN', 'PAN', 'CIN', 'Business Type', 
+      'Incorporation Date', 'Registered Address', 'Service States',
+      'Primary Contact Name', 'Primary Contact Email', 'Primary Contact Mobile',
+      'KYC Status', 'Is Verified', 'KYC Approved At', 'KYC Approved By',
+      'Bank Account Number', 'Bank Account Holder', 'Bank Account Type', 'IFSC', 'Bank Name', 'Branch Name',
+      'Penny Drop Verified', 'Penny Drop Status', 'Penny Drop Score'
+    ];
+    
+    const rows = users.map(user => {
+      const org = user.organizationId as any;
+      const kyc = org?.orgKyc || {};
+      const bank = org?.primaryBankAccount || {};
+      const contact = kyc?.primaryContact || {};
+
+      return [
+        user.email,
+        user.firstName || '',
+        user.lastName || '',
+        user.mobile || '',
+        user.role,
+        user.isActive ? 'ACTIVE' : 'INACTIVE',
+        user.createdAt ? new Date(user.createdAt).toISOString() : '',
+        
+        // Org KYC
+        org?.legalName || '',
+        org?.orgCode || '',
+        kyc.tradeName || '',
+        kyc.gstin || '',
+        kyc.pan || '',
+        kyc.cin || '',
+        kyc.businessType || '',
+        kyc.incorporationDate || '',
+        kyc.registeredAddress || '',
+        Array.isArray(kyc.serviceStates) ? kyc.serviceStates.join('; ') : '',
+        
+        // Primary Contact
+        contact.name || '',
+        contact.email || '',
+        contact.mobile || '',
+        
+        // Verification / KYC Status
+        org?.kycStatus || '',
+        org?.isVerified ? 'YES' : 'NO',
+        org?.kycApprovedAt ? new Date(org.kycApprovedAt).toISOString() : '',
+        org?.kycApprovedBy || '',
+        
+        // Bank Details
+        bank.accountNumber || '',
+        bank.accountHolderName || '',
+        bank.accountType || '',
+        bank.ifsc || '',
+        bank.bankName || '',
+        bank.branchName || '',
+        bank.isPennyDropVerified ? 'YES' : 'NO',
+        bank.pennyDropStatus || '',
+        bank.pennyDropScore || ''
+      ].map(val => {
+        const strVal = (val === null || val === undefined) ? '' : val.toString();
+        // Escape quotes and wrap in quotes
+        return `"${strVal.replace(/"/g, '""')}"`;
+      }).join(',');
+    });
+
+    return [headers.join(','), ...rows].join('\n');
+  }
 }
