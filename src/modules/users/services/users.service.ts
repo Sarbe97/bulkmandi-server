@@ -85,6 +85,24 @@ export class UsersService {
     return user;
   }
 
+  async deleteUser(userId: string): Promise<{ success: boolean; message: string }> {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+
+    // Prevent deleting Admin users
+    if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+      throw new Error('Cannot delete an administrator account.');
+    }
+
+    if (user.organizationId) {
+      await this.orgModel.findByIdAndDelete(user.organizationId);
+    }
+
+    await this.userModel.findByIdAndDelete(userId);
+
+    return { success: true, message: `User ${user.email} and associated org deleted permanently.` };
+  }
+
   /**
    * Generates a CSV string of all users for bulk onboarding purposes, 
    * including organization KYC and verification details.
@@ -93,13 +111,13 @@ export class UsersService {
     const users = await this.userModel.find().populate('organizationId').exec();
     
     const headers = [
-      'Email', 'First Name', 'Last Name', 'Mobile', 'Role', 'User Status', 'Joined At',
-      'Organization Name', 'Org Code', 'Trade Name', 'GSTIN', 'PAN', 'CIN', 'Business Type', 
-      'Incorporation Date', 'Registered Address', 'Service States',
-      'Primary Contact Name', 'Primary Contact Email', 'Primary Contact Mobile',
-      'KYC Status', 'Is Verified', 'KYC Approved At', 'KYC Approved By',
-      'Bank Account Number', 'Bank Account Holder', 'Bank Account Type', 'IFSC', 'Bank Name', 'Branch Name',
-      'Penny Drop Verified', 'Penny Drop Status', 'Penny Drop Score'
+      'email', 'firstName', 'lastName', 'mobile', 'role', 'isActive', 'createdAt',
+      'legalName', 'orgCode', 'tradeName', 'gstin', 'pan', 'cin', 'businessType', 
+      'incorporationDate', 'registeredAddress', 'serviceStates',
+      'primaryContactName', 'primaryContactEmail', 'primaryContactMobile',
+      'kycStatus', 'isVerified', 'kycApprovedAt', 'kycApprovedBy',
+      'bankAccountNumber', 'bankAccountHolderName', 'bankAccountType', 'bankIfsc', 'bankName', 'branchName',
+      'isPennyDropVerified', 'pennyDropStatus', 'pennyDropScore'
     ];
     
     const rows = users.map(user => {

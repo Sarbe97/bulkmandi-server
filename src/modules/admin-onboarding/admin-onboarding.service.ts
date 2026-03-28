@@ -169,15 +169,46 @@ export class AdminOnboardingService {
       const errors: any[] = [];
       const stream = Readable.from(fileBuffer);
       
+      this.logger.log('Starting bulk CSV stream parsing...');
+
       stream
-        .pipe(csvParser())
+        .pipe(csvParser({
+          mapHeaders: ({ header }) => {
+            const h = header.trim();
+            this.logger.debug(`Mapped Header: '${h}'`);
+            return h;
+          },
+          mapValues: ({ value }) => typeof value === 'string' ? value.trim() : value
+        }))
         .on('data', (row: any) => {
+          this.logger.debug(`Raw Row Object: ${JSON.stringify(row)}`);
+
+          if (!row.email && !row.legalName) {
+            this.logger.warn(`Skipping completely empty row.`);
+            return; 
+          }
+
+          if (!row.email) {
+              this.logger.error(`Validation Failed: Missing Email for row ${JSON.stringify(row)}`);
+              errors.push({ email: 'Unknown', error: 'Missing required field: Email' });
+              return;
+          }
+
+          if (!row.legalName) {
+              this.logger.error(`Validation Failed: Missing legalName for email ${row.email}`);
+              errors.push({ email: row.email, error: 'Missing required field: Organization Name/legalName' });
+              return;
+          }
+
           const rowRole = (row.role?.toUpperCase() as UserRole) || assignedRole;
 
           if (![UserRole.BUYER, UserRole.SELLER, UserRole.LOGISTIC].includes(rowRole)) {
+              this.logger.error(`Validation Failed: Invalid role '${row.role}' for email ${row.email}`);
               errors.push({ email: row.email, error: `Invalid or missing role: ${row.role || 'N/A'}` });
               return;
           }
+
+          this.logger.log(`Row validation passed for ${row.email}. Queuing for insertion.`);
 
           const dto: FastTrackOnboardDto = {
             user: {
@@ -196,10 +227,10 @@ export class AdminOnboardingService {
                 businessType: row.businessType || 'Private Limited',
                 incorporationDate: row.incorporationDate,
                 registeredAddress: row.registeredAddress || 'Registered HQ',
-                serviceStates: row.serviceStates ? row.serviceStates.split(';').map(s => s.trim()) : [],
+                serviceStates: row.serviceStates ? row.serviceStates.split(';').map((s: string) => s.trim()) : [],
                 bankDetails: (row.bankAccountNumber || row.bankIfsc) ? {
                     accountNumber: row.bankAccountNumber,
-                    accountHolderName: row.bankAccountHolderName || `${row.firstName} ${row.lastName}`.trim(),
+                    accountHolderName: row.bankAccountHolderName || `${row.firstName || ''} ${row.lastName || ''}`.trim(),
                     accountType: row.bankAccountType || 'Current',
                     ifsc: row.bankIfsc,
                     bankName: row.bankName || 'NOT SPECIFIED',
@@ -208,21 +239,26 @@ export class AdminOnboardingService {
             },
             preferences: Object.keys(row)
                  .filter(k => k.startsWith('pref_') && row[k])
-                 .reduce((acc, k) => { acc[k.replace('pref_', '')] = row[k]; return acc; }, {}),
+                 .reduce((acc: any, k) => { acc[k.replace('pref_', '')] = row[k]; return acc; }, {}),
             creationSource: 'ADMIN_BULK'
           };
           results.push(dto);
         })
         .on('end', async () => {
+          this.logger.log(`CSV stream finished extracting. Attempting to insert ${results.length} valid rows.`);
           const successLogs = [];
           for (let i = 0; i < results.length; i++) {
+            this.logger.log(`Executing onboardSingleUser for ${results[i].user.email}...`);
             try {
                 const res = await this.onboardSingleUser(results[i]);
+                this.logger.log(`Successfully onboarded ${results[i].user.email}`);
                 successLogs.push({ email: results[i].user.email, status: 'Success', tempPwd: res.tempPassword });
             } catch (err: any) {
-                errors.push({ email: results[i].user?.email, error: err.message });
+                this.logger.error(`Failed to onboard ${results[i].user?.email}: ${err.message}`, err.stack);
+                errors.push({ email: results[i].user?.email || 'Unknown', error: err.message });
             }
           }
+          this.logger.log(`Bulk processing complete. Total Processed: ${results.length}. Success: ${successLogs.length}, Failed: ${errors.length}.`);
           resolve({ processed: results.length, successful: successLogs.length, failed: errors.length, results: successLogs, errors });
         })
         .on('error', (err: any) => reject(err));
