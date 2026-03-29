@@ -4494,9 +4494,9 @@
         ]
       }
     },
-    "/api/v1/negotiations/quote/{quoteId}/active": {
+    "/api/v1/negotiations/quote/{quoteId}/latest": {
       "get": {
-        "operationId": "NegotiationsController_getActiveNegotiationForQuote",
+        "operationId": "NegotiationsController_getLatestNegotiationForQuote",
         "parameters": [
           {
             "name": "quoteId",
@@ -4517,7 +4517,7 @@
             "bearer": []
           }
         ],
-        "summary": "Get active negotiation for a quote",
+        "summary": "Get latest negotiation for a quote (active or closed)",
         "tags": [
           "Negotiations"
         ]

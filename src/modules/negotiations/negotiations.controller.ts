@@ -65,10 +65,10 @@ export class NegotiationsController {
     return this.negotiationsService.reject(user.organizationId, id, reason);
   }
 
-  @ApiOperation({ summary: 'Get active negotiation for a quote' })
-  @Get('quote/:quoteId/active')
-  async getActiveNegotiationForQuote(@Param('quoteId') quoteId: string) {
-    return this.negotiationsService.findActiveByQuoteId(quoteId);
+  @ApiOperation({ summary: 'Get latest negotiation for a quote (active or closed)' })
+  @Get('quote/:quoteId/latest')
+  async getLatestNegotiationForQuote(@Param('quoteId') quoteId: string) {
+    return this.negotiationsService.findLatestByQuoteId(quoteId);
   }
 
   @ApiOperation({ summary: 'Get all negotiations for a quote (history)' })

@@ -314,11 +314,10 @@ export class NegotiationsService {
       .sort({ createdAt: -1 });
   }
 
-  async findActiveByQuoteId(quoteId: string) {
+  async findLatestByQuoteId(quoteId: string) {
     return this.negotiationModel.findOne({
       quoteId,
-      status: { $in: [NegotiationStatus.BUYER_COUNTERED, NegotiationStatus.SELLER_COUNTERED] },
-    });
+    }).sort({ createdAt: -1 });
   }
 
   async findByRfqId(rfqId: string) {
