@@ -84,7 +84,7 @@ export class Quote {
 
   // Status
   @Prop({ default: 'SUBMITTED' })
-  status!: string; // SUBMITTED | EXPIRED | WITHDRAWN | ACCEPTED | REJECTED
+  status!: string; // SUBMITTED | NEGOTIATING | EXPIRED | WITHDRAWN | ACCEPTED | REJECTED
 
   @Prop()
   submittedAt?: Date;

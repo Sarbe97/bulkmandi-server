@@ -74,8 +74,6 @@ CatalogListingSchema.index({
   'attributes.size': 1
 });
 
-// Explicit Unique Constraint on uniqueKey to guarantee enforcement
-CatalogListingSchema.index({ uniqueKey: 1 }, { unique: true });
 
 // Pricing filter performance index
 CatalogListingSchema.index({ basePrice: 1 });

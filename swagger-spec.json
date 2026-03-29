@@ -4366,6 +4366,249 @@
           "OTP"
         ]
       }
+    },
+    "/api/v1/negotiations": {
+      "post": {
+        "operationId": "NegotiationsController_initiateNegotiation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNegotiationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Initiate a negotiation (Buyer only)",
+        "tags": [
+          "Negotiations"
+        ]
+      }
+    },
+    "/api/v1/negotiations/{id}/respond": {
+      "put": {
+        "operationId": "NegotiationsController_respondToNegotiation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RespondNegotiationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Respond to a counter-offer (Buyer or Seller)",
+        "tags": [
+          "Negotiations"
+        ]
+      }
+    },
+    "/api/v1/negotiations/{id}/accept": {
+      "put": {
+        "operationId": "NegotiationsController_acceptNegotiation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Accept the latest offer",
+        "tags": [
+          "Negotiations"
+        ]
+      }
+    },
+    "/api/v1/negotiations/{id}/reject": {
+      "put": {
+        "operationId": "NegotiationsController_rejectNegotiation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reject and close negotiation",
+        "tags": [
+          "Negotiations"
+        ]
+      }
+    },
+    "/api/v1/negotiations/quote/{quoteId}/active": {
+      "get": {
+        "operationId": "NegotiationsController_getActiveNegotiationForQuote",
+        "parameters": [
+          {
+            "name": "quoteId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get active negotiation for a quote",
+        "tags": [
+          "Negotiations"
+        ]
+      }
+    },
+    "/api/v1/negotiations/quote/{quoteId}": {
+      "get": {
+        "operationId": "NegotiationsController_getNegotiationsForQuote",
+        "parameters": [
+          {
+            "name": "quoteId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all negotiations for a quote (history)",
+        "tags": [
+          "Negotiations"
+        ]
+      }
+    },
+    "/api/v1/negotiations/rfq/{rfqId}": {
+      "get": {
+        "operationId": "NegotiationsController_getNegotiationsForRfq",
+        "parameters": [
+          {
+            "name": "rfqId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get negotiations for an RFQ",
+        "tags": [
+          "Negotiations"
+        ]
+      }
+    },
+    "/api/v1/negotiations/{id}": {
+      "get": {
+        "operationId": "NegotiationsController_getNegotiationById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get negotiation by ID",
+        "tags": [
+          "Negotiations"
+        ]
+      }
     }
   },
   "info": {
@@ -4835,6 +5078,14 @@
           "user",
           "organization"
         ]
+      },
+      "CreateNegotiationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RespondNegotiationDto": {
+        "type": "object",
+        "properties": {}
       }
     }
   }

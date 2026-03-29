@@ -30,6 +30,7 @@ import { PreferencesModule } from "./modules/preferences/preferences.module";
 import { AdminOnboardingModule } from './modules/admin-onboarding/admin-onboarding.module';
 import { DevModule } from './modules/dev/dev.module';
 import { OtpModule } from './modules/otp/otp.module';
+import { NegotiationsModule } from './modules/negotiations/negotiations.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { OtpModule } from './modules/otp/otp.module';
     PreferencesModule,
     AdminOnboardingModule,
     OtpModule,
+    NegotiationsModule,
 
   ],
   controllers: [AppController],

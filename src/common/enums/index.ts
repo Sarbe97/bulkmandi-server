@@ -19,6 +19,7 @@ export enum RfqStatus {
 export enum QuoteStatus {
   DRAFT = 'DRAFT',
   SUBMITTED = 'SUBMITTED',
+  NEGOTIATING = 'NEGOTIATING',
   ACCEPTED = 'ACCEPTED',
   REJECTED = 'REJECTED',
   EXPIRED = 'EXPIRED',
