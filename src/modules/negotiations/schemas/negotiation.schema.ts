@@ -45,10 +45,10 @@ export class Negotiation {
   @Prop({ required: true, unique: true })
   negotiationId!: string; // NEG-{timestamp}
 
-  @Prop({ required: true, index: true })
+  @Prop({ required: true })
   quoteId!: string; // FK → Quote.quoteId
 
-  @Prop({ required: true, index: true })
+  @Prop({ required: true })
   rfqId!: string; // FK → Rfq.rfqId
 
   @Prop({ type: Types.ObjectId, ref: 'Organization', required: true })

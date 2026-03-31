@@ -30,6 +30,7 @@ export class RfqService {
       quantityMT: dto.quantityMT,
       targetPin: dto.targetPin,
       deliveryBy: new Date(dto.deliveryBy),
+      expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
       incoterm: dto.incoterm,
       notes: dto.notes,
       status: dto.status || 'OPEN',
@@ -156,6 +157,7 @@ export class RfqService {
     rfq.quantityMT = dto.quantityMT;
     rfq.targetPin = dto.targetPin;
     rfq.deliveryBy = new Date(dto.deliveryBy);
+    if (dto.expiresAt !== undefined) rfq.expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
     rfq.incoterm = dto.incoterm;
     rfq.notes = dto.notes;
     if (dto.status) rfq.status = dto.status;

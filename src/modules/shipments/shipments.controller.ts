@@ -39,7 +39,7 @@ export class ShipmentsController {
   }
 
   @ApiOperation({ summary: 'Get my shipments' })
-  @Roles(UserRole.BUYER, UserRole.SELLER, UserRole['3PL'])
+  @Roles(UserRole.BUYER, UserRole.SELLER, UserRole.LOGISTIC)
   @Get('me')
   async getMyShipments(
     @CurrentUser() user: any,
@@ -73,14 +73,14 @@ export class ShipmentsController {
   }
 
   @ApiOperation({ summary: 'Get shipment by ID' })
-  @Roles(UserRole.BUYER, UserRole.SELLER, UserRole['3PL'], UserRole.ADMIN)
+  @Roles(UserRole.BUYER, UserRole.SELLER, UserRole.LOGISTIC, UserRole.ADMIN)
   @Get(':id')
   async getShipmentById(@Param('id') id: string) {
     return this.shipmentsService.findByIdOrFail(id);
   }
 
   @ApiOperation({ summary: 'Update milestone (3PL, Seller)' })
-  @Roles(UserRole['3PL'], UserRole.SELLER)
+  @Roles(UserRole.LOGISTIC, UserRole.SELLER)
   @UseGuards(KycGuard)
   @Post(':id/milestones')
   async updateMilestone(
@@ -92,7 +92,7 @@ export class ShipmentsController {
   }
 
   @ApiOperation({ summary: 'Upload document (Seller/3PL)' })
-  @Roles(UserRole.SELLER, UserRole['3PL'])
+  @Roles(UserRole.SELLER, UserRole.LOGISTIC)
   @UseGuards(KycGuard)
   @Post(':id/documents')
   async uploadDocument(
@@ -107,8 +107,8 @@ export class ShipmentsController {
     );
   }
 
-  @ApiOperation({ summary: 'Upload POD (3PL)' })
-  @Roles(UserRole['3PL'])
+  @ApiOperation({ summary: 'Upload POD (Logistic)' })
+  @Roles(UserRole.LOGISTIC)
   @UseGuards(KycGuard)
   @Post(':id/pod')
   async uploadPOD(
@@ -136,8 +136,8 @@ export class ShipmentsController {
     return this.shipmentsService.getTracking(id);
   }
 
-  @ApiOperation({ summary: 'Mark shipment as delivered (3PL)' })
-  @Roles(UserRole['3PL'])
+  @ApiOperation({ summary: 'Mark shipment as delivered (Logistic/Seller/Admin)' })
+  @Roles(UserRole.LOGISTIC, UserRole.SELLER, UserRole.ADMIN)
   @UseGuards(KycGuard)
   @Put(':id/deliver')
   async markDelivered(
@@ -145,5 +145,16 @@ export class ShipmentsController {
     @Param('id') id: string,
   ) {
     return this.shipmentsService.markDelivered(id);
+  }
+
+  @ApiOperation({ summary: 'Update shipment status (Seller/Logistic)' })
+  @Roles(UserRole.SELLER, UserRole.LOGISTIC)
+  @UseGuards(KycGuard)
+  @Put(':id')
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string },
+  ) {
+    return this.shipmentsService.updateStatus(id, body.status);
   }
 }

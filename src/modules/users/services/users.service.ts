@@ -21,7 +21,6 @@ export class UsersService {
   }
 
   async findById(id: string): Promise<User> {
-    console.log(id);
     const user = await this.userModel
       .findById(id)
       .select('-password')
@@ -103,6 +102,24 @@ export class UsersService {
     return { success: true, message: `User ${user.email} and associated org deleted permanently.` };
   }
 
+  async bulkDelete(userIds: string[]): Promise<{ successCount: number; failedCount: number; errors: string[] }> {
+    let successCount = 0;
+    let failedCount = 0;
+    const errors: string[] = [];
+
+    for (const id of userIds) {
+      try {
+        await this.deleteUser(id);
+        successCount++;
+      } catch (err: any) {
+        failedCount++;
+        errors.push(`ID ${id}: ${err.message}`);
+      }
+    }
+
+    return { successCount, failedCount, errors };
+  }
+
   /**
    * Generates a CSV string of all users for bulk onboarding purposes, 
    * including organization KYC and verification details.
@@ -113,11 +130,12 @@ export class UsersService {
     const headers = [
       'email', 'firstName', 'lastName', 'mobile', 'role', 'isActive', 'createdAt',
       'legalName', 'orgCode', 'tradeName', 'gstin', 'pan', 'cin', 'businessType', 
-      'incorporationDate', 'registeredAddress', 'serviceStates',
-      'primaryContactName', 'primaryContactEmail', 'primaryContactMobile',
+      'incorporationDate', 'registeredAddress', 'serviceStates', 'plantLocations',
+      'primaryContactName', 'primaryContactEmail', 'primaryContactMobile', 'primaryContactRole',
       'kycStatus', 'isVerified', 'kycApprovedAt', 'kycApprovedBy',
       'bankAccountNumber', 'bankAccountHolderName', 'bankAccountType', 'bankIfsc', 'bankName', 'branchName',
-      'isPennyDropVerified', 'pennyDropStatus', 'pennyDropScore'
+      'payoutMethod', 'upiDetails', 'isPennyDropVerified', 'pennyDropStatus', 'pennyDropScore',
+      'complianceWarranty', 'complianceTerms', 'complianceAml'
     ];
     
     const rows = users.map(user => {
@@ -125,6 +143,7 @@ export class UsersService {
       const kyc = org?.orgKyc || {};
       const bank = org?.primaryBankAccount || {};
       const contact = kyc?.primaryContact || {};
+      const compliance = org?.compliance || {};
 
       return [
         user.email,
@@ -146,11 +165,13 @@ export class UsersService {
         kyc.incorporationDate || '',
         kyc.registeredAddress || '',
         Array.isArray(kyc.serviceStates) ? kyc.serviceStates.join('; ') : '',
+        Array.isArray(kyc.plantLocations) ? kyc.plantLocations.map((p: any) => `${p.name}|${p.city}|${p.state}|${p.pincode}`).join('; ') : '',
         
         // Primary Contact
         contact.name || '',
         contact.email || '',
         contact.mobile || '',
+        contact.role || '',
         
         // Verification / KYC Status
         org?.kycStatus || '',
@@ -165,9 +186,16 @@ export class UsersService {
         bank.ifsc || '',
         bank.bankName || '',
         bank.branchName || '',
+        bank.payoutMethod || '',
+        bank.upiDetails || '',
         bank.isPennyDropVerified ? 'YES' : 'NO',
         bank.pennyDropStatus || '',
-        bank.pennyDropScore || ''
+        bank.pennyDropScore || '',
+
+        // Compliance
+        compliance.declarations?.warrantyAssurance ? 'true' : 'false',
+        compliance.declarations?.termsAccepted ? 'true' : 'false',
+        compliance.declarations?.amlCompliance ? 'true' : 'false',
       ].map(val => {
         const strVal = (val === null || val === undefined) ? '' : val.toString();
         // Escape quotes and wrap in quotes

@@ -23,6 +23,7 @@ export class OrgKyc {
   @Prop() businessType?: string;
   @Prop() incorporationDate?: string;
   @Prop({ type: [String], default: [] }) serviceStates?: string[];
+  @Prop({ type: [Object], default: [] }) plantLocations?: any[];
   @Prop({ type: Contact }) primaryContact?: Contact;
 }
 ///////////
@@ -147,3 +148,9 @@ export class Organization {
 }
 
 export const OrganizationSchema = SchemaFactory.createForClass(Organization);
+
+// ✅ CUSTOM INDEXES FOR DATA INTEGRITY
+OrganizationSchema.index({ legalName: 1 }, { unique: true });
+OrganizationSchema.index({ 'orgKyc.gstin': 1 }, { unique: true, sparse: true });
+OrganizationSchema.index({ 'orgKyc.pan': 1 }, { unique: true, sparse: true });
+OrganizationSchema.index({ orgCode: 1 }, { unique: true });

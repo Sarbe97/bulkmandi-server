@@ -10,6 +10,7 @@ import {
 } from './dto/catalog-data.dto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { UsersService } from '../users/services/users.service';
 
 @Injectable()
 export class MasterDataService implements OnModuleInit {
@@ -20,6 +21,7 @@ export class MasterDataService implements OnModuleInit {
     @InjectModel(CatalogItem.name) private catalogItemModel: Model<CatalogItemDocument>,
     @InjectModel(CatalogListing.name) private catalogListingModel: Model<CatalogListingDocument>,
     @InjectConnection() private connection: Connection,
+    private readonly usersService: UsersService,
   ) { }
 
   // ══════════════════════════════════════════
@@ -551,10 +553,27 @@ export class MasterDataService implements OnModuleInit {
   // ══════════════════════════════════════════
 
   async resetTestData() {
-    this.logger.warn('⚠️  DANGER: resetTestData() called. Starting selective wipe...');
+    this.logger.warn('⚠️  DANGER: resetTestData() called. Starting full wipe...');
 
-    // ── Collections to completely wipe (transactional data) ──────────────────
+    // ── Pre-Wipe Backup: Users ──────────────────────────────────────────────
+    try {
+      this.logger.log('📥 Generating users backup before wipe...');
+      const usersCsv = await this.usersService.downloadUsersCsv();
+      const backupDir = path.join(process.cwd(), 'seed-data');
+      if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+      
+      const backupPath = path.join(backupDir, 'users_export.csv');
+      fs.writeFileSync(backupPath, usersCsv);
+      this.logger.log(`✅ Users backup saved to: ${backupPath}`);
+    } catch (e) {
+      this.logger.error('❌ Failed to take users backup. Aborting wipe to prevent data loss.', e);
+      throw new Error(`Wipe aborted: User backup failed. ${e.message}`);
+    }
+
+    // ── Collections to completely wipe (including users & orgs now) ──────────
     const WIPE_COLLECTIONS = [
+      'users',
+      'organizations',
       'rfqs',
       'quotes',
       'orders',
@@ -571,9 +590,8 @@ export class MasterDataService implements OnModuleInit {
       'auditlogs',
     ];
 
-    // ── Collections to NEVER touch ───────────────────────────────────────────
+    // ── Collections to NEVER touch (Static Seeding Data) ─────────────────────
     const PRESERVE_COLLECTIONS = [
-      'users',            // All users preserved
       'masterdatas',      // Fleet types, product categories (seed data)
       'catalogitems',     // Product catalog (seed data)
       'cataloglistings',  // Price listings (seed data)
@@ -593,32 +611,6 @@ export class MasterDataService implements OnModuleInit {
         continue;
       }
 
-      if (name === 'organizations') {
-        // Reset org KYC to DRAFT so re-onboarding can be tested.
-        // Keeps org + user link intact so users don't need to re-register.
-        const result = await collection.updateMany({}, {
-          $set: {
-            kycStatus: 'DRAFT',
-            isVerified: false,
-            isOnboardingLocked: false,
-            completedSteps: [],
-            orgKyc: {},
-            primaryBankAccount: {},
-            compliance: { documents: [], declarations: {} },
-            rejectionReason: null,
-            kycApprovedAt: null,
-            kycApprovedBy: null,
-            submittedAt: null,
-            submissionRemarks: null,
-            lastRequestedFields: [],
-            lastAdminRemarks: null,
-          },
-        });
-        report[name] = { action: 'reset-to-draft', count: result.modifiedCount };
-        this.logger.log(`🔄 Reset to DRAFT: ${name} (${result.modifiedCount} orgs)`);
-        continue;
-      }
-
       if (WIPE_COLLECTIONS.includes(name)) {
         const result = await collection.deleteMany({});
         report[name] = { action: 'wiped', count: result.deletedCount };
@@ -635,7 +627,7 @@ export class MasterDataService implements OnModuleInit {
     this.logger.log('✅ Database reset complete.');
     return {
       success: true,
-      message: 'Test data wiped. Users and catalog data preserved. Organizations reset to DRAFT for re-onboarding.',
+      message: 'Database wiped. All users, organizations and transactional data deleted. Users backup saved to seed-data/users_export.csv.',
       report,
     };
   }

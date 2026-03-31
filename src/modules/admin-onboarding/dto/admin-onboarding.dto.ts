@@ -81,6 +81,17 @@ export class FastTrackOrganizationDto {
   @IsString({ each: true })
   serviceStates?: string[];
 
+  @ApiPropertyOptional()
+  @IsArray()
+  @IsOptional()
+  plantLocations?: {
+    name: string;
+    city: string;
+    state: string;
+    pincode: string;
+    country?: string;
+  }[];
+
   // Bank Info
   @ApiPropertyOptional()
   @IsObject()
@@ -92,6 +103,17 @@ export class FastTrackOrganizationDto {
     ifsc: string;
     bankName: string;
     branchName?: string;
+    payoutMethod?: string;
+    upiDetails?: string;
+  };
+
+  @ApiPropertyOptional()
+  @IsObject()
+  @IsOptional()
+  compliance?: {
+    warrantyAssurance: boolean;
+    termsAccepted: boolean;
+    amlCompliance: boolean;
   };
 }
 

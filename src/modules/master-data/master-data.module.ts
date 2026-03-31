@@ -6,8 +6,11 @@ import { MasterData, MasterDataSchema } from './schema/master-data.schema';
 import { CatalogItem, CatalogItemSchema } from './schema/catalog-item.schema';
 import { CatalogListing, CatalogListingSchema } from './schema/catalog-listing.schema';
 
+import { UsersModule } from '../users/users.module';
+
 @Module({
   imports: [
+    UsersModule,
     MongooseModule.forFeature([
       { name: MasterData.name, schema: MasterDataSchema },
       { name: CatalogItem.name, schema: CatalogItemSchema },

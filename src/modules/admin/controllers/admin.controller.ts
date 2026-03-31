@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, Put, Query, UseGuards, Request } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { AdminGuard } from "../../../common/guards/admin.guard";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
@@ -6,6 +6,8 @@ import { OrganizationsService } from "../../organizations/organizations.service"
 import { RfqService } from "../../rfq/rfq.service";
 import { QuotesService } from "../../quotes/quotes.service";
 import { PaymentsService } from "../../payments/payments.service";
+import { RejectPaymentDto } from "../../payments/dto/reject-payment.dto";
+import { Body } from "@nestjs/common";
 
 @ApiTags("Admin Management")
 @ApiBearerAuth()
@@ -72,5 +74,24 @@ export class AdminController {
         if (status) filter.status = status;
         if (escrowHoldStatus) filter.escrowHoldStatus = escrowHoldStatus;
         return this.paymentsService.findAll(filter, page, limit);
+    }
+
+    @Put("payments/:id/verify")
+    @ApiOperation({ summary: "Verify payment submission (Admin manual gate)" })
+    async verifyPayment(
+        @Param("id") id: string,
+        @Request() req: any,
+    ) {
+        return this.paymentsService.adminVerifyPayment(id, req.user.id);
+    }
+
+    @Put("payments/:id/reject")
+    @ApiOperation({ summary: "Reject payment submission (Admin manual gate)" })
+    async rejectPayment(
+        @Param("id") id: string,
+        @Body() dto: RejectPaymentDto,
+        @Request() req: any,
+    ) {
+        return this.paymentsService.adminRejectPayment(id, req.user.id, dto.reason);
     }
 }

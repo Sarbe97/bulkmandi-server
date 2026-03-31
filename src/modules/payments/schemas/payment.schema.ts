@@ -12,7 +12,7 @@ export class Payment {
   orderId!: Types.ObjectId;
 
   @Prop({ required: true })
-  amount!: number; // In paise
+  amount!: number; // In whole Rupees
 
   @Prop({ default: 'INR' })
   currency!: string;
@@ -25,7 +25,7 @@ export class Payment {
   status!: string; // INITIATED | PENDING_VERIFICATION | VERIFIED | FAILED | REFUNDED
 
   @Prop({ type: Array, default: [] })
-  statusTimeline!: { status: string; timestamp: Date }[];
+  statusTimeline!: { status: string; timestamp: Date; reason?: string }[];
 
   // Bank tracking
   @Prop()

@@ -27,6 +27,11 @@ export class ShipmentsService {
     const shipmentId = `SHP-${Date.now()}`;
     const shipment = new this.shipmentModel({
       ...dto,
+      product: {
+        category: order.product.category,
+        grade: order.product.grade,
+        quantityMT: order.product.quantityMT,
+      },
       sellerId,
       buyerId: order.buyerId,
       carrierId: dto.carrierId,
@@ -206,6 +211,37 @@ export class ShipmentsService {
       actorId: adminId,
       afterState: { docId, verified: true },
       description: `Document ${docId} verified for Shipment ${saved.shipmentId}`,
+    });
+
+    return saved;
+  }
+
+  async updateStatus(id: string, status: string) {
+    const shipment = await this.shipmentModel.findById(id);
+    if (!shipment) throw new NotFoundException("Shipment not found");
+
+    const prevStatus = shipment.status;
+    shipment.status = status;
+    shipment.statusTimeline.push({ status: status, timestamp: new Date() });
+
+    // Sync with order if needed
+    if (status === 'PICKUP_CONFIRMED' || status === 'IN_TRANSIT') {
+      await this.ordersService.updateStatus(shipment.orderId.toString(), 'IN_TRANSIT');
+    }
+
+    const saved = await shipment.save();
+
+    this.auditService.log({
+      action: 'SHIPMENT_STATUS_CHANGED',
+      module: 'SHIPMENT',
+      entityType: 'SHIPMENT',
+      entityId: saved._id as any,
+      entityIdStr: saved.shipmentId,
+      beforeState: { status: prevStatus },
+      afterState: { status },
+      changedFields: ['status'],
+      actorType: 'USER',
+      description: `Shipment ${saved.shipmentId} status updated to ${status}`,
     });
 
     return saved;

@@ -206,13 +206,14 @@ export class OrdersService {
 
     order.status = 'COMPLETED';
     order.lifecycle.completedAt = new Date();
-    await order.save();
 
     try {
       await this.paymentsService.releaseStage2(orderId);
     } catch (err) {
       console.warn('Stage 2 escrow release failed:', err.message);
     }
+
+    await order.save();
 
     this.auditService.log({
       action: 'DELIVERY_ACCEPTED',

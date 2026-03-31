@@ -324,6 +324,26 @@
         ]
       }
     },
+    "/api/v1/users/bulk-delete": {
+      "delete": {
+        "operationId": "UsersController_bulkDeleteUsers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bulk delete users (Dev mode only)",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
     "/api/v1/users/{id}": {
       "delete": {
         "operationId": "UsersController_deleteUser",
@@ -1617,6 +1637,74 @@
           }
         ],
         "summary": "Get all Payments/Escrow (Admin)",
+        "tags": [
+          "Admin Management"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/{id}/verify": {
+      "put": {
+        "operationId": "AdminController_verifyPayment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify payment submission (Admin manual gate)",
+        "tags": [
+          "Admin Management"
+        ]
+      }
+    },
+    "/api/v1/admin/payments/{id}/reject": {
+      "put": {
+        "operationId": "AdminController_rejectPayment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectPaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reject payment submission (Admin manual gate)",
         "tags": [
           "Admin Management"
         ]
@@ -3072,6 +3160,33 @@
         "tags": [
           "Shipments"
         ]
+      },
+      "put": {
+        "operationId": "ShipmentsController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update shipment status (Seller/Logistic)",
+        "tags": [
+          "Shipments"
+        ]
       }
     },
     "/api/v1/shipments/{id}/milestones": {
@@ -3175,7 +3290,7 @@
             "bearer": []
           }
         ],
-        "summary": "Upload POD (3PL)",
+        "summary": "Upload POD (Logistic)",
         "tags": [
           "Shipments"
         ]
@@ -3270,7 +3385,7 @@
             "bearer": []
           }
         ],
-        "summary": "Mark shipment as delivered (3PL)",
+        "summary": "Mark shipment as delivered (Logistic/Seller/Admin)",
         "tags": [
           "Shipments"
         ]
@@ -4757,6 +4872,19 @@
           }
         }
       },
+      "RejectPaymentDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "example": "Incorrect UTR provided",
+            "description": "Reason for rejection"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
       "CreateRfqDto": {
         "type": "object",
         "properties": {}
@@ -4991,6 +5119,7 @@
               "SELLER",
               "ADMIN",
               "LOGISTIC",
+              "3PL",
               "SUPER_ADMIN"
             ]
           }
@@ -5041,7 +5170,16 @@
               "type": "string"
             }
           },
+          "plantLocations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "bankDetails": {
+            "type": "object"
+          },
+          "compliance": {
             "type": "object"
           }
         },

@@ -39,6 +39,16 @@ export class UsersController {
     return this.usersService.resetPassword(id, newPassword);
   }
 
+  @ApiOperation({ summary: 'Bulk delete users (Dev mode only)' })
+  @UseGuards(AdminGuard)
+  @Delete('bulk-delete')
+  async bulkDeleteUsers(@Body('userIds') userIds: string[]) {
+    if (process.env.TEST_MODE !== 'true') {
+      throw new ForbiddenException('Bulk deletion is only allowed when TEST_MODE=true in .env');
+    }
+    return this.usersService.bulkDelete(userIds);
+  }
+
   @ApiOperation({ summary: 'Delete user (Dev mode only)' })
   @UseGuards(AdminGuard)
   @Delete(':id')

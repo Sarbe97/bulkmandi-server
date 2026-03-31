@@ -50,6 +50,10 @@ export class CreateRfqDto {
   @IsOptional()
   notes?: string;
 
+  @IsDateString()
+  @IsOptional()
+  expiresAt?: string;
+
   @IsString()
   @IsOptional()
   @IsEnum(RfqStatus)

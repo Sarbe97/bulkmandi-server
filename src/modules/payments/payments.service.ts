@@ -20,7 +20,11 @@ export class PaymentsService {
     if (!order) throw new NotFoundException('Order not found');
     if (order.buyerId.toString() !== orgId) throw new BadRequestException('This order does not belong to you');
     const existing = await this.paymentModel.findOne({ orderId: dto.orderId });
-    if (existing) throw new BadRequestException('Payment already initiated');
+    if (existing && existing.status !== 'REJECTED' && existing.status !== 'CANCELLED') {
+      throw new BadRequestException('Payment already initiated');
+    }
+
+    // If existing exists but is REJECTED/CANCELLED, we can proceed to create a new one (or we could update, but create new with fresh ID is cleaner for tracking)
 
     const paymentId = `PAY-${Date.now()}`;
     const isAutoVerify = dto.paymentMethod === 'UPI' || dto.paymentMethod === 'NETBANKING';
@@ -41,17 +45,11 @@ export class PaymentsService {
       escrowStage1Status: 'PENDING',
       escrowStage2Status: 'PENDING',
       payerId: orgId,
-      status: isAutoVerify ? 'VERIFIED' : 'INITIATED',
-      statusTimeline: isAutoVerify
-        ? [
-            { status: 'INITIATED', timestamp: new Date() },
-            { status: 'VERIFIED', timestamp: new Date() },
-          ]
-        : [{ status: 'INITIATED', timestamp: new Date() }],
+      status: 'PENDING_VERIFICATION',
+      statusTimeline: [{ status: 'INITIATED', timestamp: new Date() }, { status: 'PENDING_VERIFICATION', timestamp: new Date() }],
       initiatedAt: new Date(),
       ...(isAutoVerify && {
         utr: `AUTO-${Date.now()}`,
-        bankVerifiedAt: new Date(),
         bankVerificationMethod: 'GATEWAY',
       }),
     });
@@ -69,19 +67,17 @@ export class PaymentsService {
       description: `Payment ${savedPayment.paymentId} initiated for Order ${dto.orderId}`,
     });
 
-    // For auto-verified payments (UPI / Netbanking sandbox), update order to PAID immediately
-    if (isAutoVerify) {
-      order.status = 'PAID';
-      order.lifecycle.paidAt = new Date();
-      order.payment = {
-        paymentId: savedPayment.paymentId,
-        paymentMethod: dto.paymentMethod,
-        utr: `AUTO-${Date.now()}`,
-        escrowHolds: order.pricing.grandTotal,
-        escrowReleased: false,
-      };
-      await order.save();
-    }
+    // For all initiated payments, update order to PAYMENT_SUBMITTED
+    order.status = 'PAYMENT_SUBMITTED';
+    order.lifecycle.paymentPendingAt = new Date(); // Re-use or add paymentSubmittedAt
+    order.payment = {
+      paymentId: savedPayment.paymentId,
+      paymentMethod: dto.paymentMethod,
+      utr: isAutoVerify ? `AUTO-${Date.now()}` : undefined,
+      escrowHolds: order.pricing.grandTotal,
+      escrowReleased: false,
+    };
+    await order.save();
 
     return savedPayment;
   }
@@ -90,25 +86,80 @@ export class PaymentsService {
     const payment = await this.paymentModel.findOne({ paymentId });
     if (!payment) throw new NotFoundException('Payment record not found');
     payment.utr = dto.utr;
+    payment.status = 'PENDING_VERIFICATION';
+    payment.statusTimeline.push({ status: 'PENDING_VERIFICATION', timestamp: new Date() });
+    await payment.save();
+
+    // Update the order status to PAYMENT_SUBMITTED
+    const order = await this.orderModel.findById(payment.orderId);
+    if (order) {
+      order.status = 'PAYMENT_SUBMITTED';
+      order.payment.utr = dto.utr;
+      await order.save();
+    }
+
+    return payment;
+  }
+
+  async adminVerifyPayment(paymentId: string, adminId: string) {
+    const payment = await this.paymentModel.findOne({ paymentId });
+    if (!payment) throw new NotFoundException('Payment record not found');
+    
     payment.status = 'VERIFIED';
     payment.bankVerifiedAt = new Date();
+    payment.bankVerificationMethod = 'ADMIN_MANUAL';
     payment.statusTimeline.push({ status: 'VERIFIED', timestamp: new Date() });
     await payment.save();
 
-    // Update the order status to PAID with payment details
     const order = await this.orderModel.findById(payment.orderId);
     if (order) {
       order.status = 'PAID';
       order.lifecycle.paidAt = new Date();
-      order.payment = {
-        paymentId: payment.paymentId,
-        paymentMethod: payment.paymentMethod,
-        utr: dto.utr,
-        escrowHolds: payment.escrowHoldAmount,
-        escrowReleased: false,
-      };
+      order.payment.escrowHolds = payment.escrowHoldAmount;
       await order.save();
     }
+
+    this.auditService.log({
+      action: 'PAYMENT_VERIFIED_BY_ADMIN',
+      module: 'PAYMENT',
+      entityType: 'PAYMENT',
+      entityId: payment._id as any,
+      entityIdStr: payment.paymentId,
+      actorId: adminId,
+      afterState: { status: 'VERIFIED', orderId: payment.orderId },
+      description: `Payment ${payment.paymentId} manually verified by Admin ${adminId}`,
+    });
+
+    return payment;
+  }
+
+  async adminRejectPayment(paymentId: string, adminId: string, reason: string) {
+    const payment = await this.paymentModel.findOne({ paymentId });
+    if (!payment) throw new NotFoundException('Payment record not found');
+    
+    payment.status = 'REJECTED';
+    payment.statusTimeline.push({ status: 'REJECTED', timestamp: new Date(), reason });
+    // Reset UTR so buyer can re-submit
+    payment.utr = undefined;
+    await payment.save();
+
+    const order = await this.orderModel.findById(payment.orderId);
+    if (order) {
+      order.status = 'REJECTED';
+      order.payment.utr = undefined;
+      await order.save();
+    }
+
+    this.auditService.log({
+      action: 'PAYMENT_REJECTED_BY_ADMIN',
+      module: 'PAYMENT',
+      entityType: 'PAYMENT',
+      entityId: payment._id as any,
+      entityIdStr: payment.paymentId,
+      actorId: adminId,
+      afterState: { status: 'REJECTED', orderId: payment.orderId, reason },
+      description: `Payment ${payment.paymentId} rejected by Admin ${adminId}. Reason: ${reason}`,
+    });
 
     return payment;
   }
