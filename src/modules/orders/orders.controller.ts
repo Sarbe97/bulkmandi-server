@@ -46,13 +46,26 @@ export class OrdersController {
     @Query('limit') limit: number = 20,
   ) {
     const filter: any = {};
-    if (status) filter.status = status;
+    if (status && status !== 'ALL') filter.status = status;
 
     if (user.role === UserRole.BUYER) {
       return this.ordersService.findByBuyerId(user.organizationId, filter, page, limit);
     } else {
       return this.ordersService.findBySellerId(user.organizationId, filter, page, limit);
     }
+  }
+
+  @ApiOperation({ summary: 'Get all orders (Admin only)' })
+  @Roles(UserRole.ADMIN)
+  @Get()
+  async getAllOrders(
+    @Query('status') status?: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 50,
+  ) {
+    const filter: any = {};
+    if (status && status !== 'ALL') filter.status = status;
+    return this.ordersService.findAll(filter, page, limit);
   }
 
   @ApiOperation({ summary: 'Get order by ID' })

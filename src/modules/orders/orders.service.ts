@@ -114,6 +114,10 @@ export class OrdersService {
     return this.orderModel.find({ sellerId: new Types.ObjectId(sellerId), ...filter }).skip((page - 1) * limit).limit(limit).sort({ createdAt: -1 });
   }
 
+  async findAll(filter = {}, page = 1, limit = 50) {
+    return this.orderModel.find(filter).skip((page - 1) * limit).limit(limit).sort({ createdAt: -1 });
+  }
+
   async findByIdOrFail(id: string) {
     const order = await this.orderModel.findById(id);
     if (!order) throw new NotFoundException('Order not found');

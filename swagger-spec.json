@@ -2305,6 +2305,49 @@
         "tags": [
           "Orders"
         ]
+      },
+      "get": {
+        "operationId": "OrdersController_getAllOrders",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all orders (Admin only)",
+        "tags": [
+          "Orders"
+        ]
       }
     },
     "/api/v1/orders/my-orders": {

@@ -98,6 +98,7 @@ export class PdfGeneratorService implements OnModuleInit, OnModuleDestroy {
     try {
       this.browser = await puppeteer.launch({
         headless: true,
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -106,7 +107,7 @@ export class PdfGeneratorService implements OnModuleInit, OnModuleDestroy {
           '--font-render-hinting=none', // Consistent font rendering
         ],
       });
-      this.logger.log('Puppeteer browser launched (shared instance)');
+      this.logger.log(`Puppeteer browser launched (shared instance) from ${process.env.PUPPETEER_EXECUTABLE_PATH || 'default path'}`);
     } catch (err: any) {
       this.logger.error(`Failed to launch Puppeteer: ${err.message}`);
       throw err;
