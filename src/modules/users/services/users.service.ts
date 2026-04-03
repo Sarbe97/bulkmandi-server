@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
@@ -10,9 +11,11 @@ export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Organization.name) private orgModel: Model<OrganizationDocument>,
+    private readonly logger: CustomLoggerService,
   ) { }
 
   async findAll(): Promise<User[]> {
+    this.logger.log('Fetching all users');
     return this.userModel
       .find()
       .select('-password')
@@ -21,6 +24,7 @@ export class UsersService {
   }
 
   async findById(id: string): Promise<User> {
+    this.logger.log(`Fetching user by ID: ${id}`);
     const user = await this.userModel
       .findById(id)
       .select('-password')
@@ -85,6 +89,7 @@ export class UsersService {
   }
 
   async deleteUser(userId: string): Promise<{ success: boolean; message: string }> {
+    this.logger.warn(`Attempting to delete user: ${userId}`);
     const user = await this.userModel.findById(userId);
     if (!user) throw new NotFoundException('User not found');
 

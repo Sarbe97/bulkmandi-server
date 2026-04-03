@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { AuditService } from '../audit/audit.service';
@@ -18,11 +19,13 @@ export class OrdersService {
     @Inject(forwardRef(() => PaymentsService)) private readonly paymentsService: PaymentsService,
     @Inject(forwardRef(() => DisputesService)) private readonly disputesService: DisputesService,
     private readonly auditService: AuditService,
+    private readonly logger: CustomLoggerService,
   ) {}
 
   async create(dto: CreateOrderDto) {
+    this.logger.log('Creating new order manually');
     const orderId = `ORD-${Date.now()}`;
-    const order = new this.orderModel({ ...dto, orderId, createdAt: new Date(), status: 'CONFIRMED' });
+    const order = new this.orderModel({ ...dto, orderId, createdAt: new Date(), status: 'PI_ISSUED' });
     const saved = await order.save();
 
     this.auditService.log({
@@ -39,6 +42,7 @@ export class OrdersService {
   }
 
   async createFromQuote(quote: any, buyerId: string) {
+    this.logger.log(`Creating order from quote: ${quote.quoteId} for buyer: ${buyerId}`);
     const rfq = await this.rfqService.findByIdOrFail(quote.rfqId);
     const buyerOrg = await this.orgService.getOrganization(buyerId);
 
@@ -81,7 +85,8 @@ export class OrdersService {
       deliveryCity: 'N/A',
       deliveryState: 'N/A',
       deliveryBy: deliveryDate,
-      status: 'PAYMENT_PENDING',
+      logisticsPreference: rfq.logisticsPreference || 'PLATFORM_3PL',
+      status: 'PI_ISSUED',
       lifecycle: { confirmedAt: new Date(), paymentPendingAt: new Date() },
     });
 
@@ -94,8 +99,8 @@ export class OrdersService {
       entityId: saved._id as any,
       entityIdStr: saved.orderId,
       actorId: buyerId,
-      afterState: { orderId: saved.orderId, status: 'PAYMENT_PENDING', grandTotal },
-      description: `Order ${saved.orderId} created from Quote ${quote.quoteId} by buyer ${buyerOrg.legalName}`,
+      afterState: { orderId: saved.orderId, status: 'PI_ISSUED', grandTotal },
+      description: `Order ${saved.orderId} created from Quote ${quote.quoteId} by buyer ${buyerOrg.legalName}. Status: PI_ISSUED.`,
     });
 
     return saved;
@@ -115,7 +120,14 @@ export class OrdersService {
     return order;
   }
 
+  async findByOrderIdOrFail(orderId: string) {
+    const order = await this.orderModel.findOne({ orderId });
+    if (!order) throw new NotFoundException(`Order ${orderId} not found`);
+    return order;
+  }
+
   async updateStatus(id: string, status: string) {
+    this.logger.log(`Updating order status for ID: ${id} to ${status}`);
     const order = await this.orderModel.findByIdAndUpdate(id, { status }, { new: true });
     if (!order) throw new NotFoundException('Order not found');
 
@@ -207,10 +219,16 @@ export class OrdersService {
     order.status = 'COMPLETED';
     order.lifecycle.completedAt = new Date();
 
+    // Mark settlement timer as completed
+    if (order.payoutTimer) {
+      order.payoutTimer.status = 'COMPLETED';
+      order.payoutTimer.remainingMs = 0;
+    }
+
     try {
       await this.paymentsService.releaseStage2(orderId);
     } catch (err) {
-      console.warn('Stage 2 escrow release failed:', err.message);
+      this.logger.warn(`Stage 2 escrow release failed for order ${orderId}: ${err.message}`);
     }
 
     await order.save();
@@ -240,7 +258,7 @@ export class OrdersService {
     try {
       await this.paymentsService.holdStage2(orderId);
     } catch (err) {
-      console.warn('Stage 2 escrow hold failed:', err.message);
+      this.logger.warn(`Stage 2 escrow hold failed for order ${orderId}: ${err.message}`);
     }
 
     const dispute = await this.disputesService.raise(buyerId, {
@@ -255,6 +273,18 @@ export class OrdersService {
 
     order.disputeIds.push(dispute._id as any);
     order.lifecycle.disputedAt = new Date();
+    
+    // PAUSE the settlement timer
+    if (order.payoutTimer && order.payoutTimer.status === 'RUNNING') {
+      const now = new Date();
+      if (order.payoutTimer.lastTickedAt) {
+        const elapsed = now.getTime() - new Date(order.payoutTimer.lastTickedAt).getTime();
+        order.payoutTimer.remainingMs = Math.max(0, order.payoutTimer.remainingMs - elapsed);
+      }
+      order.payoutTimer.status = 'PAUSED';
+      order.payoutTimer.lastTickedAt = now;
+    }
+
     await order.save();
 
     this.auditService.log({
@@ -272,6 +302,72 @@ export class OrdersService {
     return { order, dispute };
   }
 
+  async confirmProforma(orderId: string, buyerId: string) {
+    this.logger.log(`Confirming proforma for order: ${orderId} by buyer: ${buyerId}`);
+    const order = await this.orderModel.findById(orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.buyerId.toString() !== buyerId) throw new BadRequestException('Not your order');
+    
+    if (order.status !== 'PI_ISSUED') {
+      throw new BadRequestException(`Order is in ${order.status} status, cannot confirm Proforma`);
+    }
+
+    const prevStatus = order.status;
+    order.status = 'PAYMENT_PENDING';
+    order.lifecycle.confirmedAt = new Date();
+    order.lifecycle.paymentPendingAt = new Date();
+    const saved = await order.save();
+
+    this.auditService.log({
+      action: 'ORDER_PI_CONFIRMED',
+      module: 'ORDER',
+      entityType: 'ORDER',
+      entityId: saved._id as any,
+      entityIdStr: saved.orderId,
+      actorId: buyerId,
+      beforeState: { status: prevStatus },
+      afterState: { status: 'PAYMENT_PENDING' },
+      description: `Proforma Invoice confirmed for Order ${saved.orderId} by buyer. Moving to payment.`,
+    });
+
+    return saved;
+  }
+
   async getDocuments(id: string) { return {}; }
   async uploadDocument(id: string, type: string, body: any) { return {}; }
+
+  async findAllPendingSettlement() {
+    return this.orderModel.find({
+      status: 'DELIVERED',
+      'payoutTimer.status': 'RUNNING'
+    }).exec();
+  }
+
+  async initiateSettlementTimer(orderId: string) {
+    const order = await this.orderModel.findById(orderId);
+    if (!order) return;
+
+    this.logger.log(`Initiating 48h settlement timer for order: ${orderId}`);
+    
+    order.status = 'DELIVERED';
+    order.lifecycle.deliveredAt = new Date();
+    
+    order.payoutTimer = {
+      status: 'RUNNING',
+      remainingMs: 172800000, // 48 hours
+      lastTickedAt: new Date(),
+    };
+
+    await order.save();
+
+    this.auditService.log({
+      action: 'SETTLEMENT_TIMER_STARTED',
+      module: 'ORDER',
+      entityType: 'ORDER',
+      entityId: order._id as any,
+      entityIdStr: order.orderId,
+      afterState: { status: 'RUNNING', remainingMs: 172800000 },
+      description: `48h Settlement Timer started for Order ${order.orderId}`,
+    });
+  }
 }

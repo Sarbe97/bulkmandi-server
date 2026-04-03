@@ -2,6 +2,7 @@ import { OrganizationsService } from '@modules/organizations/organizations.servi
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { AuthResponseDto, LoginDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -12,17 +13,20 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly orgService: OrganizationsService,
+    private readonly logger: CustomLoggerService,
   ) { }
 
   @Post('register')
   @ApiResponse({ status: 201, type: AuthResponseDto })
   async register(@Body() registerDto: any) {
+    this.logger.log(`Auth register request received for email: ${registerDto.email}`);
     return this.authService.register(registerDto);
   }
 
   @Post('login')
   @ApiResponse({ status: 200, type: AuthResponseDto })
   async login(@Body() dto: LoginDto): Promise<AuthResponseDto> {
+    this.logger.log(`Auth login request received for email: ${dto.email}`);
     return this.authService.login(dto);
   }
 

@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AuditService } from '../audit/audit.service';
@@ -13,9 +14,11 @@ export class PaymentsService {
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     private readonly auditService: AuditService,
+    private readonly logger: CustomLoggerService,
   ) {}
 
   async create(orgId: string, dto: CreatePaymentDto) {
+    this.logger.log(`Initiating payment for order: ${dto.orderId} by buyer: ${orgId}`);
     const order = await this.orderModel.findById(dto.orderId);
     if (!order) throw new NotFoundException('Order not found');
     if (order.buyerId.toString() !== orgId) throw new BadRequestException('This order does not belong to you');
@@ -102,6 +105,7 @@ export class PaymentsService {
   }
 
   async adminVerifyPayment(paymentId: string, adminId: string) {
+    this.logger.log(`Admin ${adminId} verifying payment: ${paymentId}`);
     const payment = await this.paymentModel.findOne({ paymentId });
     if (!payment) throw new NotFoundException('Payment record not found');
     
@@ -134,6 +138,7 @@ export class PaymentsService {
   }
 
   async adminRejectPayment(paymentId: string, adminId: string, reason: string) {
+    this.logger.log(`Admin ${adminId} rejecting payment: ${paymentId}. Reason: ${reason}`);
     const payment = await this.paymentModel.findOne({ paymentId });
     if (!payment) throw new NotFoundException('Payment record not found');
     

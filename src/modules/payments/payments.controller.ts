@@ -16,13 +16,17 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { VerifyUtrDto } from './dto/verify-utr.dto';
 import { PaymentsService } from './payments.service';
 import { KycGuard } from 'src/common/guards/kyc.guard';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 
 @ApiTags('Payments')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('payments')
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly logger: CustomLoggerService,
+  ) {}
 
   @ApiOperation({ summary: 'Initiate payment for order (Buyer only)' })
   @Roles(UserRole.BUYER)
@@ -32,6 +36,7 @@ export class PaymentsController {
     @CurrentUser() user: any,
     @Body() createPaymentDto: CreatePaymentDto,
   ) {
+    this.logger.log(`Payment initiation request from buyer: ${user.organizationId} for order: ${createPaymentDto.orderId}`);
     return this.paymentsService.create(user.organizationId, createPaymentDto);
   }
 
@@ -86,6 +91,7 @@ export class PaymentsController {
     @Param('id') id: string,
     @Body() body: { reason: string },
   ) {
+    this.logger.log(`Admin ${user.id} requesting escrow release for payment: ${id}`);
     return this.paymentsService.releaseEscrow(id, user.id, body.reason);
   }
 

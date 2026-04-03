@@ -1,5 +1,6 @@
-import { ConflictException, Injectable, Logger, OnModuleInit, UnauthorizedException } from "@nestjs/common";
+import { ConflictException, Injectable, OnModuleInit, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { CustomLoggerService } from "src/core/logger/custom.logger.service";
 import { JwtService } from "@nestjs/jwt";
 import { InjectModel } from "@nestjs/mongoose";
 import * as bcrypt from "bcrypt";
@@ -12,7 +13,6 @@ import { User, UserDocument } from "../users/schemas/user.schema";
 
 @Injectable()
 export class AuthService implements OnModuleInit {
-  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     @InjectModel(User.name)
@@ -24,6 +24,7 @@ export class AuthService implements OnModuleInit {
     private idGenerator: IdGeneratorService,
     private configService: ConfigService,
     private readonly auditService: AuditService,
+    private readonly logger: CustomLoggerService,
   ) { }
 
   async onModuleInit() {
@@ -153,13 +154,14 @@ export class AuthService implements OnModuleInit {
       actorId: user._id,
       userIp: loginDto.ip,
       afterState: { email: user.email, role: user.role },
-      description: `User ${user.email} (${user.role}) logged in`,
     });
 
+    this.logger.info(`User ${user.email} (${user.role}) logged in successfully`, { userId: user._id, role: user.role });
     return response;
   }
 
   async register(registerDto: any) {
+    this.logger.info(`Registration attempt for email: ${registerDto.email}`, { email: registerDto.email, role: registerDto.role });
     const { email, password, mobile, role, firstName, lastName } = registerDto;
 
     // Prevent admin registration via public API

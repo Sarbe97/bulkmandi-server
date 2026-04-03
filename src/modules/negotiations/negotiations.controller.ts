@@ -17,19 +17,24 @@ import { KycGuard } from 'src/common/guards/kyc.guard';
 import { NegotiationsService } from './negotiations.service';
 import { CreateNegotiationDto } from './dto/create-negotiation.dto';
 import { RespondNegotiationDto } from './dto/respond-negotiation.dto';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 
 @ApiTags('Negotiations')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('negotiations')
 export class NegotiationsController {
-  constructor(private readonly negotiationsService: NegotiationsService) {}
+  constructor(
+    private readonly negotiationsService: NegotiationsService,
+    private readonly logger: CustomLoggerService,
+  ) {}
 
   @ApiOperation({ summary: 'Initiate a negotiation (Buyer only)' })
   @Roles(UserRole.BUYER)
   @UseGuards(KycGuard)
   @Post()
   async initiateNegotiation(@CurrentUser() user: any, @Body() dto: CreateNegotiationDto) {
+    this.logger.log(`Negotiation initiation request for quote: ${dto.quoteId} from buyer: ${user.organizationId}`);
     return this.negotiationsService.initiate(user.organizationId, dto);
   }
 

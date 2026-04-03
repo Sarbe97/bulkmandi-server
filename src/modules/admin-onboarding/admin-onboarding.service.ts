@@ -1,4 +1,5 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Organization, OrganizationDocument } from '../organizations/schemas/organization.schema';
@@ -14,8 +15,6 @@ const csv = require('csv-parser');
 
 @Injectable()
 export class AdminOnboardingService {
-  private readonly logger = new Logger(AdminOnboardingService.name);
-
   constructor(
     @InjectModel(Organization.name) private organizationModel: Model<OrganizationDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
@@ -23,6 +22,7 @@ export class AdminOnboardingService {
     private authService: AuthService,
     private preferencesService: PreferencesService,
     private idGenerator: IdGeneratorService,
+    private readonly logger: CustomLoggerService,
   ) { }
 
   /**
@@ -35,7 +35,7 @@ export class AdminOnboardingService {
   async onboardSingleUser(dto: FastTrackOnboardDto): Promise<{ user: User; tempPassword: string }> {
     const { user: userDto, organization: orgDto } = dto;
 
-    this.logger.log(`Starting Fast-Track onboarding for ${userDto.email}`);
+    this.logger.log(`Starting Fast-Track onboarding for email: ${userDto.email}, org: ${orgDto.legalName}`);
 
     // ------------- STEP 0: UNIQUENESS PRE-CHECKS -------------
     const existingOrg = await this.organizationModel.findOne({
@@ -177,7 +177,7 @@ export class AdminOnboardingService {
       const errors: any[] = [];
       const stream = Readable.from(fileBuffer);
 
-      this.logger.log('Starting bulk CSV stream parsing...');
+      this.logger.log(`Starting bulk CSV processing for role: ${assignedRole}`);
 
       stream
         .pipe(csv())

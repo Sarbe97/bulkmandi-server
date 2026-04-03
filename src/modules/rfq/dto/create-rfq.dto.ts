@@ -44,6 +44,11 @@ export class CreateRfqDto {
 
   @IsString()
   @IsNotEmpty()
+  @IsEnum(['SELF_PICKUP', 'SELLER_MANAGED', 'PLATFORM_3PL'])
+  logisticsPreference: string;
+
+  @IsString()
+  @IsNotEmpty()
   buyerOrgName: string;
 
   @IsString()

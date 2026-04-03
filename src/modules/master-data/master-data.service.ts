@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { InjectModel, InjectConnection } from '@nestjs/mongoose';
 import { Model, Connection } from 'mongoose';
 import { MasterData, MasterDataDocument } from './schema/master-data.schema';
@@ -14,7 +15,6 @@ import { UsersService } from '../users/services/users.service';
 
 @Injectable()
 export class MasterDataService implements OnModuleInit {
-  private readonly logger = new Logger(MasterDataService.name);
 
   constructor(
     @InjectModel(MasterData.name) private masterDataModel: Model<MasterDataDocument>,
@@ -22,6 +22,7 @@ export class MasterDataService implements OnModuleInit {
     @InjectModel(CatalogListing.name) private catalogListingModel: Model<CatalogListingDocument>,
     @InjectConnection() private connection: Connection,
     private readonly usersService: UsersService,
+    private readonly logger: CustomLoggerService,
   ) { }
 
   // ══════════════════════════════════════════
@@ -50,7 +51,29 @@ export class MasterDataService implements OnModuleInit {
         { name: 'Plates', grades: ['Mild Steel', 'High Strength', 'Stainless Steel'] },
         { name: 'Structural', grades: ['IPN', 'IPE', 'ISMB', 'ISJB'] },
       ];
-      await this.masterDataModel.create({ fleetTypes: defaultFleets, productCategories: defaultCategories });
+      const defaultEscrow = {
+        beneficiaryName: process.env.ESCROW_BENEFICIARY || 'BulkMandi Escrow Services',
+        bankName: process.env.ESCROW_BANK || 'ICICI Bank',
+        accountNumber: process.env.ESCROW_ACCOUNT_NO || '55770011223344',
+        ifscCode: process.env.ESCROW_IFSC || 'ICIC0000001',
+        branchName: process.env.ESCROW_BRANCH || 'Corporate Branch, Mumbai'
+      };
+      await this.masterDataModel.create({ 
+        fleetTypes: defaultFleets, 
+        productCategories: defaultCategories,
+        escrowAccount: defaultEscrow
+      });
+    } else if (!exists.escrowAccount || !exists.escrowAccount.accountNumber || exists.escrowAccount.accountNumber === '000000000000') {
+      // Update existing if escrow is missing or default from schema
+      const defaultEscrow = {
+        beneficiaryName: process.env.ESCROW_BENEFICIARY || 'BulkMandi Escrow Services',
+        bankName: process.env.ESCROW_BANK || 'ICICI Bank',
+        accountNumber: process.env.ESCROW_ACCOUNT_NO || '55770011223344',
+        ifscCode: process.env.ESCROW_IFSC || 'ICIC0000001',
+        branchName: process.env.ESCROW_BRANCH || 'Corporate Branch, Mumbai'
+      };
+      exists.escrowAccount = defaultEscrow as any;
+      await exists.save();
     }
   }
 
@@ -139,6 +162,25 @@ export class MasterDataService implements OnModuleInit {
   async getProductCategories() {
     const data = await this.masterDataModel.findOne().select('productCategories');
     return data ? data.productCategories : [];
+  }
+
+  // ══════════════════════════════════════════
+  //  ESCROW ACCOUNT
+  // ══════════════════════════════════════════
+
+  async getEscrowAccount() {
+    const data = await this.masterDataModel.findOne().select('escrowAccount');
+    return data?.escrowAccount;
+  }
+
+  async updateEscrowAccount(dto: any) {
+    const data = await this.masterDataModel.findOne();
+    if (!data) {
+      return this.masterDataModel.create({ escrowAccount: dto });
+    }
+    data.escrowAccount = { ...data.escrowAccount, ...dto };
+    await data.save();
+    return data.escrowAccount;
   }
 
   // ══════════════════════════════════════════
@@ -588,6 +630,10 @@ export class MasterDataService implements OnModuleInit {
       'sellerpreferences',
       'logisticpreferences',
       'auditlogs',
+      'kycrecords',
+      'documents',
+      'negotiations',
+      'priceindices',
     ];
 
     // ── Collections to NEVER touch (Static Seeding Data) ─────────────────────

@@ -31,6 +31,7 @@ import { AdminOnboardingModule } from './modules/admin-onboarding/admin-onboardi
 import { DevModule } from './modules/dev/dev.module';
 import { OtpModule } from './modules/otp/otp.module';
 import { NegotiationsModule } from './modules/negotiations/negotiations.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { NegotiationsModule } from './modules/negotiations/negotiations.module';
     AdminOnboardingModule,
     OtpModule,
     NegotiationsModule,
+    ReportsModule,
 
   ],
   controllers: [AppController],

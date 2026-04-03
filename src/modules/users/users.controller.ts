@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Delete, UseGuards, ConflictException, ForbiddenException, Res } from '@nestjs/common';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { MongoIdValidationPipe } from '../../common/pipes/mongo-id-validation.pipe';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -11,12 +12,16 @@ import { AdminGuard } from '../../common/guards/admin.guard';
 @UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly logger: CustomLoggerService,
+  ) { }
 
   @ApiOperation({ summary: 'Export all users to CSV' })
   @UseGuards(AdminGuard)
   @Get('export-csv')
   async exportCsv(@Res() res: any) {
+    this.logger.log('User export-csv request received');
     const csv = await this.usersService.downloadUsersCsv();
     const filename = `users_export_${new Date().toISOString().split('T')[0]}.csv`;
     
@@ -69,13 +74,14 @@ export class UsersController {
   @ApiOperation({ summary: 'Get user profile' })
   @Get('profile')
   async getProfile(@CurrentUser() user: any) {
-    console.log(" user profile", user);
+    this.logger.debug(`Fetching profile for user: ${user.email}`, { userId: user.userId });
     return this.usersService.findById(user.userId);
   }
 
   @Patch('profile')
   @ApiOperation({ summary: 'Update user profile' })
   async updateProfile(@CurrentUser() user: any, @Body() body: any) {
+    this.logger.log(`Update profile request for user: ${user.email}`);
     try {
       const { firstName, lastName, mobile } = body;
       const updateData = { firstName, lastName, mobile };

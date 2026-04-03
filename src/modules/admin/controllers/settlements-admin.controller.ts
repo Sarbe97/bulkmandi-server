@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards, Request } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UserRole } from 'src/common/enums';
 import { CreateBatchDto } from 'src/modules/settlements/dto/create-batch.dto';
@@ -31,5 +31,23 @@ export class SettlementsAdminController {
   @Post('batches/:id/run-payouts')
   async runPayouts(@Param('id') id: string, @Body() dto: RunPayoutsDto) {
     return this.settlementsAdminService.runPayouts(id);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Post('process-queue')
+  async processQueue(@Request() req: any) {
+    return this.settlementsAdminService.processQueue(req.user.id);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Post('orders/:id/force-release')
+  async forceRelease(@Param('id') id: string, @Request() req: any) {
+    return this.settlementsAdminService.forceRelease(id, req.user.id);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Post('orders/:id/extend-buffer')
+  async extendBuffer(@Param('id') id: string, @Body() body: { hours: number }, @Request() req: any) {
+    return this.settlementsAdminService.extendBuffer(id, body.hours, req.user.id);
   }
 }

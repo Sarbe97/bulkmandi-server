@@ -1337,6 +1337,24 @@
       }
     },
     "/api/v1/preferences/buyer": {
+      "get": {
+        "operationId": "PreferencesController_getBuyerPreferences",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get settings for current organization (Buyer Alias)",
+        "tags": [
+          "Preferences (Operational Config)"
+        ]
+      },
       "put": {
         "operationId": "PreferencesController_updateBuyer",
         "parameters": [],
@@ -1367,6 +1385,24 @@
       }
     },
     "/api/v1/preferences/seller": {
+      "get": {
+        "operationId": "PreferencesController_getSellerPreferences",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get settings for current organization (Seller Alias)",
+        "tags": [
+          "Preferences (Operational Config)"
+        ]
+      },
       "put": {
         "operationId": "PreferencesController_updateSeller",
         "parameters": [],
@@ -1397,6 +1433,24 @@
       }
     },
     "/api/v1/preferences/logistic": {
+      "get": {
+        "operationId": "PreferencesController_getLogisticPreferences",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get settings for current organization (Logistic Alias)",
+        "tags": [
+          "Preferences (Operational Config)"
+        ]
+      },
       "put": {
         "operationId": "PreferencesController_updateLogistic",
         "parameters": [],
@@ -2540,6 +2594,35 @@
         ]
       }
     },
+    "/api/v1/orders/{id}/confirm-proforma": {
+      "put": {
+        "operationId": "OrdersController_confirmProforma",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirm Proforma Invoice (Buyer)",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
     "/api/v1/orders/{id}/dispute-delivery": {
       "put": {
         "operationId": "OrdersController_disputeDelivery",
@@ -3086,6 +3169,49 @@
         "tags": [
           "Shipments"
         ]
+      },
+      "get": {
+        "operationId": "ShipmentsController_getShipments",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all shipments (Admin only)",
+        "tags": [
+          "Shipments"
+        ]
       }
     },
     "/api/v1/shipments/me": {
@@ -3191,7 +3317,7 @@
     },
     "/api/v1/shipments/{id}/milestones": {
       "post": {
-        "operationId": "ShipmentsController_updateMilestone",
+        "operationId": "ShipmentsController_addMilestone",
         "parameters": [
           {
             "name": "id",
@@ -3222,7 +3348,7 @@
             "bearer": []
           }
         ],
-        "summary": "Update milestone (3PL, Seller)",
+        "summary": "Add tracking milestone (Carrier/Seller)",
         "tags": [
           "Shipments"
         ]
@@ -3267,6 +3393,109 @@
         ]
       }
     },
+    "/api/v1/shipments/{id}/documents/upload": {
+      "post": {
+        "operationId": "ShipmentsController_uploadDocumentMultipart",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload document multipart (Seller/3PL)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/{id}/documents/{docId}/download": {
+      "get": {
+        "operationId": "ShipmentsController_downloadDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download shipment document (Secure)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/{id}/documents/{docId}": {
+      "delete": {
+        "operationId": "ShipmentsController_deleteDocument",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "docId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete document (Seller/3PL)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
     "/api/v1/shipments/{id}/pod": {
       "post": {
         "operationId": "ShipmentsController_uploadPOD",
@@ -3290,7 +3519,7 @@
             "bearer": []
           }
         ],
-        "summary": "Upload POD (Logistic)",
+        "summary": "Upload POD (Logistic/Seller)",
         "tags": [
           "Shipments"
         ]
@@ -3386,6 +3615,35 @@
           }
         ],
         "summary": "Mark shipment as delivered (Logistic/Seller/Admin)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/{id}/dispatch": {
+      "put": {
+        "operationId": "ShipmentsController_confirmDispatch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Confirm dispatch (Seller/Logistic)",
         "tags": [
           "Shipments"
         ]
@@ -3507,6 +3765,34 @@
             "description": ""
           }
         },
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/escrow-account": {
+      "get": {
+        "operationId": "MasterDataController_getEscrowAccount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get Platform Escrow Account details",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "post": {
+        "operationId": "MasterDataController_updateEscrowAccount",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Update Platform Escrow Account details (Admin)",
         "tags": [
           "Master Data"
         ]
@@ -4722,6 +5008,64 @@
         "summary": "Get negotiation by ID",
         "tags": [
           "Negotiations"
+        ]
+      }
+    },
+    "/api/v1/reports/shipment-manifest/{shipmentId}": {
+      "get": {
+        "operationId": "ReportsController_downloadShipmentManifest",
+        "parameters": [
+          {
+            "name": "shipmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download shipment manifest PDF",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
+    "/api/v1/reports/proforma-invoice/{orderId}": {
+      "get": {
+        "operationId": "ReportsController_downloadProformaInvoice",
+        "parameters": [
+          {
+            "name": "orderId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Download Proforma Invoice PDF",
+        "tags": [
+          "Reports"
         ]
       }
     }

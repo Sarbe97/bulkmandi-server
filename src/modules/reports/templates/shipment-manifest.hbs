@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shipment Manifest — {{shipmentId}}</title>
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       DESIGN TOKENS
+       ═══════════════════════════════════════════════════════════ */
+    :root {
+      --clr-primary: #1e40af;
+      --clr-primary-light: #3b82f6;
+      --clr-dark: #0f172a;
+      --clr-mid: #475569;
+      --clr-light: #94a3b8;
+      --clr-border: #e2e8f0;
+      --clr-bg: #f8fafc;
+      --clr-white: #ffffff;
+      --clr-success: #16a34a;
+      --clr-danger: #dc2626;
+      --radius: 6px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       RESET & BASE
+       ═══════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 12px;
+      color: var(--clr-dark);
+      background: var(--clr-white);
+      line-height: 1.5;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      width: 100%;
+      padding: 0;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       HEADER
+       ═══════════════════════════════════════════════════════════ */
+    .header {
+      background: var(--clr-primary);
+      color: var(--clr-white);
+      padding: 20px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .header .brand {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+    .header .brand-sub {
+      font-size: 9px;
+      color: #93c5fd;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .header .meta {
+      text-align: right;
+      font-size: 9px;
+      color: #bfdbfe;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       TITLE BAR
+       ═══════════════════════════════════════════════════════════ */
+    .title-bar {
+      text-align: center;
+      padding: 16px 0 12px;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--clr-dark);
+      border-bottom: 1px solid var(--clr-border);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       SECTION
+       ═══════════════════════════════════════════════════════════ */
+    .section {
+      padding: 16px 28px 8px;
+    }
+    .section-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--clr-dark);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 10px;
+      padding-left: 12px;
+      border-left: 3px solid var(--clr-primary-light);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       INFO GRID (2-col key-value pairs)
+       ═══════════════════════════════════════════════════════════ */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 24px;
+    }
+    .info-item .label {
+      font-size: 9px;
+      color: var(--clr-light);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .info-item .value {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--clr-dark);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       PARTY BOXES (side-by-side)
+       ═══════════════════════════════════════════════════════════ */
+    .party-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .party-box {
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+    }
+    .party-box .party-label {
+      font-size: 9px;
+      color: var(--clr-light);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .party-box .party-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--clr-dark);
+      margin-top: 2px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       ROUTE
+       ═══════════════════════════════════════════════════════════ */
+    .route-block {
+      display: flex;
+      align-items: stretch;
+      gap: 16px;
+    }
+    .route-node {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius);
+    }
+    .route-node .route-label {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .route-node .route-label.from { color: var(--clr-primary-light); }
+    .route-node .route-label.to { color: var(--clr-success); }
+    .route-node .route-address {
+      font-size: 12px;
+      color: var(--clr-dark);
+      font-weight: 600;
+    }
+    .route-arrow {
+      display: flex;
+      align-items: center;
+      font-size: 24px;
+      color: var(--clr-light);
+      font-weight: 300;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       TABLES
+       ═══════════════════════════════════════════════════════════ */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    table th {
+      background: var(--clr-primary);
+      color: var(--clr-white);
+      text-align: left;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 8px 10px;
+    }
+    table th:first-child { border-radius: var(--radius) 0 0 0; }
+    table th:last-child  { border-radius: 0 var(--radius) 0 0; }
+    table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--clr-border);
+      color: var(--clr-dark);
+    }
+    table tr:last-child td { border-bottom: none; }
+    table tr:nth-child(even) td { background: var(--clr-bg); }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .badge-yes { background: #dcfce7; color: var(--clr-success); }
+    .badge-no  { background: #fee2e2; color: var(--clr-danger); }
+
+    /* ═══════════════════════════════════════════════════════════
+       FOOTER
+       ═══════════════════════════════════════════════════════════ */
+    .footer {
+      margin-top: 24px;
+      padding: 12px 28px;
+      border-top: 1px solid var(--clr-border);
+      display: flex;
+      justify-content: space-between;
+      font-size: 8px;
+      color: var(--clr-light);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- ════════════════════ HEADER ════════════════════ -->
+    <div class="header">
+      <div>
+        <div class="brand">BULKMANDI</div>
+        <div class="brand-sub">B2B Marketplace Platform</div>
+      </div>
+      <div class="meta">
+        Generated: {{generatedDate}}<br/>
+        at {{generatedTime}}
+      </div>
+    </div>
+
+    <!-- ════════════════════ TITLE ════════════════════ -->
+    <div class="title-bar">SHIPMENT MANIFEST</div>
+
+    <!-- ════════════════════ SHIPMENT INFO ════════════════════ -->
+    <div class="section">
+      <div class="section-title">Shipment Information</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="label">Shipment ID</div>
+          <div class="value">{{shipmentId}}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Status</div>
+          <div class="value">{{status}}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Order Reference</div>
+          <div class="value">{{orderId}}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Created</div>
+          <div class="value">{{createdAt}}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════ PARTIES ════════════════════ -->
+    <div class="section">
+      <div class="section-title">Parties</div>
+      <div class="party-row">
+        <div class="party-box">
+          <div class="party-label">Consignor (Seller)</div>
+          <div class="party-name">{{sellerOrgName}}</div>
+        </div>
+        <div class="party-box">
+          <div class="party-label">Consignee (Buyer)</div>
+          <div class="party-name">{{buyerOrgName}}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════ CARGO ════════════════════ -->
+    <div class="section">
+      <div class="section-title">Cargo Details</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Grade</th>
+            <th>Quantity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{product.category}}</td>
+            <td>{{product.grade}}</td>
+            <td>{{product.quantityMT}} MT</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ════════════════════ VEHICLE & DRIVER ════════════════════ -->
+    <div class="section">
+      <div class="section-title">Vehicle &amp; Driver</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="label">Vehicle Number</div>
+          <div class="value">{{vehicle.vehicleNumber}}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Vehicle Type</div>
+          <div class="value">{{vehicle.vehicleType}}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Driver Name</div>
+          <div class="value">{{vehicle.driverName}}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Driver Mobile</div>
+          <div class="value">{{vehicle.driverMobile}}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════ ROUTE ════════════════════ -->
+    <div class="section">
+      <div class="section-title">Route</div>
+      <div class="route-block">
+        <div class="route-node">
+          <div class="route-label from">From</div>
+          <div class="route-address">{{pickup.location}}{{#if pickup.pin}}, PIN {{pickup.pin}}{{/if}}</div>
+        </div>
+        <div class="route-arrow">→</div>
+        <div class="route-node">
+          <div class="route-label to">To</div>
+          <div class="route-address">{{delivery.fullAddress}}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════ STATUS TIMELINE ════════════════════ -->
+    {{#if statusTimeline.length}}
+    <div class="section">
+      <div class="section-title">Status Timeline</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40px">#</th>
+            <th>Status</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each statusTimeline}}
+          <tr>
+            <td>{{this.index}}</td>
+            <td>{{this.status}}</td>
+            <td>{{this.timestamp}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    {{/if}}
+
+    <!-- ════════════════════ DOCUMENTS ════════════════════ -->
+    {{#if documents.length}}
+    <div class="section">
+      <div class="section-title">Documents</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40px">#</th>
+            <th>Type</th>
+            <th>Uploaded</th>
+            <th>Verified</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each documents}}
+          <tr>
+            <td>{{this.index}}</td>
+            <td>{{this.docType}}</td>
+            <td>{{this.uploadedAt}}</td>
+            <td>
+              {{#if this.verified}}
+                <span class="badge badge-yes">✓ Yes</span>
+              {{else}}
+                <span class="badge badge-no">✗ No</span>
+              {{/if}}
+            </td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+    {{/if}}
+
+    <!-- ════════════════════ FOOTER ════════════════════ -->
+    <div class="footer">
+      <span>Generated by BulkMandi Platform — Confidential</span>
+      <span>{{generatedDate}}</span>
+    </div>
+
+  </div>
+</body>
+</html>

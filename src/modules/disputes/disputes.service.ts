@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { RaiseDisputeDto } from './dto/raise-dispute.dto';
@@ -8,10 +9,12 @@ import { Dispute, DisputeDocument } from './schemas/dispute.schema';
 @Injectable()
 export class DisputesService {
   constructor(
-    @InjectModel(Dispute.name) private disputeModel: Model<DisputeDocument>
+    @InjectModel(Dispute.name) private disputeModel: Model<DisputeDocument>,
+    private readonly logger: CustomLoggerService,
   ) {}
 
   async raise(orgId: string, dto: RaiseDisputeDto) {
+    this.logger.log(`Raising dispute for order: ${dto.orderId} by org: ${orgId}`);
     const disputeId = `DSP-${Date.now()}`;
     const dispute = new this.disputeModel({
       ...dto,

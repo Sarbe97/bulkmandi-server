@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proforma Invoice — {{orderId}}</title>
+  <style>
+    :root {
+      --clr-primary: #0f172a;
+      --clr-accent: #3b82f6;
+      --clr-dark: #1e293b;
+      --clr-mid: #64748b;
+      --clr-light: #94a3b8;
+      --clr-border: #e2e8f0;
+      --clr-bg: #f8fafc;
+      --clr-white: #ffffff;
+      --radius: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      font-size: 11px;
+      color: var(--clr-dark);
+      background: var(--clr-white);
+      line-height: 1.4;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page { width: 100%; padding: 40px; }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 40px;
+      border-bottom: 2px solid var(--clr-primary);
+      padding-bottom: 20px;
+    }
+    .brand { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; color: var(--clr-primary); }
+    .brand span { color: var(--clr-accent); }
+    .doc-type { text-align: right; }
+    .doc-type h1 { font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--clr-primary); }
+    .doc-type p { font-size: 10px; color: var(--clr-mid); font-weight: 600; margin-top: 4px; }
+
+    /* Metadata Grid */
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+      background: var(--clr-bg);
+      padding: 15px;
+      border-radius: var(--radius);
+    }
+    .meta-item label { display: block; font-size: 8px; font-weight: 800; color: var(--clr-light); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .meta-item span { font-size: 11px; font-weight: 700; color: var(--clr-dark); }
+
+    /* Addresses */
+    .address-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+    .address-box h3 { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--clr-accent); margin-bottom: 10px; border-bottom: 1px solid var(--clr-border); padding-bottom: 5px; }
+    .address-box .name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .address-box .details { color: var(--clr-mid); font-size: 10px; line-height: 1.6; white-space: pre-line; }
+    .address-box .gst { margin-top: 8px; font-weight: 700; color: var(--clr-dark); font-size: 10px; }
+
+    /* Items Table */
+    .items-section { margin-bottom: 30px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: var(--clr-primary); color: var(--clr-white); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 10px; text-align: left; }
+    td { padding: 12px 10px; border-bottom: 1px solid var(--clr-border); font-size: 11px; vertical-align: top; }
+    .item-desc { font-weight: 700; color: var(--clr-primary); }
+    .item-sub { font-size: 9px; color: var(--clr-mid); margin-top: 4px; }
+
+    /* Totals */
+    .footer-row { display: grid; grid-template-columns: 1.5fr 1fr; gap: 40px; }
+    .bank-box { border: 1px solid var(--clr-border); border-radius: var(--radius); padding: 15px; }
+    .bank-box h4 { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; color: var(--clr-mid); }
+    .bank-detail { margin-bottom: 6px; font-size: 10px; }
+    .bank-detail label { color: var(--clr-light); font-weight: 600; width: 80px; display: inline-block; }
+    .bank-detail span { font-weight: 700; }
+
+    .totals-box { background: var(--clr-bg); border-radius: var(--radius); padding: 15px; }
+    .total-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; }
+    .total-row.grand { margin-top: 10px; padding-top: 10px; border-top: 2px solid var(--clr-border); font-size: 16px; font-weight: 900; color: var(--clr-primary); }
+    .total-row label { color: var(--clr-mid); font-weight: 600; }
+
+    /* Footer Notes */
+    .notes { margin-top: 40px; font-size: 9px; color: var(--clr-light); line-height: 1.6; }
+    .sign-area { margin-top: 60px; display: flex; justify-content: flex-end; }
+    .signature { width: 200px; text-align: center; border-top: 1px solid var(--clr-dark); padding-top: 10px; }
+    .signature p { font-size: 10px; font-weight: 700; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="brand">BULK<span>MANDI</span></div>
+      <div class="doc-type">
+        <h1>Proforma Invoice</h1>
+        <p>Order Reference: {{orderId}}</p>
+      </div>
+    </header>
+
+    <div class="meta-grid">
+      <div class="meta-item">
+        <label>Invoice Date</label>
+        <span>{{date}}</span>
+      </div>
+      <div class="meta-item">
+        <label>Order Date</label>
+        <span>{{orderDate}}</span>
+      </div>
+      <div class="meta-item">
+        <label>Payment Terms</label>
+        <span>Escrow - 80/20</span>
+      </div>
+      <div class="meta-item">
+        <label>Currency</label>
+        <span>{{currency}}</span>
+      </div>
+    </div>
+
+    <div class="address-row">
+      <div class="address-box">
+        <h3>Seller (Consignor)</h3>
+        <div class="name">{{seller.name}}</div>
+        <div class="details">{{seller.address}}</div>
+        <div class="gst">GSTIN: {{seller.gstin}}</div>
+      </div>
+      <div class="address-box">
+        <h3>Buyer (Consignee)</h3>
+        <div class="name">{{buyer.name}}</div>
+        <div class="details">{{buyer.address}}</div>
+        <div class="gst">GSTIN: {{buyer.gstin}}</div>
+      </div>
+    </div>
+
+    <div class="items-section">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 50%">Product Description</th>
+            <th>Quantity</th>
+            <th>Rate / MT</th>
+            <th style="text-align: right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="item-desc">{{product.category}} - {{product.grade}}</div>
+              <div class="item-sub">Specs: {{product.specifications}}</div>
+            </td>
+            <td>{{product.quantityMT}} MT</td>
+            <td>₹{{pricing.pricePerMT}}</td>
+            <td style="text-align: right">₹{{pricing.baseAmount}}</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="item-desc">Logistics & Freight</div>
+              <div class="item-sub">Incoterm: {{incoterm}} | Target: PIN {{deliveryPin}}</div>
+            </td>
+            <td>1 Job</td>
+            <td>₹{{pricing.freightTotal}}</td>
+            <td style="text-align: right">₹{{pricing.freightTotal}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer-row">
+      <div class="bank-box">
+        <h4>Payment Instructions (Escrow)</h4>
+        <div class="bank-detail"><label>Bank Name</label><span>{{escrow.bankName}}</span></div>
+        <div class="bank-detail"><label>A/C Name</label><span>{{escrow.beneficiaryName}}</span></div>
+        <div class="bank-detail"><label>A/C Number</label><span>{{escrow.accountNumber}}</span></div>
+        <div class="bank-detail"><label>IFSC Code</label><span>{{escrow.ifscCode}}</span></div>
+        <div class="bank-detail" style="margin-top: 10px; color: var(--clr-accent); font-weight: 700;">
+          Please mention Order: {{orderId}} in payment remarks.
+        </div>
+      </div>
+
+      <div class="totals-box">
+        <div class="total-row">
+          <label>Taxable Value</label>
+          <span>₹{{pricing.taxableValue}}</span>
+        </div>
+        <div class="total-row">
+          <label>GST ({{pricing.taxRate}}%)</label>
+          <span>₹{{pricing.taxAmount}}</span>
+        </div>
+        <div class="total-row grand">
+          <label>Grand Total</label>
+          <span>₹{{pricing.grandTotal}}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <p><strong>Terms & Conditions:</strong></p>
+      <ul style="padding-left: 15px; margin-top: 5px;">
+        <li>This is a Proforma Invoice, not a Tax Invoice. A final Tax Invoice will be issued upon dispatch.</li>
+        <li>Payment must be made into the BulkMandi Escrow account mentioned above.</li>
+        <li>Material will be released for dispatch only after receipt of 100% payment in Escrow.</li>
+        <li>Escrow release to seller follows the 80/20 rule (80% on dispatch, 20% on delivery acceptance).</li>
+      </ul>
+    </div>
+
+    <div class="sign-area">
+      <div class="signature">
+        <p>Authorized Signatory</p>
+        <span style="font-size: 8px; color: var(--clr-light);">Digitally Generated by BulkMandi</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

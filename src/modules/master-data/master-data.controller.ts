@@ -1,6 +1,7 @@
 import {
   Body, Controller, Delete, Get, Param, Post, Put, Query,
 } from '@nestjs/common';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { MasterDataService } from './master-data.service';
 import {
@@ -11,7 +12,10 @@ import {
 @ApiTags('Master Data')
 @Controller('master-data')
 export class MasterDataController {
-  constructor(private readonly masterDataService: MasterDataService) {}
+  constructor(
+    private readonly masterDataService: MasterDataService,
+    private readonly logger: CustomLoggerService,
+  ) {}
 
   // ══════════════════════════════════════════
   //  LEGACY – Fleet Types & Product Categories
@@ -35,6 +39,19 @@ export class MasterDataController {
   @Get('product-categories')
   async getProductCategories() {
     return this.masterDataService.getProductCategories();
+  }
+
+  @ApiOperation({ summary: 'Get Platform Escrow Account details' })
+  @Get('escrow-account')
+  async getEscrowAccount() {
+    return this.masterDataService.getEscrowAccount();
+  }
+
+  @ApiOperation({ summary: 'Update Platform Escrow Account details (Admin)' })
+  @Post('escrow-account')
+  async updateEscrowAccount(@Body() body: any) {
+    this.logger.log('Updating platform escrow account details');
+    return this.masterDataService.updateEscrowAccount(body);
   }
 
   // ══════════════════════════════════════════
@@ -69,6 +86,7 @@ export class MasterDataController {
   @ApiOperation({ summary: 'Create a new catalog item (Admin)' })
   @Post('catalog-items')
   async createCatalogItem(@Body() dto: CreateCatalogItemDto) {
+    this.logger.log('Creating new catalog item');
     return this.masterDataService.createCatalogItem(dto);
   }
 
@@ -122,6 +140,7 @@ export class MasterDataController {
   @ApiOperation({ summary: 'Create a new listing (Admin)' })
   @Post('catalog-listings')
   async createCatalogListing(@Body() dto: CreateCatalogListingDto) {
+    this.logger.log('Creating new catalog listing');
     return this.masterDataService.createCatalogListing(dto);
   }
 
@@ -163,12 +182,14 @@ export class MasterDataController {
   @ApiOperation({ summary: 'Get catalog data summary (counts)' })
   @Get('catalog-summary')
   async getCatalogSummary() {
+    this.logger.log('Fetching catalog summary');
     return this.masterDataService.getCatalogSummary();
   }
 
   @ApiOperation({ summary: 'Bulk upload catalog items (Admin)' })
   @Post('bulk/catalog-items')
   async bulkUploadCatalogItems(@Body() body: { rows: any[] }) {
+    this.logger.log('Bulk uploading catalog items');
     return this.masterDataService.bulkUploadCatalogItems(body.rows);
   }
 

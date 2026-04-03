@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Put, Query, UseGuards, Request } from "@nestjs/common";
+import { CustomLoggerService } from "src/core/logger/custom.logger.service";
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { AdminGuard } from "../../../common/guards/admin.guard";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
@@ -19,6 +20,7 @@ export class AdminController {
         private readonly rfqService: RfqService,
         private readonly quotesService: QuotesService,
         private readonly paymentsService: PaymentsService,
+        private readonly logger: CustomLoggerService,
     ) { }
 
     @Get("organizations")
@@ -31,6 +33,7 @@ export class AdminController {
         @Query("page") page: number = 1,
         @Query("limit") limit: number = 20,
     ) {
+        this.logger.log(`Admin fetching organizations with filter: role=${role}, kycStatus=${kycStatus}`);
         const filter: any = {};
         if (role) filter.role = role;
         if (kycStatus) filter.kycStatus = kycStatus;
@@ -82,6 +85,7 @@ export class AdminController {
         @Param("id") id: string,
         @Request() req: any,
     ) {
+        this.logger.log(`Admin ${req.user.id} verifying payment: ${id}`);
         return this.paymentsService.adminVerifyPayment(id, req.user.id);
     }
 

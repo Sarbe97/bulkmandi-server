@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Rfq, RfqDocument } from '../rfq/schemas/rfq.schema';
@@ -17,6 +18,7 @@ export class QuotesService {
     @Inject(forwardRef(() => OrdersService)) private ordersService: OrdersService,
     private readonly orgService: OrganizationsService,
     private readonly auditService: AuditService,
+    private readonly logger: CustomLoggerService,
   ) {}
 
   async findByRfqId(rfqId: string) {
@@ -24,6 +26,7 @@ export class QuotesService {
   }
 
   async create(sellerId: string, dto: CreateQuoteDto) {
+    this.logger.log(`Creating new quote for RFQ: ${dto.rfqId} from seller: ${sellerId}`);
     const rfq = await this.rfqModel.findOne({ rfqId: dto.rfqId });
     if (!rfq || rfq.status !== 'OPEN') throw new BadRequestException('RFQ not open for quoting');
 
@@ -108,6 +111,7 @@ export class QuotesService {
   }
 
   async accept(id: string, buyerId: string) {
+    this.logger.log(`Accepting quote: ${id} by buyer: ${buyerId}`);
     const quote = await this.quoteModel.findOne({ quoteId: id });
     if (!quote) throw new NotFoundException('Quote not found');
 

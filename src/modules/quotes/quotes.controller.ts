@@ -16,19 +16,24 @@ import { AcceptQuoteDto } from './dto/accept-quote.dto';
 import { CreateQuoteDto } from './dto/create-quote.dto';
 import { QuotesService } from './quotes.service';
 import { KycGuard } from 'src/common/guards/kyc.guard';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 
 @ApiTags('Quotes')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('quotes')
 export class QuotesController {
-  constructor(private readonly quotesService: QuotesService) { }
+  constructor(
+    private readonly quotesService: QuotesService,
+    private readonly logger: CustomLoggerService,
+  ) { }
 
   @ApiOperation({ summary: 'Submit quote for RFQ (Seller only)' })
   @Roles(UserRole.SELLER)
   @UseGuards(KycGuard)
   @Post()
   async submitQuote(@CurrentUser() user: any, @Body() dto: CreateQuoteDto) {
+    this.logger.log(`Quote submission request from seller: ${user.organizationId} for RFQ: ${dto.rfqId}`);
     return this.quotesService.create(user.organizationId, dto);
   }
 
@@ -72,6 +77,7 @@ export class QuotesController {
     @CurrentUser() user: any,
     @Param('id') id: string,
   ) {
+    this.logger.log(`Quote acceptance request for ID: ${id} from buyer: ${user.organizationId}`);
     return this.quotesService.accept(id, user.organizationId);
   }
 

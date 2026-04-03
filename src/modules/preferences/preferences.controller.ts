@@ -19,6 +19,24 @@ export class PreferencesController {
     return this.preferencesService.getPreferences(user.organizationId, user.role);
   }
 
+  @ApiOperation({ summary: 'Get settings for current organization (Buyer Alias)' })
+  @Get('buyer')
+  async getBuyerPreferences(@CurrentUser() user: any) {
+    return this.getMyPreferences(user);
+  }
+
+  @ApiOperation({ summary: 'Get settings for current organization (Seller Alias)' })
+  @Get('seller')
+  async getSellerPreferences(@CurrentUser() user: any) {
+    return this.getMyPreferences(user);
+  }
+
+  @ApiOperation({ summary: 'Get settings for current organization (Logistic Alias)' })
+  @Get('logistic')
+  async getLogisticPreferences(@CurrentUser() user: any) {
+    return this.getMyPreferences(user);
+  }
+
   @ApiOperation({ summary: 'Upsert operational preferences for a Buyer' })
   @Put('buyer')
   async updateBuyer(@CurrentUser() user: any, @Body() dto: UpdateBuyerPreferenceDto) {

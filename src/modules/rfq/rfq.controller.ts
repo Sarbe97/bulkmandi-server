@@ -34,6 +34,7 @@ export class RfqController {
   @UseGuards(KycGuard)
   @Post()
   async createRFQ(@CurrentUser() user: any, @Body() createRfqDto: CreateRfqDto) {
+    this.logger.log(`RFQ create request from buyer: ${user.organizationId}`);
     return this.rfqService.create(user.organizationId, createRfqDto);
   }
 
@@ -42,6 +43,7 @@ export class RfqController {
   @UseGuards(KycGuard)
   @Put(':id/publish')
   async publishRFQ(@CurrentUser() user: any, @Param('id') id: string, @Body() publishRfqDto: PublishRfqDto) {
+    this.logger.log(`RFQ publish request for ID: ${id}`);
     return this.rfqService.publish(id, user.organizationId);
   }
 
@@ -71,6 +73,7 @@ export class RfqController {
   @ApiOperation({ summary: 'Get RFQ by ID' })
   @Get('detail/:id')
   async getRFQById(@Param('id') id: string, @CurrentUser() user: any) {
+    this.logger.debug(`RFQ detail lookup for ID: ${id}`);
     return this.rfqService.findByIdOrFail(id);
   }
 

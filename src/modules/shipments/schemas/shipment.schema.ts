@@ -39,6 +39,9 @@ export class ShipmentDoc {
   docType!: string; // LORRY_RECEIPT | WEIGHBRIDGE_SLIP | E_WAY_BILL | QC_CERTIFICATE | POD
 
   @Prop()
+  fileName?: string;
+
+  @Prop()
   fileUrl?: string;
 
   @Prop()
@@ -49,6 +52,9 @@ export class ShipmentDoc {
 
   @Prop()
   uploadedBy?: string;
+
+  @Prop()
+  uploadedByRole?: string; // SELLER | LOGISTIC | BUYER | ADMIN
 
   @Prop({ default: false })
   verified!: boolean;
@@ -69,8 +75,11 @@ export class Shipment {
   @Prop({ type: Types.ObjectId, ref: 'Organization', required: true })
   buyerId!: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Organization', required: true })
-  carrierId!: Types.ObjectId; // 3PL
+  @Prop({ type: Types.ObjectId, ref: 'Organization' })
+  carrierId?: Types.ObjectId; // 3PL org — null for buyer self-pickup
+
+  @Prop({ type: String, enum: ['PLATFORM_3PL', 'SELF_PICKUP'], default: 'PLATFORM_3PL' })
+  logisticsMode!: string;
 
   // Product
   @Prop({ type: Object, required: true })
@@ -111,7 +120,7 @@ export class Shipment {
 
   // Status
   @Prop({ default: 'PICKUP_PLANNED' })
-  status!: string; // PICKUP_PLANNED | PICKUP_CONFIRMED | IN_TRANSIT | DELIVERED | CANCELLED
+  status!: string; // PICKUP_PLANNED | PICKUP_CONFIRMED | DISPATCH_CONFIRMED | LR_VERIFIED | IN_TRANSIT | DELIVERED | CANCELLED
 
   @Prop({ type: Array, default: [] })
   statusTimeline!: { status: string; timestamp: Date }[];

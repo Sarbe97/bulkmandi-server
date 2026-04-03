@@ -74,6 +74,9 @@ export class Rfq {
   @Prop({ required: true })
   incoterm!: string; // DAP | FOB | CIF | EXW
 
+  @Prop({ type: String, enum: ['SELF_PICKUP', 'SELLER_MANAGED', 'PLATFORM_3PL'], default: 'PLATFORM_3PL' })
+  logisticsPreference!: string;
+
   // Notes
   @Prop()
   notes?: string;

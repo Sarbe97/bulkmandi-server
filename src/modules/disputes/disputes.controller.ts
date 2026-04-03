@@ -15,13 +15,17 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { DisputesService } from './disputes.service';
 import { RaiseDisputeDto } from './dto/raise-dispute.dto';
 import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 
 @ApiTags('Disputes')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('disputes')
 export class DisputesController {
-  constructor(private readonly disputesService: DisputesService) {}
+  constructor(
+    private readonly disputesService: DisputesService,
+    private readonly logger: CustomLoggerService,
+  ) {}
 
   @ApiOperation({ summary: 'Raise dispute (Buyer/Seller)' })
   @Roles(UserRole.BUYER, UserRole.SELLER)
@@ -30,6 +34,7 @@ export class DisputesController {
     @CurrentUser() user: any,
     @Body() raiseDisputeDto: RaiseDisputeDto,
   ) {
+    this.logger.log(`Dispute creation request from org: ${user.organizationId} for order: ${raiseDisputeDto.orderId}`);
     return this.disputesService.raise(user.organizationId, raiseDisputeDto);
   }
 

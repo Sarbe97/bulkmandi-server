@@ -15,13 +15,17 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { CreateBatchDto } from './dto/create-batch.dto';
 import { RunPayoutsDto } from './dto/run-payouts.dto';
 import { SettlementsService } from './settlements.service';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 
 @ApiTags('Settlements')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('settlements')
 export class SettlementsController {
-  constructor(private readonly settlementsService: SettlementsService) {}
+  constructor(
+    private readonly settlementsService: SettlementsService,
+    private readonly logger: CustomLoggerService,
+  ) {}
 
   @ApiOperation({ summary: 'Create settlement batch (Admin only)' })
   @Roles(UserRole.ADMIN)
@@ -30,6 +34,7 @@ export class SettlementsController {
     @CurrentUser() user: any,
     @Body() createBatchDto: CreateBatchDto,
   ) {
+    this.logger.log(`Settlement batch creation request from admin: ${user.id}`);
     return this.settlementsService.createBatch(createBatchDto, user.id);
   }
 
@@ -59,6 +64,7 @@ export class SettlementsController {
     @Param('id') id: string,
     @Body() runPayoutsDto: RunPayoutsDto,
   ) {
+    this.logger.log(`Payout execution request for batch: ${id} from admin: ${user.id}`);
     return this.settlementsService.runPayouts(id, user.id);
   }
 

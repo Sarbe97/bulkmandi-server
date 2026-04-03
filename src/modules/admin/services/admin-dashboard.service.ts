@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { KycCase, KycCaseDocument } from '../../kyc/schemas/kyc.schema';
@@ -19,9 +20,11 @@ export class AdminDashboardService {
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
     @InjectModel(Dispute.name) private disputeModel: Model<DisputeDocument>,
     @InjectModel(SettlementBatch.name) private batchModel: Model<SettlementBatchDocument>,
+    private readonly logger: CustomLoggerService,
   ) {}
 
   async getDashboardStats() {
+    this.logger.log('Fetching admin dashboard statistics');
     // KYC Statistics
     const kycPendingStatuses = ['SUBMITTED', 'INFO_REQUESTED', 'REVISION_REQUESTED'];
     const kycPending = await this.kycCaseModel.countDocuments({ status: { $in: kycPendingStatuses } });

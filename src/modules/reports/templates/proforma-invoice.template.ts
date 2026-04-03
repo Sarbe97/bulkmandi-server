@@ -1,0 +1,90 @@
+/**
+ * ProformaInvoiceTemplate
+ * ───────────────────────
+ * Maps raw order and organization data into the context shape
+ * expected by the proforma-invoice.hbs template.
+ */
+
+import { ReportTemplate } from '../interfaces/report-template.interface';
+
+export class ProformaInvoiceTemplate implements ReportTemplate {
+  readonly templateKey = 'proforma-invoice';
+  readonly reportName = 'Proforma_Invoice';
+  readonly templateFile = 'proforma-invoice.hbs';
+
+  readonly pdfOptions = {
+    format: 'A4' as const,
+    landscape: false,
+    margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' }, // Page uses its own internal padding
+  };
+
+  /**
+   * Expected rawData structure:
+   * {
+   *   order: Order,
+   *   seller: Organization,
+   *   buyer: Organization
+   * }
+   */
+  prepareContext(rawData: any): Record<string, any> {
+    const o = rawData.order;
+    const s = rawData.seller;
+    const b = rawData.buyer;
+    const now = new Date();
+
+    return {
+      orderId: o.orderId,
+      date: now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      orderDate: o.createdAt 
+        ? new Date(o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+        : 'N/A',
+      currency: o.pricing?.currency || 'INR',
+      
+      // Seller details
+      seller: {
+        name: s.legalName || 'N/A',
+        address: s.orgKyc?.registeredAddress || 'Registered Address Not Provided',
+        gstin: s.orgKyc?.gstin || 'GST-PENDING',
+      },
+
+      // Buyer details
+      buyer: {
+        name: b.legalName || 'N/A',
+        address: b.orgKyc?.registeredAddress || 'Delivery Address Not Provided',
+        gstin: b.orgKyc?.gstin || 'GST-PENDING',
+      },
+
+      // Product details
+      product: {
+        category: o.product?.category || 'N/A',
+        grade: o.product?.grade || 'N/A',
+        specifications: o.product?.specifications || 'Standard',
+        quantityMT: o.product?.quantityMT || 0,
+      },
+
+      // Pricing
+      pricing: {
+        pricePerMT: (o.pricing?.pricePerMT || 0).toLocaleString('en-IN'),
+        baseAmount: (o.pricing?.baseAmount || 0).toLocaleString('en-IN'),
+        freightTotal: (o.pricing?.freightTotal || 0).toLocaleString('en-IN'),
+        taxableValue: (o.pricing?.baseAmount + o.pricing?.freightTotal || 0).toLocaleString('en-IN'),
+        taxRate: o.pricing?.taxRate || 18,
+        taxAmount: (o.pricing?.taxAmount || 0).toLocaleString('en-IN'),
+        grandTotal: (o.pricing?.grandTotal || 0).toLocaleString('en-IN'),
+      },
+
+      // Logistics
+      incoterm: o.incoterm || 'DAP',
+      deliveryPin: o.deliveryPin || 'N/A',
+
+      // Escrow Details
+      escrow: {
+        beneficiaryName: rawData.escrowDetails?.beneficiaryName || 'N/A',
+        bankName: rawData.escrowDetails?.bankName || 'N/A',
+        accountNumber: rawData.escrowDetails?.accountNumber || 'N/A',
+        ifscCode: rawData.escrowDetails?.ifscCode || 'N/A',
+        branchName: rawData.escrowDetails?.branchName || 'N/A',
+      }
+    };
+  }
+}

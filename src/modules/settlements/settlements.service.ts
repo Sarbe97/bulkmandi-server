@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { CustomLoggerService } from "src/core/logger/custom.logger.service";
 import { InjectModel } from "@nestjs/mongoose";
 import { ConfigService } from "@nestjs/config";
 import { Model, Types } from "mongoose";
@@ -25,9 +26,11 @@ export class SettlementsService {
     private readonly paymentsService: PaymentsService,
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
+    private readonly logger: CustomLoggerService,
   ) { }
 
   async createBatch(dto: CreateBatchDto, adminId: string) {
+    this.logger.log(`Creating settlement batch by admin: ${adminId} for ${dto.orderIds.length} orders`);
     const orders = await Promise.all(
       dto.orderIds.map(id => this.ordersService.findByIdOrFail(id))
     );
@@ -109,6 +112,7 @@ export class SettlementsService {
   }
 
   async runPayouts(batchId: string, adminId: string) {
+    this.logger.log(`Executing payouts for batch: ${batchId} by admin: ${adminId}`);
     const batch = await this.findBatchByIdOrFail(batchId);
     if (batch.status !== 'READY') throw new BadRequestException('Batch is not in READY status');
 
@@ -259,5 +263,79 @@ export class SettlementsService {
     const batch = await this.settlementBatchModel.findById(id);
     if (!batch) throw new NotFoundException('Settlement batch not found');
     return batch;
+  }
+
+  /**
+   * Operations Command Center: Process all orders pending settlement
+   * This is a batch process that can be triggered by Admin or a Cron.
+   */
+  async processAutomatedSettlementQueue(adminId: string) {
+    this.logger.log(`Processing automated settlement queue by admin: ${adminId}`);
+    
+    // Find orders in DELIVERED status with a RUNNING timer
+    const orders = await this.ordersService.findAllPendingSettlement();
+    const settledOrderIds: string[] = [];
+
+    for (const order of orders) {
+      if (!order.payoutTimer || order.payoutTimer.status !== 'RUNNING') continue;
+
+      const now = new Date();
+      const lastTick = order.payoutTimer.lastTickedAt ? new Date(order.payoutTimer.lastTickedAt) : now;
+      const elapsed = now.getTime() - lastTick.getTime();
+      const remaining = Math.max(0, order.payoutTimer.remainingMs - elapsed);
+
+      if (remaining <= 0) {
+        // Timeline expired! Auto-settle.
+        try {
+          await this.ordersService.acceptDelivery(order._id.toString(), order.buyerId.toString());
+          settledOrderIds.push(order.orderId);
+          this.logger.log(`Automated settlement successful for order: ${order.orderId}`);
+        } catch (err) {
+          this.logger.error(`Automated settlement failed for order ${order.orderId}: ${err.message}`);
+        }
+      } else {
+        // Update timer state
+        order.payoutTimer.remainingMs = remaining;
+        order.payoutTimer.lastTickedAt = now;
+        await (order as any).save();
+      }
+    }
+
+    return {
+      processedCount: orders.length,
+      autoSettledCount: settledOrderIds.length,
+      settledOrderIds
+    };
+  }
+
+  async forceReleaseStage2(orderId: string, adminId: string) {
+    this.logger.log(`Admin ${adminId} forcing Stage 2 release for order: ${orderId}`);
+    const order = await this.ordersService.findByIdOrFail(orderId);
+    
+    // Override logic
+    return this.ordersService.acceptDelivery(orderId, order.buyerId.toString());
+  }
+
+  async extendSettlementBuffer(orderId: string, hours: number, adminId: string) {
+    this.logger.log(`Admin ${adminId} extending buffer for order ${orderId} by ${hours} hours`);
+    const order = await this.ordersService.findByIdOrFail(orderId);
+    if (!order.payoutTimer) throw new BadRequestException('No active settlement timer found');
+
+    const extensionMs = hours * 60 * 60 * 1000;
+    order.payoutTimer.remainingMs += extensionMs;
+    await (order as any).save();
+
+    this.auditService.log({
+      action: 'SETTLEMENT_TIMER_EXTENDED',
+      module: 'SETTLEMENT',
+      entityType: 'ORDER',
+      entityId: order._id as any,
+      entityIdStr: order.orderId,
+      actorId: adminId,
+      afterState: { addedHours: hours, newRemainingMs: order.payoutTimer.remainingMs },
+      description: `Settlement window extended by ${hours} hours by Admin`,
+    });
+
+    return order;
   }
 }

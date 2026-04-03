@@ -66,9 +66,27 @@ export class Order {
   @Prop({ required: true })
   deliveryBy!: Date;
 
+  @Prop({ type: String, enum: ['SELF_PICKUP', 'SELLER_MANAGED', 'PLATFORM_3PL'], default: 'PLATFORM_3PL' })
+  logisticsPreference!: string;
+
+  // Payout Lifecycle Timer (Stage 2)
+  @Prop({
+    type: {
+      status: { type: String, enum: ['NONE', 'RUNNING', 'PAUSED', 'RELEASE_PENDING', 'COMPLETED'], default: 'NONE' },
+      remainingMs: { type: Number, default: 172800000 }, // 48h default
+      lastTickedAt: { type: Date },
+    },
+    default: { status: 'NONE', remainingMs: 172800000 }
+  })
+  payoutTimer!: {
+    status: string;
+    remainingMs: number;
+    lastTickedAt?: Date;
+  };
+
   // Status lifecycle
-  @Prop({ default: 'CONFIRMED' })
-  status!: string; // CONFIRMED | PAYMENT_PENDING | PAID | DISPATCH_PREP | IN_TRANSIT | DELIVERED | COMPLETED | CANCELLED
+  @Prop({ default: 'PI_ISSUED' })
+  status!: string; // PI_ISSUED | CONFIRMED | PAYMENT_PENDING | PAID | DISPATCH_PREP | IN_TRANSIT | DELIVERED | COMPLETED | CANCELLED
 
   @Prop({ type: Object, default: {} })
   lifecycle!: {

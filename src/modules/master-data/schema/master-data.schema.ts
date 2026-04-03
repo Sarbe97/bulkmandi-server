@@ -23,6 +23,25 @@ export class ProductCategoryItem {
 }
 const ProductCategoryItemSchema = SchemaFactory.createForClass(ProductCategoryItem);
 
+@Schema()
+export class EscrowAccount {
+    @Prop({ required: true, default: 'BulkMandi Escrow Services' })
+    beneficiaryName: string;
+
+    @Prop({ required: true, default: 'ICICI Bank' })
+    bankName: string;
+
+    @Prop({ required: true, default: '000000000000' })
+    accountNumber: string;
+
+    @Prop({ required: true, default: 'ICIC0000000' })
+    ifscCode: string;
+
+    @Prop({ default: 'Mumbai Main' })
+    branchName: string;
+}
+const EscrowAccountSchema = SchemaFactory.createForClass(EscrowAccount);
+
 @Schema({ timestamps: true })
 export class MasterData {
     @Prop({ type: [FleetTypeItemSchema], default: [] })
@@ -30,6 +49,9 @@ export class MasterData {
 
     @Prop({ type: [ProductCategoryItemSchema], default: [] })
     productCategories: ProductCategoryItem[];
+
+    @Prop({ type: EscrowAccountSchema, default: () => ({}) })
+    escrowAccount: EscrowAccount;
 }
 
 export const MasterDataSchema = SchemaFactory.createForClass(MasterData);

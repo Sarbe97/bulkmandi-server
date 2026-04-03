@@ -25,7 +25,7 @@ export class PlantLocation {
 
 @Schema({ _id: false })
 export class LogisticsPreference {
-  @Prop({ default: false }) usePlatform3PL: boolean;
+  @Prop({ default: true }) usePlatform3PL: boolean;
   @Prop({ default: false }) selfPickupAllowed: boolean;
 }
 

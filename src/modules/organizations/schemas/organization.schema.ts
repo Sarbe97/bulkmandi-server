@@ -153,4 +153,4 @@ export const OrganizationSchema = SchemaFactory.createForClass(Organization);
 OrganizationSchema.index({ legalName: 1 }, { unique: true });
 OrganizationSchema.index({ 'orgKyc.gstin': 1 }, { unique: true, sparse: true });
 OrganizationSchema.index({ 'orgKyc.pan': 1 }, { unique: true, sparse: true });
-OrganizationSchema.index({ orgCode: 1 }, { unique: true });
+// orgCode index is already handled by @Prop decorator on the class

@@ -1,34 +1,79 @@
-import { IsMongoId, IsObject } from 'class-validator';
+import { IsMongoId, IsObject, IsOptional, IsString, Matches, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class VehicleDto {
+  @IsString()
+  vehicleNumber: string;
+
+  @IsString()
+  vehicleType: string;
+
+  @IsString()
+  driverName: string;
+
+  @IsString()
+  @Matches(/^[0-9]{10}$/, { message: 'Driver mobile must be exactly 10 digits' })
+  driverMobile: string;
+}
+
+class PickupDto {
+  @IsString()
+  location: string;
+
+  @IsString()
+  pin: string;
+
+  @IsOptional()
+  @IsString()
+  scheduledAt?: string;
+}
+
+class DeliveryDto {
+  @IsString()
+  location: string;
+
+  @IsString()
+  pin: string;
+
+  @IsString()
+  city: string;
+
+  @IsString()
+  state: string;
+
+  @IsOptional()
+  @IsString()
+  scheduledAt?: string;
+
+  @IsOptional()
+  @IsString()
+  eta?: string;
+}
 
 export class CreateShipmentDto {
   @IsMongoId()
   orderId: string;
 
+  @IsOptional()
   @IsMongoId()
-  carrierId: string; // 3PL orgId
+  carrierId?: string; // 3PL orgId — omit for buyer self-pickup
+
+  @IsOptional()
+  @IsString()
+  logisticsMode?: 'PLATFORM_3PL' | 'SELF_PICKUP';
 
   @IsObject()
-  vehicle: {
-    vehicleNumber: string;
-    vehicleType: string;
-    driverName: string;
-    driverMobile: string;
-  };
+  @ValidateNested()
+  @Type(() => VehicleDto)
+  vehicle: VehicleDto;
 
   @IsObject()
-  pickup: {
-    location: string;
-    pin: string;
-    scheduledAt?: string;
-  };
+  @ValidateNested()
+  @Type(() => PickupDto)
+  pickup: PickupDto;
 
   @IsObject()
-  delivery: {
-    location: string;
-    pin: string;
-    city: string;
-    state: string;
-    scheduledAt?: string;
-    eta?: string;
-  };
+  @ValidateNested()
+  @Type(() => DeliveryDto)
+  delivery: DeliveryDto;
 }

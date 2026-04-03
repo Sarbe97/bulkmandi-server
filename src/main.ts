@@ -4,10 +4,16 @@ import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { writeFileSync } from "fs";
 import { AppModule } from "./app.module";
+import { CustomLoggerService } from "./core/logger/custom.logger.service";
 
 async function bootstrap(): Promise<void> {
   try {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, {
+      bufferLogs: true,
+    });
+    const logger = app.get(CustomLoggerService);
+    app.useLogger(logger);
+
     const configService = app.get(ConfigService);
 
     // ========== Security ==========

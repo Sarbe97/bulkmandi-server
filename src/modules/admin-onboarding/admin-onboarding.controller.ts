@@ -11,6 +11,7 @@ import {
   BadRequestException,
   Param,
 } from '@nestjs/common';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
@@ -31,11 +32,13 @@ export class AdminOnboardingController {
   constructor(
     private readonly adminOnboardingService: AdminOnboardingService,
     private readonly documentHandlerService: DocumentHandlerService,
+    private readonly logger: CustomLoggerService,
   ) {}
 
   @Post('single')
   @ApiOperation({ summary: 'Create a single User, Organization, and Preference record instantly.' })
   async onboardSingleUser(@Body() dto: FastTrackOnboardDto) {
+    this.logger.log(`Single user fast-track request for: ${dto.user.email}`);
     return this.adminOnboardingService.onboardSingleUser(dto);
   }
 
@@ -58,6 +61,8 @@ export class AdminOnboardingController {
   ) {
     if (!file) throw new BadRequestException('A valid .csv file is required.');
     
+    this.logger.log(`Bulk onboarding request received for role: ${role || 'CSV-defined'}`);
+
     if (role && ![UserRole.BUYER, UserRole.SELLER, UserRole.LOGISTIC].includes(role)) {
       throw new BadRequestException('If provided, role must be a valid UserRole.');
     }

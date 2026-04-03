@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AuditService } from '../audit/audit.service';
@@ -11,9 +12,11 @@ export class RfqService {
     @InjectModel(Rfq.name)
     private rfqModel: Model<RfqDocument>,
     private readonly auditService: AuditService,
+    private readonly logger: CustomLoggerService,
   ) {}
 
   async create(buyerId: string, dto: CreateRfqDto) {
+    this.logger.log(`Creating new RFQ for buyer: ${buyerId}`);
     const rfqId = `RFQ-${Date.now()}`;
     const rfq = new this.rfqModel({
       rfqId,
@@ -32,6 +35,7 @@ export class RfqService {
       deliveryBy: new Date(dto.deliveryBy),
       expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
       incoterm: dto.incoterm,
+      logisticsPreference: dto.logisticsPreference || 'PLATFORM_3PL',
       notes: dto.notes,
       status: dto.status || 'OPEN',
     });
@@ -52,6 +56,7 @@ export class RfqService {
   }
 
   async publish(id: string, buyerId: string) {
+    this.logger.log(`Publishing RFQ: ${id}`);
     const rfq = await this.rfqModel.findById(id);
     if (!rfq) throw new NotFoundException('RFQ not found');
     if (rfq.buyerId.toString() !== buyerId.toString()) throw new BadRequestException('Unauthorized');
@@ -93,7 +98,7 @@ export class RfqService {
 
   async findByIdOrFail(id: string) {
     let rfq;
-    console.log(`[RfqService] Looking up RFQ with ID: ${id}`);
+    this.logger.debug(`Looking up RFQ with ID: ${id}`);
 
     if (id.match(/^[0-9a-fA-F]{24}$/)) {
       rfq = await this.rfqModel.findById(id);
@@ -159,6 +164,7 @@ export class RfqService {
     rfq.deliveryBy = new Date(dto.deliveryBy);
     if (dto.expiresAt !== undefined) rfq.expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
     rfq.incoterm = dto.incoterm;
+    rfq.logisticsPreference = dto.logisticsPreference;
     rfq.notes = dto.notes;
     if (dto.status) rfq.status = dto.status;
     if (rfq.status === 'OPEN' && !rfq.publishedAt) rfq.publishedAt = new Date();

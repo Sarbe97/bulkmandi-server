@@ -16,18 +16,23 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrdersService } from './orders.service';
 import { KycGuard } from 'src/common/guards/kyc.guard';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 
 @ApiTags('Orders')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) { }
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly logger: CustomLoggerService,
+  ) { }
 
   @ApiOperation({ summary: 'Create order from accepted quote (Internal - called by quotes service)' })
   @UseGuards(KycGuard)
   @Post()
   async createOrder(@Body() createOrderDto: CreateOrderDto) {
+    this.logger.log('Order creation request received');
     return this.ordersService.create(createOrderDto);
   }
 
@@ -131,7 +136,20 @@ export class OrdersController {
     @CurrentUser() user: any,
     @Param('id') id: string,
   ) {
+    this.logger.log(`Delivery acceptance request for order: ${id} by buyer: ${user.organizationId}`);
     return this.ordersService.acceptDelivery(id, user.organizationId);
+  }
+
+  @ApiOperation({ summary: 'Confirm Proforma Invoice (Buyer)' })
+  @Roles(UserRole.BUYER)
+  @UseGuards(KycGuard)
+  @Put(':id/confirm-proforma')
+  async confirmProforma(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    this.logger.log(`Proforma confirmation request for order: ${id} by buyer: ${user.organizationId}`);
+    return this.ordersService.confirmProforma(id, user.organizationId);
   }
 
   @ApiOperation({ summary: 'Dispute delivery — holds Stage 2 escrow (Buyer)' })
@@ -143,6 +161,7 @@ export class OrdersController {
     @Param('id') id: string,
     @Body() body: { disputeType: string; description: string; claimValue?: number },
   ) {
+    this.logger.log(`Delivery dispute request for order: ${id} by buyer: ${user.organizationId}`);
     return this.ordersService.disputeDelivery(id, user.organizationId, body);
   }
 }

@@ -4,6 +4,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Negotiation, NegotiationDocument } from './schemas/negotiation.schema';
@@ -30,12 +31,14 @@ export class NegotiationsService {
     @InjectModel(Rfq.name) private rfqModel: Model<RfqDocument>,
     private readonly orgService: OrganizationsService,
     private readonly auditService: AuditService,
+    private readonly logger: CustomLoggerService,
   ) {}
 
   // ───────────────────────────────────────────────────────────────
   // 1. Buyer initiates negotiation with counter-offer
   // ───────────────────────────────────────────────────────────────
   async initiate(buyerOrgId: string, dto: CreateNegotiationDto) {
+    this.logger.log(`Initiating negotiation for quote: ${dto.quoteId} by buyer: ${buyerOrgId}`);
     const quote = await this.quoteModel.findOne({ quoteId: dto.quoteId });
     if (!quote) throw new NotFoundException('Quote not found');
 
@@ -124,6 +127,7 @@ export class NegotiationsService {
   // 2. Either party responds with a counter-offer
   // ───────────────────────────────────────────────────────────────
   async respond(orgId: string, negotiationId: string, dto: RespondNegotiationDto) {
+    this.logger.log(`Negotiation response/counter for: ${negotiationId} from org: ${orgId}`);
     const neg = await this.negotiationModel.findOne({ negotiationId });
     if (!neg) throw new NotFoundException('Negotiation not found');
 
@@ -192,6 +196,7 @@ export class NegotiationsService {
   // 3. Accept the latest offer
   // ───────────────────────────────────────────────────────────────
   async accept(orgId: string, negotiationId: string) {
+    this.logger.log(`Negotiation acceptance for: ${negotiationId} by org: ${orgId}`);
     const neg = await this.negotiationModel.findOne({ negotiationId });
     if (!neg) throw new NotFoundException('Negotiation not found');
 
