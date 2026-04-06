@@ -1,15 +1,15 @@
-import { IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import { IsNumber, IsOptional, IsPositive, IsString, Min } from 'class-validator';
 
 export class CreateNegotiationDto {
   @IsString()
   quoteId!: string;
 
   @IsNumber()
-  @IsPositive()
+  @Min(1)
   pricePerMT!: number;
 
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   freightPerMT!: number;
 
   @IsNumber()

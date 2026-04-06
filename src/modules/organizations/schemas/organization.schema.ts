@@ -77,8 +77,6 @@ export class Organization {
   @Prop({ required: true, unique: true, index: true })
   orgCode!: string; // Format: ORG-{ROLE}-{SEQUENCE} e.g., ORG-SEL-000123
 
-  @Prop({ unique: true, sparse: true }) // Satisfy legacy index
-  orgId?: string;
 
   @Prop({ required: true })
   legalName!: string;
