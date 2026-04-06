@@ -78,7 +78,7 @@ export class Shipment {
   @Prop({ type: Types.ObjectId, ref: 'Organization' })
   carrierId?: Types.ObjectId; // 3PL org — null for buyer self-pickup
 
-  @Prop({ type: String, enum: ['PLATFORM_3PL', 'SELF_PICKUP'], default: 'PLATFORM_3PL' })
+  @Prop({ type: String, enum: ['PLATFORM_3PL', 'SELF_PICKUP', 'SELLER_MANAGED'], default: 'PLATFORM_3PL' })
   logisticsMode!: string;
 
   // Product

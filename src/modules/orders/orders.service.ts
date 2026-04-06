@@ -9,6 +9,7 @@ import { DisputesService } from '../disputes/disputes.service';
 import { RfqService } from '../rfq/rfq.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { Order, OrderDocument } from './schemas/order.schema';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class OrdersService {
@@ -19,6 +20,7 @@ export class OrdersService {
     @Inject(forwardRef(() => PaymentsService)) private readonly paymentsService: PaymentsService,
     @Inject(forwardRef(() => DisputesService)) private readonly disputesService: DisputesService,
     private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService,
     private readonly logger: CustomLoggerService,
   ) {}
 
@@ -102,6 +104,27 @@ export class OrdersService {
       afterState: { orderId: saved.orderId, status: 'PI_ISSUED', grandTotal },
       description: `Order ${saved.orderId} created from Quote ${quote.quoteId} by buyer ${buyerOrg.legalName}. Status: PI_ISSUED.`,
     });
+
+    // ✅ Notify Buyer: Proforma Invoice Issued
+    try {
+      await this.notificationsService.notify(
+        buyerId,
+        "📄 Proforma Invoice Issued",
+        `A Proforma Invoice has been issued for your order ${saved.orderId}. Please review and confirm to proceed.`,
+        {
+          template: "order-status",
+          data: {
+            orderId: saved.orderId,
+            status: "PI_ISSUED",
+            type: "ORDER ALERT",
+            orderUrl: `${process.env.FRONTEND_URL}/buyer/orders/${saved._id}`,
+          },
+          category: "ORDER",
+        }
+      );
+    } catch (notifyErr) {
+      this.logger.error(`Failed to dispatch order creation notification: ${notifyErr.message}`);
+    }
 
     return saved;
   }
@@ -250,6 +273,27 @@ export class OrdersService {
       description: `Delivery accepted for Order ${order.orderId} by buyer`,
     });
 
+    // ✅ Notify Seller: Delivery Accepted (Payout coming)
+    try {
+      await this.notificationsService.notify(
+        order.sellerId.toString(),
+        "🏁 Delivery Accepted",
+        `Buyer has accepted the delivery for Order ${order.orderId}. The final escrow amount will be released to your account according to the settlement cycle.`,
+        {
+          template: "order-status",
+          data: {
+            orderId: order.orderId,
+            status: "COMPLETED",
+            type: "ORDER UPDATE",
+            orderUrl: `${process.env.FRONTEND_URL}/seller/orders/${order._id}`,
+          },
+          category: "ORDER",
+        }
+      );
+    } catch (notifyErr) {
+      this.logger.error(`Failed to dispatch delivery acceptance notification: ${notifyErr.message}`);
+    }
+
     return order;
   }
 
@@ -303,6 +347,28 @@ export class OrdersService {
       severity: 'WARNING',
     });
 
+    // ✅ Notify Seller: Order Disputed (Settlement Paused)
+    try {
+      await this.notificationsService.notify(
+        order.sellerId.toString(),
+        "⚠️ Order Disputed",
+        `A dispute has been raised for Order ${order.orderId}. Settlement for this order has been paused pending resolution.`,
+        {
+          template: "order-status",
+          data: {
+            orderId: order.orderId,
+            status: "DISPUTED",
+            type: "ORDER ALERT",
+            remarks: disputeData.description,
+            orderUrl: `${process.env.FRONTEND_URL}/seller/orders/${order._id}`,
+          },
+          category: "ORDER",
+        }
+      );
+    } catch (notifyErr) {
+      this.logger.error(`Failed to dispatch dispute notification: ${notifyErr.message}`);
+    }
+
     return { order, dispute };
   }
 
@@ -333,6 +399,27 @@ export class OrdersService {
       afterState: { status: 'PAYMENT_PENDING' },
       description: `Proforma Invoice confirmed for Order ${saved.orderId} by buyer. Moving to payment.`,
     });
+
+    // ✅ Notify Seller: Order Confirmed
+    try {
+      await this.notificationsService.notify(
+        saved.sellerId.toString(),
+        "✅ Order Confirmed",
+        `Buyer has confirmed the Proforma Invoice for Order ${saved.orderId}. The order status is now PAYMENT_PENDING.`,
+        {
+          template: "order-status",
+          data: {
+            orderId: saved.orderId,
+            status: "PAYMENT_PENDING",
+            type: "ORDER UPDATE",
+            orderUrl: `${process.env.FRONTEND_URL}/seller/orders/${saved._id}`,
+          },
+          category: "ORDER",
+        }
+      );
+    } catch (notifyErr) {
+      this.logger.error(`Failed to dispatch order confirmation notification: ${notifyErr.message}`);
+    }
 
     return saved;
   }

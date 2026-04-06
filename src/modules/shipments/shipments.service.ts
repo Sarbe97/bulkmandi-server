@@ -38,10 +38,10 @@ export class ShipmentsService {
     // 2. Seller's preference (defaulting to PLATFORM_3PL)
     const sellerPref = await this.sellerPrefModel.findOne({ organizationId: sellerId });
     
-    let logisticsMode: 'PLATFORM_3PL' | 'SELF_PICKUP' | undefined = dto.logisticsMode;
+    let logisticsMode: 'PLATFORM_3PL' | 'SELF_PICKUP' | 'SELLER_MANAGED' | undefined = dto.logisticsMode;
     if (!logisticsMode) {
       if (order.logisticsPreference) {
-        logisticsMode = order.logisticsPreference as 'PLATFORM_3PL' | 'SELF_PICKUP';
+        logisticsMode = order.logisticsPreference as 'PLATFORM_3PL' | 'SELF_PICKUP' | 'SELLER_MANAGED';
         this.logger.log(`Inheriting logistics preference from order: ${logisticsMode}`);
       } else if (sellerPref?.logisticsPreference) {
         const pref = sellerPref.logisticsPreference;
@@ -65,9 +65,9 @@ export class ShipmentsService {
 
     let carrierId = dto.carrierId;
 
-    if (logisticsMode === 'SELF_PICKUP') {
-      carrierId = undefined; // No carrier for self-pickup
-      this.logger.log(`Handling as Buyer Self-Pickup for order: ${dto.orderId}`);
+    if (logisticsMode === 'SELF_PICKUP' || logisticsMode === 'SELLER_MANAGED') {
+      carrierId = undefined; // No platform carrier for self-pickup or seller-managed
+      this.logger.log(`Handling as ${logisticsMode} for order: ${dto.orderId}`);
     } else {
       // Platform 3PL path
       if (!carrierId) {

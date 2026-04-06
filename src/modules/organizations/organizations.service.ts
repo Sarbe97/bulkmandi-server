@@ -1,4 +1,5 @@
 import { UsersService } from "../users/services/users.service";
+import { User, UserDocument } from "../users/schemas/user.schema";
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
@@ -39,7 +40,15 @@ export class OrganizationsService {
     private readonly logger: CustomLoggerService,
     private readonly idGenerator: IdGeneratorService,
     private readonly usersService: UsersService, // ✅ Injected UsersService
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) { }
+
+  /**
+   * Get all users belonging to an organization
+   */
+  async getOrganizationUsers(orgId: string): Promise<UserDocument[]> {
+    return this.userModel.find({ organizationId: new Types.ObjectId(orgId) }).exec();
+  }
 
   /**
    * Create a new organization

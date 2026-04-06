@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { KycCase, KycCaseSchema } from '../kyc/schemas/kyc.schema';
 import { Organization, OrganizationSchema } from '../organizations/schemas/organization.schema';
@@ -14,6 +14,9 @@ import { Rfq, RfqSchema } from '../rfq/schemas/rfq.schema';
 import { Quote, QuoteSchema } from '../quotes/schemas/quote.schema';
 import { Dispute, DisputeSchema } from '../disputes/schemas/dispute.schema';
 import { SettlementBatch, SettlementBatchSchema } from '../settlements/schemas/settlement-batch.schema';
+import { SettlementsAdminController } from './controllers/settlements-admin.controller';
+import { SettlementsAdminService } from './services/settlement-admin.service';
+import { SettlementsModule } from '../settlements/settlements.module';
 
 @Module({
   imports: [
@@ -30,9 +33,10 @@ import { SettlementBatch, SettlementBatchSchema } from '../settlements/schemas/s
     RfqModule,
     QuotesModule,
     PaymentsModule,
+    forwardRef(() => SettlementsModule),
   ],
-  controllers: [AdminDashboardController, AdminController],
-  providers: [AdminDashboardService],
+  controllers: [AdminDashboardController, AdminController, SettlementsAdminController],
+  providers: [AdminDashboardService, SettlementsAdminService],
   exports: [AdminDashboardService],
 })
 export class AdminModule { }

@@ -7,6 +7,8 @@ import { Order, OrderSchema } from '../orders/schemas/order.schema';
 import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
 import { Payment, PaymentSchema } from './schemas/payment.schema';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { ReportsModule } from '../reports/reports.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { Payment, PaymentSchema } from './schemas/payment.schema';
     forwardRef(() => OrdersModule), // Add this so Nest can resolve OrderModel
     OrganizationsModule,
     AuditModule,
+    NotificationsModule,
+    forwardRef(() => ReportsModule),
   ],
   controllers: [PaymentsController],
   providers: [PaymentsService],

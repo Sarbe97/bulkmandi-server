@@ -5,6 +5,8 @@ import { AuditModule } from '../audit/audit.module';
 import { OrdersModule } from '../orders/orders.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
+import { MasterDataModule } from '../master-data/master-data.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { Payout, PayoutSchema } from './schemas/payout.schema';
 import { SettlementBatch, SettlementBatchSchema } from './schemas/settlement-batch.schema';
 import { SettlementsController } from './settlements.controller';
@@ -20,6 +22,8 @@ import { SettlementsService } from './settlements.service';
     OrdersModule,
     PaymentsModule,
     OrganizationsModule,
+    MasterDataModule,
+    NotificationsModule,
     AuditModule,
   ],
   controllers: [SettlementsController],

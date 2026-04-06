@@ -7,6 +7,8 @@ import { Order, OrderDocument } from '../orders/schemas/order.schema';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { VerifyUtrDto } from './dto/verify-utr.dto';
 import { Payment, PaymentDocument } from './schemas/payment.schema';
+import { NotificationsService } from '../notifications/notifications.service';
+import { ReportsService } from '../reports/reports.service';
 
 @Injectable()
 export class PaymentsService {
@@ -14,6 +16,8 @@ export class PaymentsService {
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService,
+    private readonly reportsService: ReportsService,
     private readonly logger: CustomLoggerService,
   ) {}
 
@@ -134,6 +138,48 @@ export class PaymentsService {
       description: `Payment ${payment.paymentId} manually verified by Admin ${adminId}`,
     });
 
+    // ✅ Notify Buyer & Seller
+    try {
+      // 1. Notify Seller: Order is PAID, please dispatch
+      await this.notificationsService.notify(
+        order.sellerId.toString(),
+        "🚀 Order Ready for Dispatch",
+        `Payment for Order ${order.orderId} has been verified. You can now proceed with dispatch preparations.`,
+        {
+          template: "order-status",
+          data: {
+            orderId: order.orderId,
+            status: "PAID - READY FOR DISPATCH",
+            type: "ORDER UPDATE",
+            orderUrl: `${process.env.FRONTEND_URL}/seller/orders/${order._id}`,
+          },
+          category: "ORDER",
+        }
+      );
+
+      // 2. Notify Buyer: Payment Verified + Attach Proforma Invoice
+      const { buffer, filename } = await this.reportsService.generateProformaInvoice(order.orderId);
+      
+      await this.notificationsService.notify(
+        order.buyerId.toString(),
+        "✅ Payment Verified",
+        `Your payment for Order ${order.orderId} has been successfully verified. The order is now being processed for dispatch.`,
+        {
+          template: "order-status",
+          data: {
+            orderId: order.orderId,
+            status: "PAID",
+            type: "PAYMENT VERIFIED",
+            orderUrl: `${process.env.FRONTEND_URL}/buyer/orders/${order._id}`,
+          },
+          attachments: [{ filename, content: buffer, contentType: 'application/pdf' }],
+          category: "PAYMENT",
+        }
+      );
+    } catch (notifyErr) {
+      this.logger.error(`Failed to dispatch payment verification notifications: ${notifyErr.message}`);
+    }
+
     return payment;
   }
 
@@ -165,6 +211,28 @@ export class PaymentsService {
       afterState: { status: 'REJECTED', orderId: payment.orderId, reason },
       description: `Payment ${payment.paymentId} rejected by Admin ${adminId}. Reason: ${reason}`,
     });
+
+    // ✅ Notify Buyer about the rejection
+    try {
+      await this.notificationsService.notify(
+        order.buyerId.toString(),
+        "⚠️ Payment Rejected",
+        `Your payment for Order ${order.orderId} was rejected by the administrator.`,
+        {
+          template: "order-status",
+          data: {
+            orderId: order.orderId,
+            status: "PAYMENT REJECTED",
+            type: "PAYMENT ALERT",
+            remarks: reason,
+            orderUrl: `${process.env.FRONTEND_URL}/buyer/orders/${order._id}`,
+          },
+          category: "PAYMENT",
+        }
+      );
+    } catch (notifyErr) {
+      this.logger.error(`Failed to dispatch payment rejection notifications: ${notifyErr.message}`);
+    }
 
     return payment;
   }

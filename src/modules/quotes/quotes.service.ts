@@ -8,6 +8,7 @@ import { CreateQuoteDto } from './dto/create-quote.dto';
 import { Quote, QuoteDocument } from './schemas/quote.schema';
 import { OrdersService } from '../orders/orders.service';
 import { OrganizationsService } from '../organizations/organizations.service';
+import { MasterDataService } from '../master-data/master-data.service';
 import { QuoteStatus } from 'src/common/constants/app.constants';
 
 @Injectable()
@@ -17,6 +18,7 @@ export class QuotesService {
     @InjectModel(Rfq.name) private rfqModel: Model<RfqDocument>,
     @Inject(forwardRef(() => OrdersService)) private ordersService: OrdersService,
     private readonly orgService: OrganizationsService,
+    private readonly masterDataService: MasterDataService,
     private readonly auditService: AuditService,
     private readonly logger: CustomLoggerService,
   ) {}
@@ -33,9 +35,54 @@ export class QuotesService {
     const exists = await this.quoteModel.findOne({ rfqId: dto.rfqId, sellerId, status: { $ne: QuoteStatus.WITHDRAWN } });
     if (exists) throw new BadRequestException('Already quoted on this RFQ');
 
+    // 1. Enforce Logistics Mode
+    if (rfq.logisticsPreference === 'SELF_PICKUP') {
+      this.logger.debug(`RFQ ${rfq.rfqId} is purely SELF_PICKUP (EXW). Forcing freight to 0 regardless of input.`);
+      dto.freightPerMT = 0;
+    }
+
     const baseAmount = dto.pricePerMT * dto.quantityMT;
     const freightTotal = dto.freightPerMT * dto.quantityMT;
     const grandTotal = baseAmount + freightTotal;
+    const pricePerMTLanded = (grandTotal / dto.quantityMT);
+
+    // 2. Fetch Master Data Benchmark
+    let benchmarkLandedPrice = 0;
+    let benchmarkRef: { city: string; brand: string } | null = null;
+    try {
+      const benchmark = await this.masterDataService.getBenchmarkForRfq({
+        category: rfq.product.category,
+        grade: rfq.product.grade,
+        city: rfq.targetCity,
+      });
+      if (benchmark) {
+        benchmarkLandedPrice = benchmark.basePrice;
+        benchmarkRef = { city: benchmark.city, brand: benchmark.brand };
+        this.logger.debug(`Benchmark resolved for ${rfq.rfqId}: ₹${benchmarkLandedPrice}/MT from ${benchmark.city} (${benchmark.brand})`);
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to resolve catalog benchmark for ${rfq.rfqId}: ${err.message}`);
+    }
+
+    // 3. Apply 3-Level Deviation Guardrails (thresholds from MasterData platform config)
+    if (benchmarkLandedPrice > 0) {
+      const deviation = (pricePerMTLanded / benchmarkLandedPrice) - 1;
+
+      // Fetch live tolerances from DB (safe fallback to defaults if DB fails)
+      const config = await this.masterDataService.getPlatformConfig().catch(() => null);
+      const WARNING_TOLERANCE = config?.quoteDeviation?.warningThreshold ?? 0.4;
+      const JUSTIFICATION_TOLERANCE = config?.quoteDeviation?.justificationThreshold ?? 1.0;
+      const HARD_BLOCK_TOLERANCE = config?.quoteDeviation?.blockThreshold ?? 2.0;
+
+      if (deviation > HARD_BLOCK_TOLERANCE) {
+        throw new BadRequestException(`Price deviation exceeds the platform limit (+${(HARD_BLOCK_TOLERANCE * 100).toFixed(0)}% above benchmark). Benchmark: ₹${benchmarkLandedPrice}/MT. Your Landed Rate: ₹${pricePerMTLanded.toFixed(2)}/MT.`);
+      }
+
+      if (deviation > JUSTIFICATION_TOLERANCE && !dto.priceJustification) {
+        throw new BadRequestException(`Price deviation is significantly higher (>${(JUSTIFICATION_TOLERANCE * 100).toFixed(0)}%) than the market benchmark. You must provide a Price Justification to submit this quote.`);
+      }
+    }
+
     const quoteId = `QUOTE-${Date.now()}`;
     const validityExpiresAt = new Date(Date.now() + dto.validityHours * 60 * 60 * 1000);
 
@@ -64,6 +111,7 @@ export class QuotesService {
       validityExpiresAt,
       paymentTerms: dto.paymentTerms || '',
       notes: dto.notes || '',
+      priceJustification: dto.priceJustification || '',
       status: QuoteStatus.SUBMITTED,
       submittedAt: new Date(),
     });
@@ -201,11 +249,54 @@ export class QuotesService {
       throw new BadRequestException(`Cannot update quote in ${quote.status} status`);
     }
 
+    const rfq = await this.rfqModel.findOne({ rfqId: quote.rfqId });
+
+    if (rfq && rfq.logisticsPreference === 'SELF_PICKUP') {
+      this.logger.debug(`RFQ ${rfq.rfqId} is purely SELF_PICKUP (EXW). Forcing updated freight to 0 regardless of input.`);
+      dto.freightPerMT = 0;
+    }
+
     const prevGrandTotal = quote.grandTotal;
     const baseAmount = dto.pricePerMT * dto.quantityMT;
     const freightTotal = dto.freightPerMT * dto.quantityMT;
     const grandTotal = baseAmount + freightTotal;
+    const pricePerMTLanded = (grandTotal / dto.quantityMT);
     const validityExpiresAt = new Date(Date.now() + dto.validityHours * 60 * 60 * 1000);
+
+    // 2. Fetch Master Data Benchmark
+    let benchmarkLandedPrice = 0;
+    if (rfq) {
+      try {
+        const benchmark = await this.masterDataService.getBenchmarkForRfq({
+          category: rfq.product.category,
+          grade: rfq.product.grade,
+          city: rfq.targetCity,
+        });
+        if (benchmark) {
+          benchmarkLandedPrice = benchmark.basePrice;
+          this.logger.debug(`Update benchmark resolved: ₹${benchmarkLandedPrice}/MT from ${benchmark.city}`);
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to resolve catalog benchmark for ${rfq.rfqId}: ${err.message}`);
+      }
+    }
+
+    // 3. Apply 3-Level Deviation Guardrails (thresholds from MasterData platform config)
+    if (benchmarkLandedPrice > 0) {
+      const deviation = (pricePerMTLanded / benchmarkLandedPrice) - 1;
+
+      const config = await this.masterDataService.getPlatformConfig().catch(() => null);
+      const JUSTIFICATION_TOLERANCE = config?.quoteDeviation?.justificationThreshold ?? 1.0;
+      const HARD_BLOCK_TOLERANCE = config?.quoteDeviation?.blockThreshold ?? 2.0;
+
+      if (deviation > HARD_BLOCK_TOLERANCE) {
+        throw new BadRequestException(`Price deviation exceeds the platform limit (+${(HARD_BLOCK_TOLERANCE * 100).toFixed(0)}% above benchmark). Benchmark: ₹${benchmarkLandedPrice}/MT. Your Landed Rate: ₹${pricePerMTLanded.toFixed(2)}/MT.`);
+      }
+
+      if (deviation > JUSTIFICATION_TOLERANCE && !dto.priceJustification) {
+        throw new BadRequestException(`Price deviation is significantly higher (>${(JUSTIFICATION_TOLERANCE * 100).toFixed(0)}%) than the market benchmark. You must provide a Price Justification to update this quote.`);
+      }
+    }
 
     quote.pricePerMT = dto.pricePerMT;
     quote.quantityMT = dto.quantityMT;
@@ -218,6 +309,7 @@ export class QuotesService {
     quote.validityExpiresAt = validityExpiresAt;
     quote.paymentTerms = dto.paymentTerms;
     quote.notes = dto.notes || '';
+    quote.priceJustification = dto.priceJustification || '';
     quote.status = QuoteStatus.SUBMITTED;
     quote.submittedAt = new Date();
 

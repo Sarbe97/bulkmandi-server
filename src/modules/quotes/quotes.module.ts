@@ -9,6 +9,7 @@ import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { OrdersModule } from '../orders/orders.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
+import { MasterDataModule } from '../master-data/master-data.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { OrganizationsModule } from '../organizations/organizations.module';
     MongooseModule.forFeature([{ name: Rfq.name, schema: RfqSchema }]),
     forwardRef(() => OrdersModule),
     OrganizationsModule,
+    MasterDataModule,
     AuthModule,
     AuditModule,
   ],

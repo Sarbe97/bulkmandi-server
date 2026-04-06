@@ -5,6 +5,7 @@ import { PaymentsModule } from '../payments/payments.module';
 import { DisputesModule } from '../disputes/disputes.module';
 import { QuotesModule } from '../quotes/quotes.module';
 import { AuditModule } from '../audit/audit.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { RfqModule } from '../rfq/rfq.module';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
@@ -21,6 +22,7 @@ import { Order, OrderSchema } from './schemas/order.schema';
     RfqModule,
     OrganizationsModule,
     AuditModule,
+    NotificationsModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

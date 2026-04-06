@@ -60,7 +60,7 @@ export class CreateShipmentDto {
 
   @IsOptional()
   @IsString()
-  logisticsMode?: 'PLATFORM_3PL' | 'SELF_PICKUP';
+  logisticsMode?: 'PLATFORM_3PL' | 'SELF_PICKUP' | 'SELLER_MANAGED';
 
   @IsObject()
   @ValidateNested()

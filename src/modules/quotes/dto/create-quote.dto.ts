@@ -1,4 +1,4 @@
-import { IsMongoId, IsNumber, IsOptional, IsPositive, IsString } from 'class-validator';
+import { IsMongoId, IsNumber, IsOptional, IsPositive, IsString, Min } from 'class-validator';
 
 export class CreateQuoteDto {
   @IsString()
@@ -13,7 +13,7 @@ export class CreateQuoteDto {
   quantityMT: number;
 
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   freightPerMT: number;
 
   @IsNumber()
@@ -35,4 +35,8 @@ export class CreateQuoteDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  priceJustification?: string;
 }

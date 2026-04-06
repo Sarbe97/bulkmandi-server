@@ -184,6 +184,38 @@ export class MasterDataService implements OnModuleInit {
   }
 
   // ══════════════════════════════════════════
+  //  PLATFORM CONFIG
+  // ══════════════════════════════════════════
+
+  async getPlatformConfig() {
+    const data = await this.masterDataModel.findOne().select('platformConfig');
+    // Return defaults if not yet persisted
+    return data?.platformConfig ?? {
+      platformFeeRate: 0.02,
+      settlementWindowDays: 2,
+      quoteDeviation: { warningThreshold: 0.4, justificationThreshold: 1.0, blockThreshold: 2.0 },
+      allowedPaymentTerms: ['80/20 Escrow (Loading/POD)', '100% Escrow (Full Advance)', '50/50 Escrow (Advance/Loading)'],
+    };
+  }
+
+  async updatePlatformConfig(dto: any) {
+    const data = await this.masterDataModel.findOne();
+    if (!data) return;
+    // Deep merge: only override the fields sent
+    if (!data.platformConfig) data.platformConfig = {} as any;
+    if (dto.platformFeeRate !== undefined) data.platformConfig.platformFeeRate = dto.platformFeeRate;
+    if (dto.settlementWindowDays !== undefined) data.platformConfig.settlementWindowDays = dto.settlementWindowDays;
+    if (dto.quoteDeviation) {
+      data.platformConfig.quoteDeviation = { ...data.platformConfig.quoteDeviation, ...dto.quoteDeviation };
+    }
+    if (dto.allowedPaymentTerms) {
+      data.platformConfig.allowedPaymentTerms = dto.allowedPaymentTerms;
+    }
+    await data.save();
+    return data.platformConfig;
+  }
+
+  // ══════════════════════════════════════════
   //  CATALOG ITEMS – CRUD
   // ══════════════════════════════════════════
 
@@ -326,6 +358,82 @@ export class MasterDataService implements OnModuleInit {
       .sort({ basePrice: 1 });
 
     return listings;
+  }
+
+  /**
+   * Smart benchmark resolver for the Quote Guardrail engine.
+   * Given a product category, grade, and target city from an RFQ,
+   * resolves the best-match local listing price from the Catalog.
+   * Falls back to national average if no city-specific data exists.
+   */
+  async getBenchmarkForRfq(params: {
+    category: string;
+    grade?: string;
+    city?: string;
+  }): Promise<{ basePrice: number; city: string; slug: string; brand: string } | null> {
+    try {
+      // Step 1: Find catalog items matching the product category/grade using text search
+      const categoryKeywords = [params.category, params.grade].filter(Boolean).join(' ');
+      const matchingItems = await this.catalogItemModel.find({
+        $text: { $search: categoryKeywords },
+        isActive: true,
+      }).limit(5);
+
+      if (!matchingItems.length) {
+        // Fallback: simple substring match on category
+        const fallbackItems = await this.catalogItemModel.find({
+          $or: [
+            { category: { $regex: params.category, $options: 'i' } },
+            { product_type: { $regex: params.category, $options: 'i' } },
+            { search_keywords: { $in: [params.category?.toLowerCase()] } },
+          ],
+          isActive: true,
+        }).limit(5);
+
+        if (!fallbackItems.length) return null;
+        matchingItems.push(...fallbackItems);
+      }
+
+      const itemIds = matchingItems.map(i => i._id);
+
+      // Step 2: Try city-specific listing first
+      if (params.city) {
+        const cityNormalized = params.city.toLowerCase().trim();
+        const cityListings = await this.catalogListingModel.find({
+          catalogItemId: { $in: itemIds },
+          city: cityNormalized,
+          isActive: true,
+        }).sort({ basePrice: 1 });
+
+        if (cityListings.length > 0) {
+          const best = cityListings[0];
+          return {
+            basePrice: best.basePrice,
+            city: best.city,
+            slug: best.catalogItemSlug,
+            brand: best.brand,
+          };
+        }
+      }
+
+      // Step 3: Fallback — national average across all cities for this product
+      const allListings = await this.catalogListingModel.find({
+        catalogItemId: { $in: itemIds },
+        isActive: true,
+      });
+
+      if (!allListings.length) return null;
+
+      const avgPrice = Math.round(allListings.reduce((sum, l) => sum + l.basePrice, 0) / allListings.length);
+      return {
+        basePrice: avgPrice,
+        city: 'national_average',
+        slug: allListings[0].catalogItemSlug,
+        brand: 'Market Average',
+      };
+    } catch {
+      return null;
+    }
   }
 
   // ══════════════════════════════════════════

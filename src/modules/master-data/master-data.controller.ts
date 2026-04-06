@@ -54,6 +54,19 @@ export class MasterDataController {
     return this.masterDataService.updateEscrowAccount(body);
   }
 
+  @ApiOperation({ summary: 'Get Platform Config (fees, tolerances, payment terms)' })
+  @Get('platform-config')
+  async getPlatformConfig() {
+    return this.masterDataService.getPlatformConfig();
+  }
+
+  @ApiOperation({ summary: 'Update Platform Config (Admin — fees, tolerances, payment terms)' })
+  @Put('platform-config')
+  async updatePlatformConfig(@Body() body: any) {
+    this.logger.log('Updating platform config');
+    return this.masterDataService.updatePlatformConfig(body);
+  }
+
   // ══════════════════════════════════════════
   //  CATALOG ITEMS
   // ══════════════════════════════════════════
@@ -117,6 +130,19 @@ export class MasterDataController {
     @Query('city') city?: string,
   ) {
     return this.masterDataService.searchListings({ itemSlug, brand, city });
+  }
+
+  @ApiOperation({ summary: 'Get benchmark price for a product by category/grade/city' })
+  @ApiQuery({ name: 'category', required: true })
+  @ApiQuery({ name: 'grade', required: false })
+  @ApiQuery({ name: 'city', required: false })
+  @Get('benchmark')
+  async getBenchmark(
+    @Query('category') category: string,
+    @Query('grade') grade?: string,
+    @Query('city') city?: string,
+  ) {
+    return this.masterDataService.getBenchmarkForRfq({ category, grade, city });
   }
 
   @ApiOperation({ summary: 'Get all catalog listings' })

@@ -1764,6 +1764,165 @@
         ]
       }
     },
+    "/api/v1/admin/settlements/batches": {
+      "post": {
+        "operationId": "SettlementsAdminController_createBatch",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBatchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin Settlements"
+        ]
+      },
+      "get": {
+        "operationId": "SettlementsAdminController_listBatches",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin Settlements"
+        ]
+      }
+    },
+    "/api/v1/admin/settlements/batches/{id}/run-payouts": {
+      "post": {
+        "operationId": "SettlementsAdminController_runPayouts",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunPayoutsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin Settlements"
+        ]
+      }
+    },
+    "/api/v1/admin/settlements/process-queue": {
+      "post": {
+        "operationId": "SettlementsAdminController_processQueue",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin Settlements"
+        ]
+      }
+    },
+    "/api/v1/admin/settlements/orders/{id}/force-release": {
+      "post": {
+        "operationId": "SettlementsAdminController_forceRelease",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin Settlements"
+        ]
+      }
+    },
+    "/api/v1/admin/settlements/orders/{id}/extend-buffer": {
+      "post": {
+        "operationId": "SettlementsAdminController_extendBuffer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Admin Settlements"
+        ]
+      }
+    },
     "/api/v1/rfq": {
       "post": {
         "operationId": "RfqController_createRFQ",
@@ -2692,6 +2851,614 @@
         "summary": "Dispute delivery — holds Stage 2 escrow (Buyer)",
         "tags": [
           "Orders"
+        ]
+      }
+    },
+    "/api/v1/master-data/fleet-types": {
+      "get": {
+        "operationId": "MasterDataController_getFleetTypes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "post": {
+        "operationId": "MasterDataController_addFleetType",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/delete/fleet-types": {
+      "post": {
+        "operationId": "MasterDataController_deleteFleetType",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/product-categories": {
+      "get": {
+        "operationId": "MasterDataController_getProductCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/escrow-account": {
+      "get": {
+        "operationId": "MasterDataController_getEscrowAccount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get Platform Escrow Account details",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "post": {
+        "operationId": "MasterDataController_updateEscrowAccount",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Update Platform Escrow Account details (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/platform-config": {
+      "get": {
+        "operationId": "MasterDataController_getPlatformConfig",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get Platform Config (fees, tolerances, payment terms)",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "put": {
+        "operationId": "MasterDataController_updatePlatformConfig",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update Platform Config (Admin — fees, tolerances, payment terms)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-items": {
+      "get": {
+        "operationId": "MasterDataController_getAllCatalogItems",
+        "parameters": [
+          {
+            "name": "subcategory",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all catalog items, optionally filtered by subcategory",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "post": {
+        "operationId": "MasterDataController_createCatalogItem",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCatalogItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a new catalog item (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-items/subcategories": {
+      "get": {
+        "operationId": "MasterDataController_getSubcategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get distinct product subcategories",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-items/{slug}/filters": {
+      "get": {
+        "operationId": "MasterDataController_getItemFilters",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get filter options (cities, brands & attributes) for a product",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-items/{id}": {
+      "get": {
+        "operationId": "MasterDataController_getCatalogItemById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get catalog item by ID",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "put": {
+        "operationId": "MasterDataController_updateCatalogItem",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCatalogItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update a catalog item (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "delete": {
+        "operationId": "MasterDataController_deleteCatalogItem",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete (soft) a catalog item (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings/search": {
+      "get": {
+        "operationId": "MasterDataController_searchListings",
+        "parameters": [
+          {
+            "name": "itemSlug",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "brand",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "city",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Search listings with filters",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/benchmark": {
+      "get": {
+        "operationId": "MasterDataController_getBenchmark",
+        "parameters": [
+          {
+            "name": "category",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "grade",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "city",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get benchmark price for a product by category/grade/city",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings": {
+      "get": {
+        "operationId": "MasterDataController_getAllCatalogListings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all catalog listings",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "post": {
+        "operationId": "MasterDataController_createCatalogListing",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCatalogListingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Create a new listing (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings/by-item/{itemId}": {
+      "get": {
+        "operationId": "MasterDataController_getListingsByItem",
+        "parameters": [
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get listings for a specific catalog item",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings/{id}": {
+      "get": {
+        "operationId": "MasterDataController_getCatalogListingById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get listing by ID",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "put": {
+        "operationId": "MasterDataController_updateCatalogListing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCatalogListingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update a listing (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "delete": {
+        "operationId": "MasterDataController_deleteCatalogListing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Delete (soft) a listing (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-listings/{id}/price-history": {
+      "get": {
+        "operationId": "MasterDataController_getPriceHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get price history for a listing",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "post": {
+        "operationId": "MasterDataController_addPriceHistory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Add a price history entry (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/catalog-summary": {
+      "get": {
+        "operationId": "MasterDataController_getCatalogSummary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get catalog data summary (counts)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/bulk/catalog-items": {
+      "post": {
+        "operationId": "MasterDataController_bulkUploadCatalogItems",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Bulk upload catalog items (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/bulk/catalog-listings": {
+      "post": {
+        "operationId": "MasterDataController_bulkUploadCatalogListings",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Bulk upload catalog listings (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
+    "/api/v1/master-data/reset-test-data": {
+      "post": {
+        "operationId": "MasterDataController_resetTestData",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Reset Database for Testing (DANGER)",
+        "tags": [
+          "Master Data"
         ]
       }
     },
@@ -3692,52 +4459,14 @@
         ]
       }
     },
-    "/api/v1/documents/{entityId}/upload": {
-      "post": {
-        "operationId": "DocumentsController_uploadDocument",
+    "/api/v1/reports/shipment-manifest/{shipmentId}": {
+      "get": {
+        "operationId": "ReportsController_downloadShipmentManifest",
         "parameters": [
           {
-            "name": "entityId",
+            "name": "shipmentId",
             "required": true,
             "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UploadDocumentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "Documents"
-        ]
-      }
-    },
-    "/api/v1/documents/file": {
-      "get": {
-        "operationId": "DocumentsController_getFile",
-        "parameters": [
-          {
-            "name": "url",
-            "required": true,
-            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -3753,162 +4482,18 @@
             "bearer": []
           }
         ],
-        "summary": "Fetch document file securely for admins",
+        "summary": "Download shipment manifest PDF",
         "tags": [
-          "Documents"
+          "Reports"
         ]
       }
     },
-    "/api/v1/master-data/fleet-types": {
+    "/api/v1/reports/proforma-invoice/{orderId}": {
       "get": {
-        "operationId": "MasterDataController_getFleetTypes",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "post": {
-        "operationId": "MasterDataController_addFleetType",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/delete/fleet-types": {
-      "post": {
-        "operationId": "MasterDataController_deleteFleetType",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/product-categories": {
-      "get": {
-        "operationId": "MasterDataController_getProductCategories",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/escrow-account": {
-      "get": {
-        "operationId": "MasterDataController_getEscrowAccount",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get Platform Escrow Account details",
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "post": {
-        "operationId": "MasterDataController_updateEscrowAccount",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Update Platform Escrow Account details (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-items": {
-      "get": {
-        "operationId": "MasterDataController_getAllCatalogItems",
+        "operationId": "ReportsController_downloadProformaInvoice",
         "parameters": [
           {
-            "name": "subcategory",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get all catalog items, optionally filtered by subcategory",
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "post": {
-        "operationId": "MasterDataController_createCatalogItem",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCatalogItemDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Create a new catalog item (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-items/subcategories": {
-      "get": {
-        "operationId": "MasterDataController_getSubcategories",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get distinct product subcategories",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-items/{slug}/filters": {
-      "get": {
-        "operationId": "MasterDataController_getItemFilters",
-        "parameters": [
-          {
-            "name": "slug",
+            "name": "orderId",
             "required": true,
             "in": "path",
             "schema": {
@@ -3921,381 +4506,14 @@
             "description": ""
           }
         },
-        "summary": "Get filter options (cities, brands & attributes) for a product",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-items/{id}": {
-      "get": {
-        "operationId": "MasterDataController_getCatalogItemById",
-        "parameters": [
+        "security": [
           {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
+            "bearer": []
           }
         ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get catalog item by ID",
+        "summary": "Download Proforma Invoice PDF",
         "tags": [
-          "Master Data"
-        ]
-      },
-      "put": {
-        "operationId": "MasterDataController_updateCatalogItem",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateCatalogItemDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Update a catalog item (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "delete": {
-        "operationId": "MasterDataController_deleteCatalogItem",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Delete (soft) a catalog item (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-listings/search": {
-      "get": {
-        "operationId": "MasterDataController_searchListings",
-        "parameters": [
-          {
-            "name": "itemSlug",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "brand",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "city",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Search listings with filters",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-listings": {
-      "get": {
-        "operationId": "MasterDataController_getAllCatalogListings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get all catalog listings",
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "post": {
-        "operationId": "MasterDataController_createCatalogListing",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCatalogListingDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Create a new listing (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-listings/by-item/{itemId}": {
-      "get": {
-        "operationId": "MasterDataController_getListingsByItem",
-        "parameters": [
-          {
-            "name": "itemId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get listings for a specific catalog item",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-listings/{id}": {
-      "get": {
-        "operationId": "MasterDataController_getCatalogListingById",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get listing by ID",
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "put": {
-        "operationId": "MasterDataController_updateCatalogListing",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateCatalogListingDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Update a listing (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "delete": {
-        "operationId": "MasterDataController_deleteCatalogListing",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Delete (soft) a listing (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-listings/{id}/price-history": {
-      "get": {
-        "operationId": "MasterDataController_getPriceHistory",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get price history for a listing",
-        "tags": [
-          "Master Data"
-        ]
-      },
-      "post": {
-        "operationId": "MasterDataController_addPriceHistory",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Add a price history entry (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/catalog-summary": {
-      "get": {
-        "operationId": "MasterDataController_getCatalogSummary",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "Get catalog data summary (counts)",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/bulk/catalog-items": {
-      "post": {
-        "operationId": "MasterDataController_bulkUploadCatalogItems",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Bulk upload catalog items (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/bulk/catalog-listings": {
-      "post": {
-        "operationId": "MasterDataController_bulkUploadCatalogListings",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Bulk upload catalog listings (Admin)",
-        "tags": [
-          "Master Data"
-        ]
-      }
-    },
-    "/api/v1/master-data/reset-test-data": {
-      "post": {
-        "operationId": "MasterDataController_resetTestData",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "summary": "Reset Database for Testing (DANGER)",
-        "tags": [
-          "Master Data"
+          "Reports"
         ]
       }
     },
@@ -4597,6 +4815,73 @@
         "summary": "Get my settlement history (Seller/3PL)",
         "tags": [
           "Settlements"
+        ]
+      }
+    },
+    "/api/v1/documents/{entityId}/upload": {
+      "post": {
+        "operationId": "DocumentsController_uploadDocument",
+        "parameters": [
+          {
+            "name": "entityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/api/v1/documents/file": {
+      "get": {
+        "operationId": "DocumentsController_getFile",
+        "parameters": [
+          {
+            "name": "url",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Fetch document file securely for admins",
+        "tags": [
+          "Documents"
         ]
       }
     },
@@ -5053,64 +5338,6 @@
           "Negotiations"
         ]
       }
-    },
-    "/api/v1/reports/shipment-manifest/{shipmentId}": {
-      "get": {
-        "operationId": "ReportsController_downloadShipmentManifest",
-        "parameters": [
-          {
-            "name": "shipmentId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Download shipment manifest PDF",
-        "tags": [
-          "Reports"
-        ]
-      }
-    },
-    "/api/v1/reports/proforma-invoice/{orderId}": {
-      "get": {
-        "operationId": "ReportsController_downloadProformaInvoice",
-        "parameters": [
-          {
-            "name": "orderId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Download Proforma Invoice PDF",
-        "tags": [
-          "Reports"
-        ]
-      }
     }
   },
   "info": {
@@ -5272,6 +5499,14 @@
           "reason"
         ]
       },
+      "CreateBatchDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RunPayoutsDto": {
+        "type": "object",
+        "properties": {}
+      },
       "CreateRfqDto": {
         "type": "object",
         "properties": {}
@@ -5289,34 +5524,6 @@
         "properties": {}
       },
       "UpdateOrderStatusDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreatePaymentDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "VerifyUtrDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "RaiseDisputeDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "ResolveDisputeDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreateShipmentDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdateMilestoneDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UploadDocumentDto": {
         "type": "object",
         "properties": {}
       },
@@ -5474,11 +5681,31 @@
         "type": "object",
         "properties": {}
       },
-      "CreateBatchDto": {
+      "CreatePaymentDto": {
         "type": "object",
         "properties": {}
       },
-      "RunPayoutsDto": {
+      "VerifyUtrDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RaiseDisputeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ResolveDisputeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateShipmentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateMilestoneDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UploadDocumentDto": {
         "type": "object",
         "properties": {}
       },

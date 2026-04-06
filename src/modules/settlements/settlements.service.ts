@@ -13,6 +13,8 @@ import {
 import { OrdersService } from "../orders/orders.service";
 import { OrganizationsService } from "../organizations/organizations.service";
 import { PaymentsService } from "../payments/payments.service";
+import { MasterDataService } from "../master-data/master-data.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 @Injectable()
 export class SettlementsService {
@@ -24,6 +26,8 @@ export class SettlementsService {
     private readonly ordersService: OrdersService,
     private readonly orgService: OrganizationsService,
     private readonly paymentsService: PaymentsService,
+    private readonly masterDataService: MasterDataService,
+    private readonly notificationsService: NotificationsService,
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
     private readonly logger: CustomLoggerService,
@@ -38,7 +42,19 @@ export class SettlementsService {
     // Grouping by party (Seller/3PL)
     const partyMap = new Map<string, any>();
 
+    const platformConfig = await this.masterDataService.getPlatformConfig();
+    const feeRate = platformConfig?.platformFeeRate ?? 0.02;
+
     for (const order of orders) {
+      // 0. Safety Check: Skip orders with active disputes or paused timers
+      const hasActiveDispute = order.disputeIds && order.disputeIds.length > 0;
+      const isTimerPaused = order.payoutTimer && order.payoutTimer.status === 'PAUSED';
+
+      if (hasActiveDispute || isTimerPaused) {
+        this.logger.warn(`Skipping order ${order.orderId} due to active dispute or paused timer`);
+        continue;
+      }
+
       // 1. Seller Payout logic
       const sellerId = order.sellerId.toString();
       if (!partyMap.has(sellerId)) {
@@ -55,8 +71,8 @@ export class SettlementsService {
       const sellerEntry = partyMap.get(sellerId);
       sellerEntry.orders.push(order.orderId);
       sellerEntry.grossAmount += order.pricing.baseAmount + order.pricing.freightTotal;
-      // Note: Tax is usually pass-through or handled at invoice. Here we track taxable gross.
-      sellerEntry.platformFee += (order.pricing.baseAmount * 0.02); // Placeholder 2% fee
+      // Use dynamic fee rate from platform config
+      sellerEntry.platformFee += (order.pricing.baseAmount * feeRate);
 
       // 2. 3PL Payout logic (Simplified: if freight exists, it might go to a carrier)
       // For this implementation, we assume Seller handles freight unless 3PL module is active.
@@ -163,6 +179,31 @@ export class SettlementsService {
       li.payoutId = savedPayout._id as any;
       li.status = 'PAID';
       payouts.push(savedPayout);
+
+      // ✅ Notify Seller: Payout Executed
+      try {
+        const users = await this.orgService.getOrganizationUsers(li.partyId.toString());
+        for (const user of users) {
+          await this.notificationsService.notify(
+            user._id.toString(),
+            "💰 Payout Processed",
+            `A payout of ₹${li.netPayable.toLocaleString()} has been processed for your settled orders.`,
+            {
+              template: "order-status",
+              data: {
+                orderId: "Multiple (Batch)",
+                status: "PAID",
+                type: "PAYOUT ALERT",
+                remarks: `Batch ID: ${batch.batchId}. Net Payable: ₹${li.netPayable.toLocaleString()}.`,
+                orderUrl: `${process.env.FRONTEND_URL}/seller/payouts`,
+              },
+              category: "PAYMENT",
+            }
+          );
+        }
+      } catch (notifyErr) {
+        this.logger.error(`Failed to dispatch payout notification for ${li.partyName}: ${notifyErr.message}`);
+      }
     }
 
     batch.status = 'PAID';

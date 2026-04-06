@@ -7,6 +7,8 @@ import { IdGeneratorService } from "src/common/services/id-generator.service";
 import { KYCStatus } from "../kyc-status.constants";
 import { KycCase, KycCaseDocument } from "../schemas/kyc.schema";
 import { KycHelperService } from "./kyc.helper.service";
+import { NotificationsService } from "@modules/notifications/notifications.service";
+import { User, UserDocument } from "@modules/users/schemas/user.schema";
 
 @Injectable()
 export class KycAdminService {
@@ -14,8 +16,10 @@ export class KycAdminService {
     @InjectModel(KycCase.name) private kycCaseModel: Model<KycCaseDocument>,
     @InjectModel(Organization.name) private orgModel: Model<OrganizationDocument>,
     private readonly kycHelperService: KycHelperService,
+    private readonly notificationsService: NotificationsService,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
     private readonly logger: CustomLoggerService,
-    private readonly idGenerator: IdGeneratorService, // ✅ Inject ID generator
+    private readonly idGenerator: IdGeneratorService,
   ) { }
 
   // create KYC case on submission
@@ -212,12 +216,17 @@ export class KycAdminService {
   async getKycCaseDetail(caseIdOrCode: string) {
     this.logger.log(`getKycCaseDetail called with identifier: ${caseIdOrCode}`);
 
-    // ✅ Try to find by caseCode first, then by MongoDB _id for backward compatibility
     let kycCase = await this.kycCaseModel.findOne({ caseCode: caseIdOrCode }).populate("organizationId").lean();
 
+    // ✅ Fallback 1: Try searching by organization code (get the latest attempt) if it's an orgCode
+    if (!kycCase && !Types.ObjectId.isValid(caseIdOrCode)) {
+      this.logger.log(`caseCode not found, trying as organizationCode: ${caseIdOrCode}`);
+      kycCase = await this.kycCaseModel.findOne({ organizationCode: caseIdOrCode }).sort({ submissionAttempt: -1 }).populate("organizationId").lean();
+    }
+
+    // ✅ Fallback 2: Try MongoDB _id for legacy backward compatibility
     if (!kycCase && Types.ObjectId.isValid(caseIdOrCode)) {
-      // Fallback to MongoDB _id for backward compatibility
-      this.logger.log(`caseCode not found, trying MongoDB ObjectId: ${caseIdOrCode}`);
+      this.logger.log(`Still not found, trying MongoDB ObjectId: ${caseIdOrCode}`);
       kycCase = await this.kycCaseModel.findById(caseIdOrCode).populate("organizationId").lean();
     }
 
@@ -342,6 +351,30 @@ export class KycAdminService {
     await org.save();
     this.logger.log(`Organization updated after KYC approval, orgCode: ${org.orgCode}`);
 
+    // ✅ Notify user(s) about the approval
+    try {
+      const users = await this.userModel.find({ organizationId: org._id });
+      for (const user of users) {
+        await this.notificationsService.notify(
+          user._id.toString(),
+          "🎉 KYC Approved",
+          `Congratulations! Your organization ${org.legalName} has been verified successfully.`,
+          {
+            template: "kyc-status",
+            data: {
+              status: "APPROVED",
+              type: "KYC UPDATE",
+              remarks: remarks || "Welcome to the bulkmandi platform!",
+              dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
+            },
+            category: "KYC",
+          }
+        );
+      }
+    } catch (notifyErr) {
+      this.logger.error(`Failed to send KYC approval notifications: ${notifyErr.message}`);
+    }
+
     return {
       message: "KYC case approved successfully",
       kycCase: {
@@ -414,6 +447,30 @@ export class KycAdminService {
     org.isVerified = false;
     await org.save();
     this.logger.log(`Organization updated after KYC rejection, orgCode: ${org.orgCode}`);
+
+    // ✅ Notify user(s) about the rejection
+    try {
+      const users = await this.userModel.find({ organizationId: org._id });
+      for (const user of users) {
+        await this.notificationsService.notify(
+          user._id.toString(),
+          "⚠️ KYC Rejected",
+          `Your KYC submission for ${org.legalName} was not approved.`,
+          {
+            template: "kyc-status",
+            data: {
+              status: "REJECTED",
+              type: "KYC UPDATE",
+              remarks: rejectionReason,
+              dashboardUrl: `${process.env.FRONTEND_URL}/onboarding`,
+            },
+            category: "KYC",
+          }
+        );
+      }
+    } catch (notifyErr) {
+      this.logger.error(`Failed to send KYC rejection notifications: ${notifyErr.message}`);
+    }
 
     return {
       message: "KYC case rejected successfully",

@@ -82,6 +82,9 @@ export class Quote {
   @Prop()
   notes?: string;
 
+  @Prop()
+  priceJustification?: string;
+
   // Status
   @Prop({ default: 'SUBMITTED' })
   status!: string; // SUBMITTED | NEGOTIATING | EXPIRED | WITHDRAWN | ACCEPTED | REJECTED

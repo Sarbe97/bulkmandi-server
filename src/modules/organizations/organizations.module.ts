@@ -6,13 +6,15 @@ import { KycCase, KycCaseSchema } from "../kyc/schemas/kyc.schema";
 import { OrganizationsController } from "./organizations.controller";
 import { OrganizationsService } from "./organizations.service";
 import { Organization, OrganizationSchema } from "./schemas/organization.schema";
+import { User, UserSchema } from "../users/schemas/user.schema";
 import { UsersModule } from "../users/users.module";
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Organization.name, schema: OrganizationSchema },
-      { name: KycCase.name, schema: KycCaseSchema }, // ✅ Added for IdGeneratorService
+      { name: KycCase.name, schema: KycCaseSchema },
+      { name: User.name, schema: UserSchema },
     ]),
     UsersModule, // ✅ Added for UsersService
   ],
