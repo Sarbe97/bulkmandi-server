@@ -1553,6 +1553,35 @@
         ]
       }
     },
+    "/api/v1/admin/organizations/{id}": {
+      "get": {
+        "operationId": "AdminController_getOrganizationDetails",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get organization details (Admin)",
+        "tags": [
+          "Admin Management"
+        ]
+      }
+    },
     "/api/v1/admin/rfqs": {
       "get": {
         "operationId": "AdminController_getAllRfqs",

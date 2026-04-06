@@ -13,8 +13,9 @@ export class OtpService {
   ) {}
 
   async sendOtp(identifier: string, type: 'EMAIL' | 'PHONE'): Promise<{ success: boolean; message: string }> {
-    // Generate a 6-digit OTP
-    const otp = crypto.randomInt(100000, 999999).toString();
+    // Check TEST_MODE for hardcoding 123456
+    const isTestMode = process.env.TEST_MODE === 'true';
+    const otp = isTestMode ? '123456' : crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
     // Save to DB (overwrite if already exists for this identifier and type)
@@ -25,7 +26,7 @@ export class OtpService {
     );
 
     // Bypassing real send logic as requested, just log it.
-    this.logger.log(`\n\n---------------- OTP ----------------\nTYPE: ${type}\nTO: ${identifier}\nOTP: ${otp}\n--------------------------------------\n\n`);
+    this.logger.log(`\n\n---------------- OTP ----------------\nTYPE: ${type}\nTO: ${identifier}\nOTP: ${otp}\nTEST_MODE: ${isTestMode ? 'ACTIVE (FIXED 123456)' : 'OFF'}\n--------------------------------------\n\n`);
 
     // In a real scenario, we would call a Mail or SMS service here.
     if (type === 'EMAIL') {
@@ -39,8 +40,11 @@ export class OtpService {
   }
 
   async verifyOtp(identifier: string, otp: string): Promise<{ success: boolean; message: string }> {
-    // DEVELOPMENT BYPASS: Allow '123456' to always work if needed, or just follow the logic
-    // if (otp === '123456') return { success: true, message: 'OTP verified (BYPASS)' };
+    // TEST_MODE bypass: Allow '123456' to always work if TEST_MODE is active
+    if (process.env.TEST_MODE === 'true' && otp === '123456') {
+      this.logger.warn(`OTP verification bypassed for ${identifier} via TEST_MODE`);
+      return { success: true, message: 'OTP verified (TEST_MODE BYPASS)' };
+    }
 
     const record = await this.otpModel.findOne({ identifier, otp, isUsed: false });
 

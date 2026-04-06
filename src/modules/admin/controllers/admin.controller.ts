@@ -41,6 +41,13 @@ export class AdminController {
         return this.organizationsService.findAll(filter);
     }
 
+    @Get("organizations/:id")
+    @ApiOperation({ summary: "Get organization details (Admin)" })
+    async getOrganizationDetails(@Param("id") id: string) {
+        this.logger.log(`Admin fetching organization details for ID: ${id}`);
+        return this.organizationsService.getOrganization(id);
+    }
+
     @Get("rfqs")
     @ApiOperation({ summary: "Get all RFQs (Admin)" })
     async getAllRfqs(

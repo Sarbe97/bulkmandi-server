@@ -370,8 +370,11 @@ export class MasterDataService implements OnModuleInit {
     category: string;
     grade?: string;
     city?: string;
-  }): Promise<{ basePrice: number; city: string; slug: string; brand: string } | null> {
+  }): Promise<{ basePrice: number; city: string; slug: string; brand: string; quoteDeviation: any } | null> {
     try {
+      const config = await this.getPlatformConfig();
+      const quoteDeviation = config.quoteDeviation;
+
       // Step 1: Find catalog items matching the product category/grade using text search
       const categoryKeywords = [params.category, params.grade].filter(Boolean).join(' ');
       const matchingItems = await this.catalogItemModel.find({
@@ -412,6 +415,7 @@ export class MasterDataService implements OnModuleInit {
             city: best.city,
             slug: best.catalogItemSlug,
             brand: best.brand,
+            quoteDeviation,
           };
         }
       }
@@ -430,6 +434,7 @@ export class MasterDataService implements OnModuleInit {
         city: 'national_average',
         slug: allListings[0].catalogItemSlug,
         brand: 'Market Average',
+        quoteDeviation,
       };
     } catch {
       return null;
@@ -738,10 +743,11 @@ export class MasterDataService implements OnModuleInit {
       'sellerpreferences',
       'logisticpreferences',
       'auditlogs',
-      'kycrecords',
+      'kyccases',
       'documents',
       'negotiations',
       'priceindices',
+      'logs',
     ];
 
     // ── Collections to NEVER touch (Static Seeding Data) ─────────────────────
