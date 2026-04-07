@@ -9,6 +9,8 @@
  */
 
 import { ReportTemplate } from '../interfaces/report-template.interface';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export class ShipmentManifestTemplate implements ReportTemplate {
   readonly templateKey = 'shipment-manifest';
@@ -29,7 +31,20 @@ export class ShipmentManifestTemplate implements ReportTemplate {
     const s = rawData.shipment;
     const now = new Date();
 
+    // Load logo as base64
+    let logoBase64 = '';
+    try {
+      const logoPath = path.join(process.cwd(), 'assets/logo.png');
+      if (fs.existsSync(logoPath)) {
+        const logoData = fs.readFileSync(logoPath);
+        logoBase64 = `data:image/png;base64,${logoData.toString('base64')}`;
+      }
+    } catch (err) {
+      // Fallback
+    }
+
     return {
+      logo: logoBase64,
       // Header
       generatedDate: now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
       generatedTime: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),

@@ -35,12 +35,14 @@
     .header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: center;
       margin-bottom: 40px;
       border-bottom: 2px solid var(--clr-primary);
       padding-bottom: 20px;
     }
-    .brand { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; color: var(--clr-primary); }
+    .brand-container { display: flex; align-items: center; gap: 12px; }
+    .brand-logo { height: 45px; width: auto; }
+    .brand { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; color: var(--clr-primary); text-transform: uppercase; }
     .brand span { color: var(--clr-accent); }
     .doc-type { text-align: right; }
     .doc-type h1 { font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--clr-primary); }
@@ -102,7 +104,10 @@
 <body>
   <div class="page">
     <header class="header">
-      <div class="brand">BULK<span>MANDI</span></div>
+      <div class="brand-container">
+        <img src="{{logo}}" alt="BulkMandi" class="brand-logo" onerror="this.style.display='none'">
+        <div class="brand">BULK<span>MANDI</span></div>
+      </div>
       <div class="doc-type">
         <h1>Proforma Invoice</h1>
         <p>Order Reference: {{orderId}}</p>

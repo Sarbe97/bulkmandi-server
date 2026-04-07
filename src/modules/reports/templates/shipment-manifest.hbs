@@ -46,25 +46,31 @@
        HEADER
        ═══════════════════════════════════════════════════════════ */
     .header {
-      background: var(--clr-primary);
-      color: var(--clr-white);
-      padding: 20px 28px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-radius: var(--radius) var(--radius) 0 0;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--clr-dark);
+      padding: 20px 28px;
     }
-    .header .brand {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: 1px;
-    }
-    .header .brand-sub {
-      font-size: 9px;
-      color: #93c5fd;
-      letter-spacing: 2px;
+    .brand-container { display: flex; align-items: center; gap: 12px; }
+    .brand-logo { height: 40px; width: auto; }
+    .brand {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: var(--clr-dark);
       text-transform: uppercase;
-      margin-top: 4px;
+    }
+    .brand span { color: var(--clr-primary-light); }
+
+    .brand-sub {
+      font-size: 8px;
+      color: var(--clr-mid);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-top: 2px;
     }
     .header .meta {
       text-align: right;
@@ -241,9 +247,12 @@
 
     <!-- ════════════════════ HEADER ════════════════════ -->
     <div class="header">
-      <div>
-        <div class="brand">BULKMANDI</div>
-        <div class="brand-sub">B2B Marketplace Platform</div>
+      <div class="brand-container">
+        <img src="{{logo}}" alt="BulkMandi" class="brand-logo" onerror="this.style.display='none'">
+        <div>
+          <div class="brand">BULK<span>MANDI</span></div>
+          <div class="brand-sub">Premium B2B Marketplace Platform</div>
+        </div>
       </div>
       <div class="meta">
         Generated: {{generatedDate}}<br/>

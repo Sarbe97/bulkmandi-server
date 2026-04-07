@@ -6,6 +6,8 @@
  */
 
 import { ReportTemplate } from '../interfaces/report-template.interface';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export class ProformaInvoiceTemplate implements ReportTemplate {
   readonly templateKey = 'proforma-invoice';
@@ -32,7 +34,20 @@ export class ProformaInvoiceTemplate implements ReportTemplate {
     const b = rawData.buyer;
     const now = new Date();
 
+    // Load logo as base64
+    let logoBase64 = '';
+    try {
+      const logoPath = path.join(process.cwd(), 'assets/logo.png');
+      if (fs.existsSync(logoPath)) {
+        const logoData = fs.readFileSync(logoPath);
+        logoBase64 = `data:image/png;base64,${logoData.toString('base64')}`;
+      }
+    } catch (err) {
+      // Fallback to empty string if logo read fails
+    }
+
     return {
+      logo: logoBase64,
       orderId: o.orderId,
       date: now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
       orderDate: o.createdAt 
