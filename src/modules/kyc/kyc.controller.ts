@@ -6,6 +6,7 @@ import { AuditService } from "../audit/audit.service";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { KycAdminService } from "./services/kyc-admin.service";
+import { AuditAction, AuditModule, AuditEntityType } from "src/common/constants/app.constants";
 
 @ApiTags("Admin KYC Management")
 @ApiBearerAuth()
@@ -58,9 +59,9 @@ export class KycController {
     const result = await this.kycAdminService.approveKycCase(caseIdOrCode, user.userId, body.remarks);
 
     this.auditService.log({
-      action: 'KYC_APPROVED',
-      module: 'KYC',
-      entityType: 'KYC_CASE',
+      action: AuditAction.KYC_APPROVED,
+      module: AuditModule.KYC,
+      entityType: AuditEntityType.KYC,
       entityIdStr: caseIdOrCode,
       actorId: user.userId,
       afterState: { status: 'APPROVED', remarks: body.remarks },
@@ -89,9 +90,9 @@ export class KycController {
     const result = await this.kycAdminService.rejectKycCase(caseIdOrCode, user.userId, body.rejectionReason);
 
     this.auditService.log({
-      action: 'KYC_REJECTED',
-      module: 'KYC',
-      entityType: 'KYC_CASE',
+      action: AuditAction.KYC_REJECTED,
+      module: AuditModule.KYC,
+      entityType: AuditEntityType.KYC,
       entityIdStr: caseIdOrCode,
       actorId: user.userId,
       afterState: { status: 'REJECTED', rejectionReason: body.rejectionReason },
@@ -113,9 +114,9 @@ export class KycController {
     const result = await this.kycAdminService.requestMoreInfo(caseId, user.userId, body.message, body.fields);
 
     this.auditService.log({
-      action: 'KYC_INFO_REQUESTED',
-      module: 'KYC',
-      entityType: 'KYC_CASE',
+      action: AuditAction.KYC_INFO_REQUESTED,
+      module: AuditModule.KYC,
+      entityType: AuditEntityType.KYC,
       entityIdStr: caseId,
       actorId: user.userId,
       afterState: { fields: body.fields, message: body.message },
@@ -136,9 +137,9 @@ export class KycController {
     const result = await this.kycAdminService.addToWatchlist(caseId, user.userId, body.reason, body.tags);
 
     this.auditService.log({
-      action: 'KYC_WATCHLISTED',
-      module: 'KYC',
-      entityType: 'KYC_CASE',
+      action: AuditAction.KYC_WATCHLISTED,
+      module: AuditModule.KYC,
+      entityType: AuditEntityType.KYC,
       entityIdStr: caseId,
       actorId: user.userId,
       afterState: { tags: body.tags, reason: body.reason },
@@ -167,9 +168,9 @@ export class KycController {
     const result = await this.kycAdminService.unlockForUpdate(caseId, user.userId, body.remarks);
 
     this.auditService.log({
-      action: 'KYC_UNLOCKED',
-      module: 'KYC',
-      entityType: 'KYC_CASE',
+      action: AuditAction.KYC_UNLOCKED,
+      module: AuditModule.KYC,
+      entityType: AuditEntityType.KYC,
       entityIdStr: caseId,
       actorId: user.userId,
       afterState: { status: 'UNLOCKED_FOR_UPDATE', remarks: body.remarks },

@@ -9,6 +9,10 @@ import { VerifyUtrDto } from './dto/verify-utr.dto';
 import { Payment, PaymentDocument } from './schemas/payment.schema';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ReportsService } from '../reports/reports.service';
+import { ShipmentsService } from '../shipments/shipments.service';
+import { Inject, forwardRef } from '@nestjs/common';
+import { AuditAction, AuditModule, AuditEntityType, LogisticsPreference } from 'src/common/constants/app.constants';
+import { OrderStatus } from 'src/common/enums';
 
 @Injectable()
 export class PaymentsService {
@@ -18,6 +22,7 @@ export class PaymentsService {
     private readonly auditService: AuditService,
     private readonly notificationsService: NotificationsService,
     private readonly reportsService: ReportsService,
+    @Inject(forwardRef(() => ShipmentsService)) private readonly shipmentsService: ShipmentsService,
     private readonly logger: CustomLoggerService,
   ) {}
 
@@ -64,9 +69,9 @@ export class PaymentsService {
     const savedPayment = await payment.save();
 
     this.auditService.log({
-      action: 'PAYMENT_ESCROW_INITIATED',
-      module: 'PAYMENT',
-      entityType: 'PAYMENT',
+      action: AuditAction.PAYMENT_ESCROW_INITIATED,
+      module: AuditModule.PAYMENT,
+      entityType: AuditEntityType.PAYMENT,
       entityId: savedPayment._id as any,
       entityIdStr: savedPayment.paymentId,
       actorId: orgId,
@@ -75,7 +80,7 @@ export class PaymentsService {
     });
 
     // For all initiated payments, update order to PAYMENT_SUBMITTED
-    order.status = 'PAYMENT_SUBMITTED';
+    order.status = OrderStatus.PAYMENT_SUBMITTED;
     order.lifecycle.paymentPendingAt = new Date(); // Re-use or add paymentSubmittedAt
     order.payment = {
       paymentId: savedPayment.paymentId,
@@ -100,7 +105,7 @@ export class PaymentsService {
     // Update the order status to PAYMENT_SUBMITTED
     const order = await this.orderModel.findById(payment.orderId);
     if (order) {
-      order.status = 'PAYMENT_SUBMITTED';
+      order.status = OrderStatus.PAYMENT_SUBMITTED;
       order.payment.utr = dto.utr;
       await order.save();
     }
@@ -115,22 +120,31 @@ export class PaymentsService {
     
     payment.status = 'VERIFIED';
     payment.bankVerifiedAt = new Date();
-    payment.bankVerificationMethod = 'ADMIN_MANUAL';
+    payment.bankVerificationMethod = AuditEntityType.USER;
     payment.statusTimeline.push({ status: 'VERIFIED', timestamp: new Date() });
     await payment.save();
 
     const order = await this.orderModel.findById(payment.orderId);
     if (order) {
-      order.status = 'PAID';
+      order.status = OrderStatus.PAID;
       order.lifecycle.paidAt = new Date();
       order.payment.escrowHolds = payment.escrowHoldAmount;
       await order.save();
+
+      // ✅ Trigger Shipment RFQ if Platform Managed
+      if (order.logisticsPreference === LogisticsPreference.PLATFORM_3PL) {
+        try {
+          await this.shipmentsService.createShipmentRfq(order._id.toString());
+        } catch (rfqErr) {
+          this.logger.error(`Failed to create Shipment RFQ for order ${order.orderId}: ${rfqErr.message}`);
+        }
+      }
     }
 
     this.auditService.log({
-      action: 'PAYMENT_VERIFIED_BY_ADMIN',
-      module: 'PAYMENT',
-      entityType: 'PAYMENT',
+      action: AuditAction.PAYMENT_VERIFIED_BY_ADMIN,
+      module: AuditModule.PAYMENT,
+      entityType: AuditEntityType.PAYMENT,
       entityId: payment._id as any,
       entityIdStr: payment.paymentId,
       actorId: adminId,
@@ -153,7 +167,7 @@ export class PaymentsService {
             type: "ORDER UPDATE",
             orderUrl: `${process.env.FRONTEND_URL}/seller/orders/${order._id}`,
           },
-          category: "ORDER",
+          category: AuditModule.ORDER,
         }
       );
 
@@ -173,7 +187,7 @@ export class PaymentsService {
             orderUrl: `${process.env.FRONTEND_URL}/buyer/orders/${order._id}`,
           },
           attachments: [{ filename, content: buffer, contentType: 'application/pdf' }],
-          category: "PAYMENT",
+          category: AuditModule.PAYMENT,
         }
       );
     } catch (notifyErr) {
@@ -196,15 +210,15 @@ export class PaymentsService {
 
     const order = await this.orderModel.findById(payment.orderId);
     if (order) {
-      order.status = 'REJECTED';
+      order.status = 'REJECTED'; // Keeping REJECTED for now as it's common
       order.payment.utr = undefined;
       await order.save();
     }
 
     this.auditService.log({
-      action: 'PAYMENT_REJECTED_BY_ADMIN',
-      module: 'PAYMENT',
-      entityType: 'PAYMENT',
+      action: AuditAction.PAYMENT_REJECTED_BY_ADMIN,
+      module: AuditModule.PAYMENT,
+      entityType: AuditEntityType.PAYMENT,
       entityId: payment._id as any,
       entityIdStr: payment.paymentId,
       actorId: adminId,
@@ -227,7 +241,7 @@ export class PaymentsService {
             remarks: reason,
             orderUrl: `${process.env.FRONTEND_URL}/buyer/orders/${order._id}`,
           },
-          category: "PAYMENT",
+          category: AuditModule.PAYMENT,
         }
       );
     } catch (notifyErr) {
@@ -292,9 +306,9 @@ export class PaymentsService {
     await payment.save();
 
     this.auditService.log({
-      action: 'ESCROW_STAGE1_RELEASED',
-      module: 'PAYMENT',
-      entityType: 'PAYMENT',
+      action: AuditAction.ESCROW_STAGE1_RELEASED,
+      module: AuditModule.PAYMENT,
+      entityType: AuditEntityType.PAYMENT,
       entityId: payment._id as any,
       entityIdStr: payment.paymentId,
       actorType: 'SYSTEM',
@@ -329,9 +343,9 @@ export class PaymentsService {
     await payment.save();
 
     this.auditService.log({
-      action: 'ESCROW_STAGE2_RELEASED',
-      module: 'PAYMENT',
-      entityType: 'PAYMENT',
+      action: AuditAction.ESCROW_STAGE2_RELEASED,
+      module: AuditModule.PAYMENT,
+      entityType: AuditEntityType.PAYMENT,
       entityId: payment._id as any,
       entityIdStr: payment.paymentId,
       actorType: 'SYSTEM',
@@ -363,9 +377,9 @@ export class PaymentsService {
     const saved = await payment.save();
 
     this.auditService.log({
-      action: 'ESCROW_STAGE2_HELD',
-      module: 'PAYMENT',
-      entityType: 'PAYMENT',
+      action: AuditAction.ESCROW_STAGE2_HELD,
+      module: AuditModule.PAYMENT,
+      entityType: AuditEntityType.PAYMENT,
       entityId: saved._id as any,
       entityIdStr: saved.paymentId,
       actorType: 'SYSTEM',

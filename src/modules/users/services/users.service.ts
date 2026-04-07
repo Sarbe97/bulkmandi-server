@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
 import { Organization, OrganizationDocument } from '../../organizations/schemas/organization.schema';
 import * as bcrypt from 'bcrypt';
@@ -209,5 +209,46 @@ export class UsersService {
     });
 
     return [headers.join(','), ...rows].join('\n');
+  }
+
+  /**
+   * Find all verified sellers on the platform. Fallback to all active sellers if none are approved (dev mode support).
+   */
+  async findVerifiedSellers() {
+    this.logger.debug('Finding sellers for broadcast notification...');
+    
+    // Primary: Approved Organizations
+    let orgs = await this.orgModel.find({ kycStatus: 'APPROVED' }).select('_id');
+    
+    // Fallback: If no approved orgs, find all active organizations (for dev testing)
+    if (orgs.length === 0) {
+      this.logger.warn('No APPROVED organizations found. Falling back to all ACTIVE organizations for notification broadcast.');
+      orgs = await this.orgModel.find({ isVerified: true }).select('_id');
+    }
+    
+    // Ultimate Fallback: If still none, get all organizations (last resort to ensure notification logic is exercised)
+    if (orgs.length === 0) {
+      orgs = await this.orgModel.find().select('_id');
+    }
+
+    const orgIds = orgs.map(org => org._id);
+    this.logger.debug(`Targeting ${orgIds.length} organizations for seller discovery.`);
+    
+    const users = await this.userModel.find({ 
+      organizationId: { $in: orgIds },
+      role: 'SELLER',
+      isActive: true 
+    }).select('_id organizationId email');
+
+    this.logger.debug(`Found ${users.length} active sellers to notify.`);
+    return users;
+  }
+
+  async findByOrgId(orgId: string): Promise<User[]> {
+    this.logger.debug(`Finding active users for organization: ${orgId}`);
+    return this.userModel.find({ 
+      organizationId: new Types.ObjectId(orgId), 
+      isActive: true 
+    }).exec();
   }
 }

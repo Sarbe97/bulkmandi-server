@@ -458,9 +458,23 @@
         ]
       }
     },
-    "/api/v1/v1/user/dashboard/stats": {
+    "/api/v1/user/dashboard/stats": {
       "get": {
         "operationId": "UserDashboardController_getDashboardStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "UserDashboard"
+        ]
+      }
+    },
+    "/api/v1/user/dashboard/activity": {
+      "get": {
+        "operationId": "UserDashboardController_getDashboardActivity",
         "parameters": [],
         "responses": {
           "200": {
@@ -687,6 +701,88 @@
         "summary": "Get all audit logs for a specific user (actor)",
         "tags": [
           "Admin — Activity Log"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_getNotifications",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationsController_getUnreadCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}/read": {
+      "patch": {
+        "operationId": "NotificationsController_markAsRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/read-all": {
+      "post": {
+        "operationId": "NotificationsController_markAllAsRead",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Notifications"
         ]
       }
     },
@@ -4483,6 +4579,119 @@
           }
         ],
         "summary": "Confirm dispatch (Seller/Logistic)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/rfqs/open": {
+      "get": {
+        "operationId": "ShipmentsController_getOpenRfqs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Browse open Shipment RFQs (Logistic/Admin)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/rfqs/{id}/bids": {
+      "post": {
+        "operationId": "ShipmentsController_submitBid",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit bid for Shipment RFQ (Logistic only)",
+        "tags": [
+          "Shipments"
+        ]
+      },
+      "get": {
+        "operationId": "ShipmentsController_getBids",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get bids for an Shipment RFQ (Admin/Logistic)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/rfqs/{id}/award/{bidId}": {
+      "post": {
+        "operationId": "ShipmentsController_awardBid",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bidId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Award shipment job to a 3PL (Admin only)",
         "tags": [
           "Shipments"
         ]

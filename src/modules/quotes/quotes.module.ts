@@ -10,6 +10,7 @@ import { AuthModule } from '../auth/auth.module';
 import { OrdersModule } from '../orders/orders.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { MasterDataModule } from '../master-data/master-data.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { MasterDataModule } from '../master-data/master-data.module';
     MasterDataModule,
     AuthModule,
     AuditModule,
+    UsersModule,
   ],
 
   providers: [QuotesService],

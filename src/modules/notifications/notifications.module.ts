@@ -6,12 +6,14 @@ import { EmailNotificationChannel } from './channels/email.channel';
 import { InAppNotificationChannel } from './channels/in-app.channel';
 import { SmsNotificationChannel, WhatsappNotificationChannel } from './channels/skeletons.channel';
 import { UsersModule } from '../users/users.module';
+import { NotificationsController } from './notifications.controller';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Notification.name, schema: NotificationSchema }]),
     forwardRef(() => UsersModule),
   ],
+  controllers: [NotificationsController],
   providers: [
     NotificationsService,
     EmailNotificationChannel,

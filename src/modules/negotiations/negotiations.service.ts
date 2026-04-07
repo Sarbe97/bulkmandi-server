@@ -14,6 +14,8 @@ import { OrganizationsService } from '../organizations/organizations.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateNegotiationDto } from './dto/create-negotiation.dto';
 import { RespondNegotiationDto } from './dto/respond-negotiation.dto';
+import { AuditAction, AuditModule, AuditEntityType } from 'src/common/constants/app.constants';
+import { QuoteStatus, RfqStatus } from 'src/common/enums';
 
 export enum NegotiationStatus {
   BUYER_COUNTERED = 'BUYER_COUNTERED',
@@ -43,13 +45,13 @@ export class NegotiationsService {
     if (!quote) throw new NotFoundException('Quote not found');
 
     // Guard: only SUBMITTED or NEGOTIATING quotes can be negotiated
-    if (!['SUBMITTED', 'NEGOTIATING'].includes(quote.status)) {
+    if (![QuoteStatus.SUBMITTED, QuoteStatus.NEGOTIATING].includes(quote.status as QuoteStatus)) {
       throw new BadRequestException(`Cannot negotiate a quote in ${quote.status} status`);
     }
 
     // Guard: RFQ must still be open
     const rfq = await this.rfqModel.findOne({ rfqId: quote.rfqId });
-    if (!rfq || !['OPEN'].includes(rfq.status)) {
+    if (!rfq || ![RfqStatus.OPEN].includes(rfq.status as RfqStatus)) {
       throw new BadRequestException('RFQ is no longer open for negotiation');
     }
 
@@ -101,13 +103,13 @@ export class NegotiationsService {
     const saved = await negotiation.save();
 
     // Update quote status to NEGOTIATING
-    quote.status = 'NEGOTIATING';
+    quote.status = QuoteStatus.NEGOTIATING;
     await quote.save();
 
     this.auditService.log({
-      action: 'NEGOTIATION_INITIATED',
-      module: 'NEGOTIATION',
-      entityType: 'NEGOTIATION',
+      action: AuditAction.NEGOTIATION_INITIATED,
+      module: AuditModule.NEGOTIATION,
+      entityType: AuditEntityType.NEGOTIATION,
       entityId: saved._id as any,
       entityIdStr: saved.negotiationId,
       actorId: buyerOrgId,
@@ -179,9 +181,9 @@ export class NegotiationsService {
     const saved = await neg.save();
 
     this.auditService.log({
-      action: 'NEGOTIATION_COUNTER',
-      module: 'NEGOTIATION',
-      entityType: 'NEGOTIATION',
+      action: AuditAction.NEGOTIATION_COUNTER,
+      module: AuditModule.NEGOTIATION,
+      entityType: AuditEntityType.NEGOTIATION,
       entityId: saved._id as any,
       entityIdStr: saved.negotiationId,
       actorId: orgId,
@@ -242,16 +244,16 @@ export class NegotiationsService {
       quote.grandTotal = quote.totalPriceBase + quote.totalFreight;
 
       // Return quote to SUBMITTED so buyer can accept it normally
-      quote.status = 'SUBMITTED';
+      quote.status = QuoteStatus.SUBMITTED;
       quote.submittedAt = new Date();
 
       await quote.save();
     }
 
     this.auditService.log({
-      action: 'NEGOTIATION_ACCEPTED',
-      module: 'NEGOTIATION',
-      entityType: 'NEGOTIATION',
+      action: AuditAction.NEGOTIATION_ACCEPTED,
+      module: AuditModule.NEGOTIATION,
+      entityType: AuditEntityType.NEGOTIATION,
       entityId: neg._id as any,
       entityIdStr: neg.negotiationId,
       actorId: orgId,
@@ -291,15 +293,15 @@ export class NegotiationsService {
 
     // Revert quote status back to SUBMITTED
     const quote = await this.quoteModel.findOne({ quoteId: neg.quoteId });
-    if (quote && quote.status === 'NEGOTIATING') {
-      quote.status = 'SUBMITTED';
+    if (quote && quote.status === QuoteStatus.NEGOTIATING) {
+      quote.status = QuoteStatus.SUBMITTED;
       await quote.save();
     }
 
     this.auditService.log({
-      action: 'NEGOTIATION_REJECTED',
-      module: 'NEGOTIATION',
-      entityType: 'NEGOTIATION',
+      action: AuditAction.NEGOTIATION_REJECTED,
+      module: AuditModule.NEGOTIATION,
+      entityType: AuditEntityType.NEGOTIATION,
       entityId: neg._id as any,
       entityIdStr: neg.negotiationId,
       actorId: orgId,

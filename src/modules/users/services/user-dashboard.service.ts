@@ -6,6 +6,10 @@ import { Quote, QuoteDocument } from '../../quotes/schemas/quote.schema';
 import { Order, OrderDocument } from '../../orders/schemas/order.schema';
 import { Payment, PaymentDocument } from '../../payments/schemas/payment.schema';
 import { Shipment, ShipmentDocument } from '../../shipments/schemas/shipment.schema';
+import { ShipmentRfq, ShipmentRfqDocument } from '../../shipments/schemas/shipment-rfq.schema';
+import { ShipmentBid, ShipmentBidDocument } from '../../shipments/schemas/shipment-bid.schema';
+import { AuditService } from '../../audit/audit.service';
+import { ActivityTransformService } from '../../audit/services/activity-transform.service';
 
 @Injectable()
 export class UserDashboardService {
@@ -15,6 +19,10 @@ export class UserDashboardService {
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
     @InjectModel(Shipment.name) private shipmentModel: Model<ShipmentDocument>,
+    @InjectModel(ShipmentRfq.name) private shipmentRfqModel: Model<ShipmentRfqDocument>,
+    @InjectModel(ShipmentBid.name) private shipmentBidModel: Model<ShipmentBidDocument>,
+    private readonly auditService: AuditService,
+    private readonly transformService: ActivityTransformService,
   ) {}
 
   async getStats(role: string, organizationIdStr: string) {
@@ -34,6 +42,27 @@ export class UserDashboardService {
       default:
         return this.defaultStats();
     }
+  }
+
+  async getActivityFeed(role: string, organizationIdStr: string, userId: string, limit = 10) {
+    const filters: any = { limit };
+    
+    // Policy: Recent activity should prioritize the user's own actions (actorId)
+    // to keep the dashboard feed clean of redundant organization-wide events.
+    if (userId) {
+      filters.actorId = userId;
+    }
+    
+    // Maintain organization context for Sellers (to see new RFQs) but keep it clean for Buyers
+    if (role !== 'BUYER' && organizationIdStr) {
+      filters.targetOrgId = organizationIdStr;
+    }
+
+    const { data: logs } = await this.auditService.query(filters);
+    
+    return logs
+      .map(log => this.transformService.transform(log, role))
+      .filter(item => item !== null);
   }
 
   private async getBuyerStats(organizationId: Types.ObjectId) {
@@ -112,15 +141,26 @@ export class UserDashboardService {
     const activeVehicles = 8; // Mocked for now
 
     const issues = await this.shipmentModel.countDocuments({
-      logisticPartnerId: organizationId,
+      carrierId: organizationId,
       status: 'ISSUE_REPORTED'
+    });
+
+    const openShipmentRfqs = await this.shipmentRfqModel.countDocuments({
+      status: 'OPEN'
+    });
+
+    const pendingBids = await this.shipmentBidModel.countDocuments({
+      carrierId: organizationId,
+      status: 'SUBMITTED'
     });
 
     return {
       activeShipments: activeShipments,
       pendingPickups: pendingPickups,
       activeVehicles: activeVehicles,
-      issues: issues
+      issues: issues,
+      openShipmentRfqs,
+      pendingBids
     };
   }
 

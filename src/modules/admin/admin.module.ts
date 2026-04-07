@@ -12,6 +12,8 @@ import { QuotesModule } from '../quotes/quotes.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { Rfq, RfqSchema } from '../rfq/schemas/rfq.schema';
 import { Quote, QuoteSchema } from '../quotes/schemas/quote.schema';
+import { ShipmentRfq, ShipmentRfqSchema } from '../shipments/schemas/shipment-rfq.schema';
+import { ShipmentBid, ShipmentBidSchema } from '../shipments/schemas/shipment-bid.schema';
 import { Dispute, DisputeSchema } from '../disputes/schemas/dispute.schema';
 import { SettlementBatch, SettlementBatchSchema } from '../settlements/schemas/settlement-batch.schema';
 import { SettlementsAdminController } from './controllers/settlements-admin.controller';
@@ -26,6 +28,8 @@ import { SettlementsModule } from '../settlements/settlements.module';
       { name: Rfq.name, schema: RfqSchema },
       { name: Quote.name, schema: QuoteSchema },
       { name: Payment.name, schema: PaymentSchema },
+      { name: ShipmentRfq.name, schema: ShipmentRfqSchema },
+      { name: ShipmentBid.name, schema: ShipmentBidSchema },
       { name: Dispute.name, schema: DisputeSchema },
       { name: SettlementBatch.name, schema: SettlementBatchSchema },
     ]),

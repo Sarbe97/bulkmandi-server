@@ -15,6 +15,7 @@ import { OrganizationsService } from "../organizations/organizations.service";
 import { PaymentsService } from "../payments/payments.service";
 import { MasterDataService } from "../master-data/master-data.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { AuditAction, AuditModule, AuditEntityType } from "src/common/constants/app.constants";
 
 @Injectable()
 export class SettlementsService {
@@ -114,9 +115,9 @@ export class SettlementsService {
     const saved = await batch.save();
 
     this.auditService.log({
-      action: 'SETTLEMENT_CREATED',
-      module: 'SETTLEMENT',
-      entityType: 'SETTLEMENT_BATCH',
+      action: AuditAction.SETTLEMENT_CREATED,
+      module: AuditModule.SETTLEMENT,
+      entityType: AuditEntityType.SETTLEMENT,
       entityId: saved._id as any,
       entityIdStr: saved.batchId,
       actorId: adminId,
@@ -212,9 +213,9 @@ export class SettlementsService {
     await batch.save();
 
     this.auditService.log({
-      action: 'SETTLEMENT_PAID',
-      module: 'SETTLEMENT',
-      entityType: 'SETTLEMENT_BATCH',
+      action: AuditAction.SETTLEMENT_PAID,
+      module: AuditModule.SETTLEMENT,
+      entityType: AuditEntityType.SETTLEMENT,
       entityId: batch._id as any,
       entityIdStr: batchId,
       actorId: adminId,
@@ -367,9 +368,9 @@ export class SettlementsService {
     await (order as any).save();
 
     this.auditService.log({
-      action: 'SETTLEMENT_TIMER_EXTENDED',
-      module: 'SETTLEMENT',
-      entityType: 'ORDER',
+      action: AuditAction.SETTLEMENT_TIMER_EXTENDED,
+      module: AuditModule.SETTLEMENT,
+      entityType: AuditEntityType.ORDER,
       entityId: order._id as any,
       entityIdStr: order.orderId,
       actorId: adminId,

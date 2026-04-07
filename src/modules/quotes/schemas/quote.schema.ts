@@ -11,6 +11,12 @@ export class Quote {
   @Prop({ required: true, index: true })
   rfqId!: string;
 
+  @Prop()
+  rfqNumber?: string;
+
+  @Prop()
+  product?: string;
+
   @Prop({ type: Types.ObjectId, ref: 'Organization', required: true })
   sellerId!: Types.ObjectId;
 

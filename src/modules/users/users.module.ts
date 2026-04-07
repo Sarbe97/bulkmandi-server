@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './schemas/user.schema';
 import { Organization, OrganizationSchema } from '../organizations/schemas/organization.schema';
@@ -11,6 +11,9 @@ import { Quote, QuoteSchema } from '../quotes/schemas/quote.schema';
 import { Order, OrderSchema } from '../orders/schemas/order.schema';
 import { Payment, PaymentSchema } from '../payments/schemas/payment.schema';
 import { Shipment, ShipmentSchema } from '../shipments/schemas/shipment.schema';
+import { ShipmentRfq, ShipmentRfqSchema } from '../shipments/schemas/shipment-rfq.schema';
+import { ShipmentBid, ShipmentBidSchema } from '../shipments/schemas/shipment-bid.schema';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
@@ -22,7 +25,10 @@ import { Shipment, ShipmentSchema } from '../shipments/schemas/shipment.schema';
       { name: Order.name, schema: OrderSchema },
       { name: Payment.name, schema: PaymentSchema },
       { name: Shipment.name, schema: ShipmentSchema },
+      { name: ShipmentRfq.name, schema: ShipmentRfqSchema },
+      { name: ShipmentBid.name, schema: ShipmentBidSchema },
     ]),
+    forwardRef(() => AuditModule),
   ],
   controllers: [UsersController, UserDashboardController],
   providers: [UsersService, UserDashboardService],

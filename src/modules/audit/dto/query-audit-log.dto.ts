@@ -11,4 +11,6 @@ export class QueryAuditLogDto {
   to?: string;
   page?: number;
   limit?: number;
+  targetUserId?: string;
+  targetOrgId?: string;
 }

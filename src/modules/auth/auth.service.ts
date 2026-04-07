@@ -10,6 +10,7 @@ import { UserRole } from "src/common/enums";
 import { IdGeneratorService } from "src/common/services/id-generator.service";
 import { Organization, OrganizationDocument } from "../organizations/schemas/organization.schema";
 import { User, UserDocument } from "../users/schemas/user.schema";
+import { AuditAction, AuditModule, AuditEntityType } from "src/common/constants/app.constants";
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -62,9 +63,9 @@ export class AuthService implements OnModuleInit {
     if (!user) {
       // Log failed login attempt
       this.auditService.log({
-        action: 'LOGIN_FAILED',
-        module: 'AUTH',
-        entityType: 'USER',
+        action: AuditAction.LOGIN_FAILED,
+        module: AuditModule.AUTH,
+        entityType: AuditEntityType.USER,
         afterState: { email: loginDto.email },
         userIp: loginDto.ip,
         actorType: 'USER',
@@ -147,9 +148,9 @@ export class AuthService implements OnModuleInit {
 
     // Log successful login (fire-and-forget)
     this.auditService.log({
-      action: 'USER_LOGIN',
-      module: 'AUTH',
-      entityType: 'USER',
+      action: AuditAction.USER_LOGIN,
+      module: AuditModule.AUTH,
+      entityType: AuditEntityType.USER,
       entityId: user._id,
       actorId: user._id,
       userIp: loginDto.ip,
@@ -201,9 +202,9 @@ export class AuthService implements OnModuleInit {
 
     // Log new user registration
     this.auditService.log({
-      action: 'USER_REGISTER',
-      module: 'AUTH',
-      entityType: 'USER',
+      action: AuditAction.USER_REGISTER,
+      module: AuditModule.AUTH,
+      entityType: AuditEntityType.USER,
       entityId: savedUser._id as any,
       afterState: { email: savedUser.email, role: savedUser.role },
       description: `New user registered: ${savedUser.email} (${savedUser.role})`,

@@ -22,9 +22,11 @@ export class InAppNotificationChannel extends BaseNotificationChannel {
       message: payload.message,
       type: payload.data?.type || 'INFO',
       category: payload.data?.category || 'SYSTEM',
-      metadata: payload.data?.metadata || {},
+      metadata: payload.data || {},
       channels: ['IN_APP'],
     });
+
+    console.log(`[In-App Notification] Saved for user: ${payload.to} | Title: ${payload.title}`);
     await notification.save();
   }
 }

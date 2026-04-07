@@ -59,6 +59,14 @@ export class AuditLog {
   @Prop({ type: [String], default: [] })
   changedFields!: string[];
 
+  /** Users who should see this action in their activity/notifications */
+  @Prop({ type: [Types.ObjectId], ref: 'User', index: true })
+  targetUserIds?: Types.ObjectId[];
+
+  /** Organizations who should see this activity */
+  @Prop({ type: [Types.ObjectId], ref: 'Organization', index: true })
+  targetOrgIds?: Types.ObjectId[];
+
   @Prop()
   userIp?: string;
 

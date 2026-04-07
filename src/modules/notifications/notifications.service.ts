@@ -102,4 +102,11 @@ export class NotificationsService {
       isRead: false,
     });
   }
+
+  async markAllAsRead(userId: string) {
+    return this.notificationModel.updateMany(
+      { userId: new Types.ObjectId(userId), isRead: false },
+      { isRead: true, readAt: new Date() },
+    ).exec();
+  }
 }

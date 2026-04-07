@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Rfq, RfqDocument } from '../rfq/schemas/rfq.schema';
 import { AuditService } from '../audit/audit.service';
 import { CreateQuoteDto } from './dto/create-quote.dto';
@@ -9,7 +9,9 @@ import { Quote, QuoteDocument } from './schemas/quote.schema';
 import { OrdersService } from '../orders/orders.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { MasterDataService } from '../master-data/master-data.service';
-import { QuoteStatus } from 'src/common/constants/app.constants';
+import { UsersService } from '../users/services/users.service';
+import { RfqStatus, QuoteStatus } from 'src/common/enums';
+import { AuditAction, AuditModule, AuditEntityType, LogisticsPreference } from 'src/common/constants/app.constants';
 
 @Injectable()
 export class QuotesService {
@@ -20,6 +22,7 @@ export class QuotesService {
     private readonly orgService: OrganizationsService,
     private readonly masterDataService: MasterDataService,
     private readonly auditService: AuditService,
+    private readonly usersService: UsersService,
     private readonly logger: CustomLoggerService,
   ) {}
 
@@ -30,13 +33,13 @@ export class QuotesService {
   async create(sellerId: string, dto: CreateQuoteDto) {
     this.logger.log(`Creating new quote for RFQ: ${dto.rfqId} from seller: ${sellerId}`);
     const rfq = await this.rfqModel.findOne({ rfqId: dto.rfqId });
-    if (!rfq || rfq.status !== 'OPEN') throw new BadRequestException('RFQ not open for quoting');
+    if (!rfq || rfq.status !== RfqStatus.OPEN) throw new BadRequestException('RFQ not open for quoting');
 
     const exists = await this.quoteModel.findOne({ rfqId: dto.rfqId, sellerId, status: { $ne: QuoteStatus.WITHDRAWN } });
     if (exists) throw new BadRequestException('Already quoted on this RFQ');
 
     // 1. Enforce Logistics Mode
-    if (rfq.logisticsPreference === 'SELF_PICKUP') {
+    if (rfq.logisticsPreference === LogisticsPreference.SELF_PICKUP) {
       this.logger.debug(`RFQ ${rfq.rfqId} is purely SELF_PICKUP (EXW). Forcing freight to 0 regardless of input.`);
       dto.freightPerMT = 0;
     }
@@ -97,6 +100,8 @@ export class QuotesService {
     const quote = new this.quoteModel({
       quoteId,
       rfqId: dto.rfqId,
+      rfqNumber: rfq.rfqId, // Store human readable RFQ #
+      product: rfq.product.category, // Store product name
       sellerId,
       sellerOrgName,
       pricePerMT: dto.pricePerMT,
@@ -122,25 +127,77 @@ export class QuotesService {
     await rfq.save();
 
     this.auditService.log({
-      action: 'QUOTE_SUBMITTED',
-      module: 'QUOTE',
-      entityType: 'QUOTE',
+      action: AuditAction.QUOTE_SUBMITTED,
+      module: AuditModule.QUOTE,
+      entityType: AuditEntityType.QUOTE,
       entityId: savedQuote._id as any,
       entityIdStr: savedQuote.quoteId,
       actorId: sellerId,
       afterState: { quoteId: savedQuote.quoteId, rfqId: dto.rfqId, grandTotal, status: QuoteStatus.SUBMITTED },
       description: `Quote ${savedQuote.quoteId} submitted by seller ${sellerOrgName} for RFQ ${dto.rfqId}`,
+      targetOrgIds: [sellerId as any],
+      targetUserIds: rfq.createdBy 
+        ? [rfq.createdBy] 
+        : (await this.usersService.findByOrgId(rfq.buyerId.toString())).map(u => (u as any)._id as any),
     });
 
     return savedQuote;
   }
 
-  async findBySellerId(sellerId: string, filter: Record<string, any> = {}, page = 1, limit = 20) {
-    return this.quoteModel
-      .find({ sellerId, ...filter })
-      .sort({ submittedAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit);
+  async findBySellerId(sellerId: string) {
+    this.logger.debug(`Fetching quotes for seller organization: ${sellerId}`);
+
+    // Use aggregation to join RFQ data for 100% data accuracy
+    const quotes = await this.quoteModel.aggregate([
+      { $match: { sellerId: new Types.ObjectId(sellerId) } },
+      { $sort: { submittedAt: -1 } },
+      {
+        $lookup: {
+          from: 'rfqs',
+          localField: 'rfqId',
+          foreignField: 'rfqId',
+          as: 'rfqContext',
+        },
+      },
+      {
+        $addFields: {
+          rfq: { $arrayElemAt: ['$rfqContext', 0] },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          quoteId: 1,
+          rfqId: 1,
+          sellerId: 1,
+          sellerOrgName: 1,
+          pricePerMT: 1,
+          quantityMT: 1,
+          freightPerMT: 1,
+          totalFreight: 1,
+          totalPriceBase: 1,
+          grandTotal: 1,
+          currency: 1,
+          leadDays: 1,
+          validityHours: 1,
+          validityExpiresAt: 1,
+          status: 1,
+          submittedAt: 1,
+          notes: 1,
+          // Map joined fields
+          rfqNumber: { $ifNull: ['$rfqNumber', '$rfq.rfqId'] },
+          product: { 
+            $ifNull: [
+              '$product', 
+              { $concat: ['$rfq.product.category', ' (', '$rfq.product.subCategory', ', ', '$rfq.product.grade', ')'] }
+            ] 
+          },
+          buyer: '$rfq.buyerOrgName'
+        },
+      },
+    ]);
+
+    return { quotes };
   }
 
   async findAll(filter: Record<string, any> = {}, page = 1, limit = 20) {
@@ -155,6 +212,17 @@ export class QuotesService {
   async findByIdOrFail(id: string) {
     const quote = await this.quoteModel.findOne({ quoteId: id });
     if (!quote) throw new NotFoundException('Quote not found');
+
+    // Lazy-patch missing data for legacy quotes
+    if (!quote.rfqNumber || !quote.product) {
+      const rfq = await this.rfqModel.findOne({ rfqId: quote.rfqId });
+      if (rfq) {
+        quote.rfqNumber = rfq.rfqId;
+        quote.product = rfq.product.category;
+        await quote.save(); // Save the fix back to DB
+      }
+    }
+
     return quote;
   }
 
@@ -168,7 +236,7 @@ export class QuotesService {
     }
 
     const rfqCheck = await this.rfqModel.findOne({ rfqId: quote.rfqId });
-    if (rfqCheck && rfqCheck.status === 'WON') {
+    if (rfqCheck && rfqCheck.status === RfqStatus.WON) {
       throw new BadRequestException('This RFQ has already been awarded to another seller');
     }
 
@@ -181,7 +249,7 @@ export class QuotesService {
 
     const rfq = await this.rfqModel.findOne({ rfqId: quote.rfqId });
     if (rfq) {
-      rfq.status = 'WON';
+      rfq.status = RfqStatus.WON;
       rfq.wonOrderId = order._id as any;
       await rfq.save();
     }
@@ -195,9 +263,9 @@ export class QuotesService {
     const saved = await quote.save();
 
     this.auditService.log({
-      action: 'QUOTE_ACCEPTED',
-      module: 'QUOTE',
-      entityType: 'QUOTE',
+      action: AuditAction.QUOTE_ACCEPTED,
+      module: AuditModule.QUOTE,
+      entityType: AuditEntityType.QUOTE,
       entityId: saved._id as any,
       entityIdStr: saved.quoteId,
       actorId: buyerId,
@@ -205,6 +273,7 @@ export class QuotesService {
       afterState: { status: QuoteStatus.ACCEPTED, orderId: order._id?.toString(), orderId_str: order.orderId },
       changedFields: ['status', 'acceptedAt', 'acceptedBy', 'orderId'],
       description: `Quote ${saved.quoteId} accepted → Order ${order.orderId} created`,
+      targetOrgIds: [buyerId as any, saved.sellerId as any],
     });
 
     return saved;
@@ -225,9 +294,9 @@ export class QuotesService {
     }
 
     this.auditService.log({
-      action: 'QUOTE_WITHDRAWN',
-      module: 'QUOTE',
-      entityType: 'QUOTE',
+      action: AuditAction.QUOTE_WITHDRAWN,
+      module: AuditModule.QUOTE,
+      entityType: AuditEntityType.QUOTE,
       entityId: result._id as any,
       entityIdStr: result.quoteId,
       actorId: sellerId,
@@ -235,6 +304,7 @@ export class QuotesService {
       afterState: { status: QuoteStatus.WITHDRAWN },
       changedFields: ['status'],
       description: `Quote ${result.quoteId} withdrawn by seller ${sellerId}`,
+      targetOrgIds: [sellerId as any],
     });
 
     return result;
@@ -251,7 +321,7 @@ export class QuotesService {
 
     const rfq = await this.rfqModel.findOne({ rfqId: quote.rfqId });
 
-    if (rfq && rfq.logisticsPreference === 'SELF_PICKUP') {
+    if (rfq && rfq.logisticsPreference === LogisticsPreference.SELF_PICKUP) {
       this.logger.debug(`RFQ ${rfq.rfqId} is purely SELF_PICKUP (EXW). Forcing updated freight to 0 regardless of input.`);
       dto.freightPerMT = 0;
     }
@@ -316,9 +386,9 @@ export class QuotesService {
     const saved = await quote.save();
 
     this.auditService.log({
-      action: 'QUOTE_UPDATED',
-      module: 'QUOTE',
-      entityType: 'QUOTE',
+      action: AuditAction.QUOTE_UPDATED,
+      module: AuditModule.QUOTE,
+      entityType: AuditEntityType.QUOTE,
       entityId: saved._id as any,
       entityIdStr: saved.quoteId,
       actorId: sellerId,

@@ -258,4 +258,45 @@ export class ShipmentsController {
   ) {
     return this.shipmentsService.updateStatus(id, body.status);
   }
+
+  // ─── Shipment RFQ & Bidding ───────────────────────────────
+
+  @ApiOperation({ summary: 'Browse open Shipment RFQs (Logistic/Admin)' })
+  @Roles(UserRole.LOGISTIC, UserRole.ADMIN)
+  @Get('rfqs/open')
+  async getOpenRfqs() {
+    return this.shipmentsService.findAllOpenRfqs();
+  }
+
+  @ApiOperation({ summary: 'Submit bid for Shipment RFQ (Logistic only)' })
+  @Roles(UserRole.LOGISTIC)
+  @UseGuards(KycGuard)
+  @Post('rfqs/:id/bids')
+  async submitBid(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() dto: { amount: number; transitTimeDays: number; vehicleType: string; notes?: string },
+  ) {
+    return this.shipmentsService.submitBid(id, user.organizationId, dto);
+  }
+
+  @ApiOperation({ summary: 'Get bids for an Shipment RFQ (Admin/Logistic)' })
+  @Roles(UserRole.ADMIN, UserRole.LOGISTIC)
+  @Get('rfqs/:id/bids')
+  async getBids(
+    @Param('id') id: string,
+  ) {
+    return this.shipmentsService.findBidsByRfq(id);
+  }
+
+  @ApiOperation({ summary: 'Award shipment job to a 3PL (Admin only)' })
+  @Roles(UserRole.ADMIN)
+  @Post('rfqs/:id/award/:bidId')
+  async awardBid(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Param('bidId') bidId: string,
+  ) {
+    return this.shipmentsService.awardBid(id, bidId, user.id);
+  }
 }

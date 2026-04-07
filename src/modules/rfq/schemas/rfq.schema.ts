@@ -115,6 +115,9 @@ export class Rfq {
   @Prop()
   expiresAt?: Date;
 
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  createdBy?: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'Order' })
   wonOrderId?: Types.ObjectId;
 }

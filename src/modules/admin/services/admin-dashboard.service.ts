@@ -9,6 +9,8 @@ import { Quote, QuoteDocument } from '../../quotes/schemas/quote.schema';
 import { Payment, PaymentDocument } from '../../payments/schemas/payment.schema';
 import { Dispute, DisputeDocument } from '../../disputes/schemas/dispute.schema';
 import { SettlementBatch, SettlementBatchDocument } from '../../settlements/schemas/settlement-batch.schema';
+import { ShipmentRfq, ShipmentRfqDocument } from '../../shipments/schemas/shipment-rfq.schema';
+import { ShipmentBid, ShipmentBidDocument } from '../../shipments/schemas/shipment-bid.schema';
 
 @Injectable()
 export class AdminDashboardService {
@@ -20,6 +22,8 @@ export class AdminDashboardService {
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
     @InjectModel(Dispute.name) private disputeModel: Model<DisputeDocument>,
     @InjectModel(SettlementBatch.name) private batchModel: Model<SettlementBatchDocument>,
+    @InjectModel(ShipmentRfq.name) private srfqModel: Model<ShipmentRfqDocument>,
+    @InjectModel(ShipmentBid.name) private bidModel: Model<ShipmentBidDocument>,
     private readonly logger: CustomLoggerService,
   ) {}
 
@@ -108,6 +112,10 @@ export class AdminDashboardService {
     // Batches
     const pendingBatches = await this.batchModel.countDocuments({ status: { $in: ['DRAFT', 'READY', 'PROCESSING'] } });
 
+    // Logistics Statistics
+    const openSrfqs = await this.srfqModel.countDocuments({ status: 'OPEN' });
+    const totalSrfqBids = await this.bidModel.countDocuments();
+
     return {
       kyc: {
         pending: kycPending,
@@ -136,6 +144,11 @@ export class AdminDashboardService {
         reconDiff: 0,
         pendingBatches: pendingBatches,
         exceptions: 0,
+      },
+      logistics: {
+        openRfqs: openSrfqs,
+        totalBids: totalSrfqBids,
+        unassignedLoads: openSrfqs,
       },
     };
   }

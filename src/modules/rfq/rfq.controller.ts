@@ -34,8 +34,8 @@ export class RfqController {
   @UseGuards(KycGuard)
   @Post()
   async createRFQ(@CurrentUser() user: any, @Body() createRfqDto: CreateRfqDto) {
-    this.logger.log(`RFQ create request from buyer: ${user.organizationId}`);
-    return this.rfqService.create(user.organizationId, createRfqDto);
+    this.logger.log(`RFQ create request from org: ${user.organizationId} by user: ${user.userId}`);
+    return this.rfqService.create(user.userId, user.organizationId, createRfqDto);
   }
 
   @ApiOperation({ summary: 'Publish RFQ (Buyer only)' })
@@ -43,8 +43,8 @@ export class RfqController {
   @UseGuards(KycGuard)
   @Put(':id/publish')
   async publishRFQ(@CurrentUser() user: any, @Param('id') id: string, @Body() publishRfqDto: PublishRfqDto) {
-    this.logger.log(`RFQ publish request for ID: ${id}`);
-    return this.rfqService.publish(id, user.organizationId);
+    this.logger.log(`RFQ publish request for ID: ${id} by user: ${user.userId}`);
+    return this.rfqService.publish(id, user.userId, user.organizationId);
   }
 
   @ApiOperation({ summary: 'Update RFQ (Buyer only - Drafts)' })
@@ -52,7 +52,7 @@ export class RfqController {
   @UseGuards(KycGuard)
   @Put(':id')
   async updateRFQ(@CurrentUser() user: any, @Param('id') id: string, @Body() createRfqDto: CreateRfqDto) {
-    return this.rfqService.update(id, user.organizationId, createRfqDto);
+    return this.rfqService.update(id, user.userId, user.organizationId, createRfqDto);
   }
 
 
@@ -81,13 +81,13 @@ export class RfqController {
   @Roles(UserRole.BUYER)
   @Put(':id/close')
   async closeRFQ(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.rfqService.close(id, user.organizationId);
+    return this.rfqService.close(id, user.userId, user.organizationId);
   }
 
   @ApiOperation({ summary: 'Delete RFQ (Buyer)' })
   @Roles(UserRole.BUYER)
   @Delete(':id')
   async deleteRFQ(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.rfqService.deleteRfq(id, user.organizationId);
+    return this.rfqService.deleteRfq(id, user.userId, user.organizationId);
   }
 }

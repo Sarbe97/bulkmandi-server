@@ -13,7 +13,7 @@ export enum RfqStatus {
   DRAFT = 'DRAFT',
   OPEN = 'OPEN',
   CLOSED = 'CLOSED',
-  AWARDED = 'AWARDED', // ✅ Added to match frontend
+  WON = 'WON', // ✅ Renamed from AWARDED to match frontend and service logic
   EXPIRED = 'EXPIRED',
 }
 
@@ -28,7 +28,7 @@ export enum QuoteStatus {
 }
 
 export enum OrderStatus {
-  CREATED = 'CREATED',
+  PI_ISSUED = 'PI_ISSUED',
   CONFIRMED = 'CONFIRMED',
   PAYMENT_PENDING = 'PAYMENT_PENDING',
   PAYMENT_SUBMITTED = 'PAYMENT_SUBMITTED',

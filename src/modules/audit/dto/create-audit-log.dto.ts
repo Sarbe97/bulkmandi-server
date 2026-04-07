@@ -26,4 +26,8 @@ export class CreateAuditLogDto {
 
   /** INFO | WARNING | ERROR — defaults to INFO */
   severity?: 'INFO' | 'WARNING' | 'ERROR';
+
+  /** Target recipients for activity/notifications */
+  targetUserIds?: (string | Types.ObjectId)[];
+  targetOrgIds?: (string | Types.ObjectId)[];
 }

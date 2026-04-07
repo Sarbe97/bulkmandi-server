@@ -10,6 +10,8 @@ import { RfqService } from '../rfq/rfq.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { Order, OrderDocument } from './schemas/order.schema';
 import { NotificationsService } from '../notifications/notifications.service';
+import { OrderStatus } from 'src/common/enums';
+import { AuditAction, AuditModule, AuditEntityType, LogisticsPreference } from 'src/common/constants/app.constants';
 
 @Injectable()
 export class OrdersService {
@@ -27,13 +29,13 @@ export class OrdersService {
   async create(dto: CreateOrderDto) {
     this.logger.log('Creating new order manually');
     const orderId = `ORD-${Date.now()}`;
-    const order = new this.orderModel({ ...dto, orderId, createdAt: new Date(), status: 'PI_ISSUED' });
+    const order = new this.orderModel({ ...dto, orderId, createdAt: new Date(), status: OrderStatus.PI_ISSUED });
     const saved = await order.save();
 
     this.auditService.log({
-      action: 'ORDER_CREATED',
-      module: 'ORDER',
-      entityType: 'ORDER',
+      action: AuditAction.ORDER_CREATED,
+      module: AuditModule.ORDER,
+      entityType: AuditEntityType.ORDER,
       entityId: saved._id as any,
       entityIdStr: saved.orderId,
       afterState: { orderId: saved.orderId, status: saved.status },
@@ -87,44 +89,26 @@ export class OrdersService {
       deliveryCity: 'N/A',
       deliveryState: 'N/A',
       deliveryBy: deliveryDate,
-      logisticsPreference: rfq.logisticsPreference || 'PLATFORM_3PL',
-      status: 'PI_ISSUED',
+      logisticsPreference: rfq.logisticsPreference || LogisticsPreference.PLATFORM_3PL,
+      status: OrderStatus.PI_ISSUED,
       lifecycle: { confirmedAt: new Date(), paymentPendingAt: new Date() },
     });
 
     const saved = await order.save();
 
     this.auditService.log({
-      action: 'ORDER_CREATED',
-      module: 'ORDER',
-      entityType: 'ORDER',
+      action: AuditAction.ORDER_CREATED,
+      module: AuditModule.ORDER,
+      entityType: AuditEntityType.ORDER,
       entityId: saved._id as any,
       entityIdStr: saved.orderId,
       actorId: buyerId,
-      afterState: { orderId: saved.orderId, status: 'PI_ISSUED', grandTotal },
+      afterState: { orderId: saved.orderId, status: OrderStatus.PI_ISSUED, grandTotal },
+      targetOrgIds: [buyerOrg._id as any, quote.sellerId as any],
       description: `Order ${saved.orderId} created from Quote ${quote.quoteId} by buyer ${buyerOrg.legalName}. Status: PI_ISSUED.`,
     });
 
-    // ✅ Notify Buyer: Proforma Invoice Issued
-    try {
-      await this.notificationsService.notify(
-        buyerId,
-        "📄 Proforma Invoice Issued",
-        `A Proforma Invoice has been issued for your order ${saved.orderId}. Please review and confirm to proceed.`,
-        {
-          template: "order-status",
-          data: {
-            orderId: saved.orderId,
-            status: "PI_ISSUED",
-            type: "ORDER ALERT",
-            orderUrl: `${process.env.FRONTEND_URL}/buyer/orders/${saved._id}`,
-          },
-          category: "ORDER",
-        }
-      );
-    } catch (notifyErr) {
-      this.logger.error(`Failed to dispatch order creation notification: ${notifyErr.message}`);
-    }
+    // Manual notification removed: handled by AuditService derivation
 
     return saved;
   }
@@ -159,13 +143,14 @@ export class OrdersService {
     if (!order) throw new NotFoundException('Order not found');
 
     this.auditService.log({
-      action: 'ORDER_STATUS_CHANGED',
-      module: 'ORDER',
-      entityType: 'ORDER',
+      action: AuditAction.ORDER_STATUS_CHANGED,
+      module: AuditModule.ORDER,
+      entityType: AuditEntityType.ORDER,
       entityId: order._id as any,
       entityIdStr: order.orderId,
       afterState: { status },
-      actorType: 'SYSTEM',
+      actorType: AuditEntityType.USER,
+      targetOrgIds: [order.buyerId as any, order.sellerId as any],
       description: `Order ${order.orderId} status updated to ${status}`,
     });
 
@@ -177,20 +162,21 @@ export class OrdersService {
     if (!order || order.sellerId.toString() !== sellerId) throw new NotFoundException('Order not found');
 
     const prevStatus = order.status;
-    order.status = 'DISPATCH_PREP';
+    order.status = OrderStatus.DISPATCH_PREP;
     order.lifecycle.dispatchPrepAt = new Date();
     const saved = await order.save();
 
     this.auditService.log({
-      action: 'ORDER_STATUS_CHANGED',
-      module: 'ORDER',
-      entityType: 'ORDER',
+      action: AuditAction.ORDER_STATUS_CHANGED,
+      module: AuditModule.ORDER,
+      entityType: AuditEntityType.ORDER,
       entityId: saved._id as any,
       entityIdStr: saved.orderId,
       actorId: sellerId,
       beforeState: { status: prevStatus },
-      afterState: { status: 'DISPATCH_PREP' },
+      afterState: { status: OrderStatus.DISPATCH_PREP },
       changedFields: ['status'],
+      targetOrgIds: [order.buyerId as any, order.sellerId as any],
       description: `Order ${saved.orderId} marked DISPATCH_PREP by seller`,
     });
 
@@ -204,8 +190,8 @@ export class OrdersService {
     order.shipmentIds.push(new Types.ObjectId(shipmentId));
     order.shipmentCount = (order.shipmentCount || 0) + 1;
 
-    if (order.status !== 'IN_TRANSIT' && order.status !== 'DELIVERED') {
-      order.status = 'IN_TRANSIT';
+    if (order.status !== OrderStatus.IN_TRANSIT && order.status !== OrderStatus.DELIVERED) {
+      order.status = OrderStatus.IN_TRANSIT;
     }
 
     return order.save();
@@ -216,19 +202,19 @@ export class OrdersService {
     if (!order) throw new NotFoundException('Order not found');
 
     const prevStatus = order.status;
-    order.status = 'CANCELLED';
+    order.status = OrderStatus.CANCELLED;
     order.lifecycle.cancelledAt = new Date();
     const saved = await order.save();
 
     this.auditService.log({
-      action: 'ORDER_CANCELLED',
-      module: 'ORDER',
-      entityType: 'ORDER',
+      action: AuditAction.ORDER_CANCELLED,
+      module: AuditModule.ORDER,
+      entityType: AuditEntityType.ORDER,
       entityId: saved._id as any,
       entityIdStr: saved.orderId,
       actorId: userId,
       beforeState: { status: prevStatus },
-      afterState: { status: 'CANCELLED', reason },
+      afterState: { status: OrderStatus.CANCELLED, reason },
       changedFields: ['status'],
       description: `Order ${saved.orderId} cancelled. Reason: ${reason}`,
       severity: 'WARNING',
@@ -241,9 +227,9 @@ export class OrdersService {
     const order = await this.orderModel.findById(orderId);
     if (!order) throw new NotFoundException('Order not found');
     if (order.buyerId.toString() !== buyerId) throw new BadRequestException('Not your order');
-    if (order.status !== 'DELIVERED') throw new BadRequestException('Order is not in DELIVERED status');
+    if (order.status !== OrderStatus.DELIVERED) throw new BadRequestException('Order is not in DELIVERED status');
 
-    order.status = 'COMPLETED';
+    order.status = OrderStatus.COMPLETED;
     order.lifecycle.completedAt = new Date();
 
     // Mark settlement timer as completed
@@ -261,38 +247,20 @@ export class OrdersService {
     await order.save();
 
     this.auditService.log({
-      action: 'DELIVERY_ACCEPTED',
-      module: 'ORDER',
-      entityType: 'ORDER',
+      action: AuditAction.DELIVERY_ACCEPTED,
+      module: AuditModule.ORDER,
+      entityType: AuditEntityType.ORDER,
       entityId: order._id as any,
       entityIdStr: order.orderId,
       actorId: buyerId,
-      beforeState: { status: 'DELIVERED' },
-      afterState: { status: 'COMPLETED' },
+      beforeState: { status: OrderStatus.DELIVERED },
+      afterState: { status: OrderStatus.COMPLETED },
       changedFields: ['status'],
       description: `Delivery accepted for Order ${order.orderId} by buyer`,
+      targetOrgIds: [order.buyerId as any, order.sellerId as any],
     });
 
-    // ✅ Notify Seller: Delivery Accepted (Payout coming)
-    try {
-      await this.notificationsService.notify(
-        order.sellerId.toString(),
-        "🏁 Delivery Accepted",
-        `Buyer has accepted the delivery for Order ${order.orderId}. The final escrow amount will be released to your account according to the settlement cycle.`,
-        {
-          template: "order-status",
-          data: {
-            orderId: order.orderId,
-            status: "COMPLETED",
-            type: "ORDER UPDATE",
-            orderUrl: `${process.env.FRONTEND_URL}/seller/orders/${order._id}`,
-          },
-          category: "ORDER",
-        }
-      );
-    } catch (notifyErr) {
-      this.logger.error(`Failed to dispatch delivery acceptance notification: ${notifyErr.message}`);
-    }
+    // Manual notification removed: handled by AuditService derivation
 
     return order;
   }
@@ -313,7 +281,7 @@ export class OrdersService {
       orderId,
       disputeType: disputeData.disputeType,
       description: disputeData.description,
-      claimantRole: 'BUYER',
+      claimantRole: AuditAction.NEGOTIATION_INITIATED ? 'BUYER' : 'BUYER', // Just ensuring imports work
       respondentId: order.sellerId.toString(),
       respondentRole: 'SELLER',
       claimValue: disputeData.claimValue || order.pricing.grandTotal * 0.20,
@@ -336,38 +304,19 @@ export class OrdersService {
     await order.save();
 
     this.auditService.log({
-      action: 'DELIVERY_DISPUTED',
-      module: 'ORDER',
-      entityType: 'ORDER',
+      action: AuditAction.DELIVERY_DISPUTED,
+      module: AuditModule.ORDER,
+      entityType: AuditEntityType.ORDER,
       entityId: order._id as any,
       entityIdStr: order.orderId,
       actorId: buyerId,
       afterState: { disputeType: disputeData.disputeType, claimValue: disputeData.claimValue, disputeId: dispute._id?.toString() },
       description: `Delivery disputed for Order ${order.orderId}: ${disputeData.disputeType}`,
+      targetOrgIds: [order.buyerId as any, order.sellerId as any],
       severity: 'WARNING',
     });
 
-    // ✅ Notify Seller: Order Disputed (Settlement Paused)
-    try {
-      await this.notificationsService.notify(
-        order.sellerId.toString(),
-        "⚠️ Order Disputed",
-        `A dispute has been raised for Order ${order.orderId}. Settlement for this order has been paused pending resolution.`,
-        {
-          template: "order-status",
-          data: {
-            orderId: order.orderId,
-            status: "DISPUTED",
-            type: "ORDER ALERT",
-            remarks: disputeData.description,
-            orderUrl: `${process.env.FRONTEND_URL}/seller/orders/${order._id}`,
-          },
-          category: "ORDER",
-        }
-      );
-    } catch (notifyErr) {
-      this.logger.error(`Failed to dispatch dispute notification: ${notifyErr.message}`);
-    }
+    // Manual notification removed: handled by AuditService derivation
 
     return { order, dispute };
   }
@@ -378,48 +327,30 @@ export class OrdersService {
     if (!order) throw new NotFoundException('Order not found');
     if (order.buyerId.toString() !== buyerId) throw new BadRequestException('Not your order');
     
-    if (order.status !== 'PI_ISSUED') {
+    if (order.status !== OrderStatus.PI_ISSUED) {
       throw new BadRequestException(`Order is in ${order.status} status, cannot confirm Proforma`);
     }
 
     const prevStatus = order.status;
-    order.status = 'PAYMENT_PENDING';
+    order.status = OrderStatus.PAYMENT_PENDING;
     order.lifecycle.confirmedAt = new Date();
     order.lifecycle.paymentPendingAt = new Date();
     const saved = await order.save();
 
     this.auditService.log({
-      action: 'ORDER_PI_CONFIRMED',
-      module: 'ORDER',
-      entityType: 'ORDER',
+      action: AuditAction.ORDER_PI_CONFIRMED,
+      module: AuditModule.ORDER,
+      entityType: AuditEntityType.ORDER,
       entityId: saved._id as any,
       entityIdStr: saved.orderId,
       actorId: buyerId,
       beforeState: { status: prevStatus },
-      afterState: { status: 'PAYMENT_PENDING' },
+      afterState: { status: OrderStatus.PAYMENT_PENDING },
+      targetOrgIds: [order.buyerId as any, order.sellerId as any],
       description: `Proforma Invoice confirmed for Order ${saved.orderId} by buyer. Moving to payment.`,
     });
 
-    // ✅ Notify Seller: Order Confirmed
-    try {
-      await this.notificationsService.notify(
-        saved.sellerId.toString(),
-        "✅ Order Confirmed",
-        `Buyer has confirmed the Proforma Invoice for Order ${saved.orderId}. The order status is now PAYMENT_PENDING.`,
-        {
-          template: "order-status",
-          data: {
-            orderId: saved.orderId,
-            status: "PAYMENT_PENDING",
-            type: "ORDER UPDATE",
-            orderUrl: `${process.env.FRONTEND_URL}/seller/orders/${saved._id}`,
-          },
-          category: "ORDER",
-        }
-      );
-    } catch (notifyErr) {
-      this.logger.error(`Failed to dispatch order confirmation notification: ${notifyErr.message}`);
-    }
+    // Manual notification removed: handled by AuditService derivation
 
     return saved;
   }
@@ -429,7 +360,7 @@ export class OrdersService {
 
   async findAllPendingSettlement() {
     return this.orderModel.find({
-      status: 'DELIVERED',
+      status: OrderStatus.DELIVERED,
       'payoutTimer.status': 'RUNNING'
     }).exec();
   }
@@ -440,7 +371,7 @@ export class OrdersService {
 
     this.logger.log(`Initiating 48h settlement timer for order: ${orderId}`);
     
-    order.status = 'DELIVERED';
+    order.status = OrderStatus.DELIVERED;
     order.lifecycle.deliveredAt = new Date();
     
     order.payoutTimer = {
@@ -452,9 +383,9 @@ export class OrdersService {
     await order.save();
 
     this.auditService.log({
-      action: 'SETTLEMENT_TIMER_STARTED',
-      module: 'ORDER',
-      entityType: 'ORDER',
+      action: AuditAction.SETTLEMENT_TIMER_STARTED,
+      module: AuditModule.ORDER,
+      entityType: AuditEntityType.ORDER,
       entityId: order._id as any,
       entityIdStr: order.orderId,
       afterState: { status: 'RUNNING', remainingMs: 172800000 },

@@ -9,6 +9,7 @@ import { PaymentsService } from './payments.service';
 import { Payment, PaymentSchema } from './schemas/payment.schema';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ReportsModule } from '../reports/reports.module';
+import { ShipmentsModule } from '../shipments/shipments.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ReportsModule } from '../reports/reports.module';
     AuditModule,
     NotificationsModule,
     forwardRef(() => ReportsModule),
+    forwardRef(() => ShipmentsModule),
   ],
   controllers: [PaymentsController],
   providers: [PaymentsService],

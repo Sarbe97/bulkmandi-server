@@ -1,26 +1,33 @@
-import { Injectable, NotFoundException, Inject, forwardRef } from "@nestjs/common";
+import { Injectable, NotFoundException, Inject, forwardRef, BadRequestException } from "@nestjs/common";
 import * as path from "path";
 import * as fs from "fs";
 import { CustomLoggerService } from "src/core/logger/custom.logger.service";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+import { Model, Types } from "mongoose";
 import { AuditService } from "../audit/audit.service";
 import { FileStorageService } from "src/core/file/services/file-storage.service";
 import { CreateShipmentDto } from "./dto/create-shipment.dto";
 import { UpdateMilestoneDto } from "./dto/update-milestone.dto";
 import { UploadDocumentDto } from "./dto/upload-document.dto";
 import { Shipment, ShipmentDocument } from "./schemas/shipment.schema";
+import { ShipmentRfq, ShipmentRfqDocument } from "./schemas/shipment-rfq.schema";
+import { ShipmentBid, ShipmentBidDocument } from "./schemas/shipment-bid.schema";
+import { AuditAction, AuditModule, AuditEntityType, LogisticsPreference } from "src/common/constants/app.constants";
 import { SellerPreference, SellerPreferenceDocument } from "../preferences/schemas/seller-preference.schema";
 import { OrdersService } from "../orders/orders.service";
 import { PaymentsService } from "../payments/payments.service";
+import { OrganizationsService } from "../organizations/organizations.service";
 
 @Injectable()
 export class ShipmentsService {
   constructor(
     @InjectModel(Shipment.name) private shipmentModel: Model<ShipmentDocument>,
+    @InjectModel(ShipmentRfq.name) private shipmentRfqModel: Model<ShipmentRfqDocument>,
+    @InjectModel(ShipmentBid.name) private shipmentBidModel: Model<ShipmentBidDocument>,
     @InjectModel(SellerPreference.name) private sellerPrefModel: Model<SellerPreferenceDocument>,
     @Inject(forwardRef(() => OrdersService)) private readonly ordersService: OrdersService,
     @Inject(forwardRef(() => PaymentsService)) private readonly paymentsService: PaymentsService,
+    private readonly organizationsService: OrganizationsService,
     private readonly fileStorageService: FileStorageService,
     private readonly auditService: AuditService,
     private readonly logger: CustomLoggerService,
@@ -46,14 +53,14 @@ export class ShipmentsService {
       } else if (sellerPref?.logisticsPreference) {
         const pref = sellerPref.logisticsPreference;
         if (pref.usePlatform3PL) {
-          logisticsMode = 'PLATFORM_3PL';
+          logisticsMode = LogisticsPreference.PLATFORM_3PL;
         } else if (pref.selfPickupAllowed) {
-          logisticsMode = 'SELF_PICKUP';
+          logisticsMode = LogisticsPreference.SELF_PICKUP;
         } else {
-          logisticsMode = 'PLATFORM_3PL';
+          logisticsMode = LogisticsPreference.PLATFORM_3PL;
         }
       } else {
-        logisticsMode = 'PLATFORM_3PL';
+        logisticsMode = LogisticsPreference.PLATFORM_3PL;
       }
     }
 
@@ -65,7 +72,7 @@ export class ShipmentsService {
 
     let carrierId = dto.carrierId;
 
-    if (logisticsMode === 'SELF_PICKUP' || logisticsMode === 'SELLER_MANAGED') {
+    if (logisticsMode === LogisticsPreference.SELF_PICKUP || logisticsMode === LogisticsPreference.SELLER_MANAGED) {
       carrierId = undefined; // No platform carrier for self-pickup or seller-managed
       this.logger.log(`Handling as ${logisticsMode} for order: ${dto.orderId}`);
     } else {
@@ -96,9 +103,9 @@ export class ShipmentsService {
     await this.ordersService.registerShipment(dto.orderId, savedShipment._id as any);
 
     this.auditService.log({
-      action: 'SHIPMENT_CREATED',
-      module: 'SHIPMENT',
-      entityType: 'SHIPMENT',
+      action: AuditAction.SHIPMENT_CREATED,
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT,
       entityId: savedShipment._id as any,
       entityIdStr: savedShipment.shipmentId,
       actorId: sellerId,
@@ -150,9 +157,9 @@ export class ShipmentsService {
     const saved = await shipment.save();
 
     this.auditService.log({
-      action: 'MILESTONE_ADDED',
-      module: 'SHIPMENT',
-      entityType: 'SHIPMENT',
+      action: AuditAction.MILESTONE_ADDED,
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT,
       entityId: saved._id as any,
       entityIdStr: saved.shipmentId,
       afterState: { event: dto.event, location: dto.location, timestamp: dto.timestamp },
@@ -181,9 +188,9 @@ export class ShipmentsService {
     // Payout trigger removed from here; now gated by Admin verification of LR.
 
     this.auditService.log({
-      action: 'DOCUMENT_UPLOADED',
-      module: 'SHIPMENT',
-      entityType: 'SHIPMENT',
+      action: AuditAction.DOCUMENT_UPLOADED,
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT,
       entityId: shipment._id as any,
       entityIdStr: shipment.shipmentId,
       actorId: userId,
@@ -240,9 +247,9 @@ export class ShipmentsService {
     // Payout trigger removed from here; moving to Admin verification gate for LR.
 
     this.auditService.log({
-      action: 'DOCUMENT_UPLOADED',
-      module: 'SHIPMENT',
-      entityType: 'SHIPMENT',
+      action: AuditAction.DOCUMENT_UPLOADED,
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT,
       entityId: saved._id as any,
       entityIdStr: saved.shipmentId,
       actorId: userId,
@@ -276,9 +283,9 @@ export class ShipmentsService {
     const saved = await shipment.save();
 
     this.auditService.log({
-      action: 'DOCUMENT_DELETED',
-      module: 'SHIPMENT',
-      entityType: 'SHIPMENT',
+      action: AuditAction.DOCUMENT_DELETED,
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT,
       entityId: saved._id as any,
       entityIdStr: saved.shipmentId,
       actorId: userId,
@@ -300,9 +307,9 @@ export class ShipmentsService {
     const saved = await shipment.save();
 
     this.auditService.log({
-      action: 'POD_UPLOADED',
-      module: 'SHIPMENT',
-      entityType: 'SHIPMENT',
+      action: AuditAction.POD_UPLOADED,
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT,
       entityId: saved._id as any,
       entityIdStr: saved.shipmentId,
       afterState: { receiverName: body.receiverName, photoCount: body.podPhotos.length },
@@ -331,9 +338,9 @@ export class ShipmentsService {
     }
 
     this.auditService.log({
-      action: 'SHIPMENT_DELIVERED',
-      module: 'SHIPMENT',
-      entityType: 'SHIPMENT',
+      action: AuditAction.SHIPMENT_DELIVERED,
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT,
       entityId: saved._id as any,
       entityIdStr: saved.shipmentId,
       beforeState: { status: prevStatus },
@@ -361,9 +368,9 @@ export class ShipmentsService {
     const saved = await shipment.save();
 
     this.auditService.log({
-      action: 'DOCUMENT_UPLOADED', // reuse — or you could define DOCUMENT_VERIFIED
-      module: 'SHIPMENT',
-      entityType: 'SHIPMENT',
+      action: AuditAction.DOCUMENT_UPLOADED, // reuse — or you could define DOCUMENT_VERIFIED
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT,
       entityId: saved._id as any,
       entityIdStr: saved.shipmentId,
       actorId: adminId,
@@ -404,9 +411,9 @@ export class ShipmentsService {
     const saved = await shipment.save();
 
     this.auditService.log({
-      action: 'SHIPMENT_STATUS_CHANGED',
-      module: 'SHIPMENT',
-      entityType: 'SHIPMENT',
+      action: AuditAction.SHIPMENT_STATUS_CHANGED,
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT,
       entityId: saved._id as any,
       entityIdStr: saved.shipmentId,
       beforeState: { status: prevStatus },
@@ -486,9 +493,9 @@ export class ShipmentsService {
     const saved = await shipment.save();
 
     this.auditService.log({
-      action: 'SHIPMENT_DISPATCHED',
-      module: 'SHIPMENT',
-      entityType: 'SHIPMENT',
+      action: AuditAction.SHIPMENT_DISPATCHED,
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT,
       entityId: saved._id as any,
       entityIdStr: saved.shipmentId,
       actorId: userId,
@@ -498,6 +505,181 @@ export class ShipmentsService {
     });
 
     return saved;
+  }
+
+  // ─── Shipment RFQ & Bidding ───────────────────────────────
+
+  async createShipmentRfq(orderId: string) {
+    const order = await this.ordersService.findByIdOrFail(orderId);
+    if (order.logisticsPreference !== LogisticsPreference.PLATFORM_3PL) {
+      this.logger.warn(`Order ${orderId} does not have PLATFORM_3PL logistics preference. Skipping SRFQ creation.`);
+      return;
+    }
+
+    const existing = await this.shipmentRfqModel.findOne({ orderId });
+    if (existing) return existing;
+
+    // Fetch Seller's Origin PIN
+    let originPin = "000000";
+    try {
+      const sellerOrg = await this.organizationsService.getOrganization(order.sellerId.toString());
+      if (sellerOrg?.orgKyc?.registeredAddress) {
+        // Try to extract 6-digit PIN from address string if possible
+        const pinMatch = sellerOrg.orgKyc.registeredAddress.match(/\b\d{6}\b/);
+        if (pinMatch) originPin = pinMatch[0];
+      }
+    } catch (err) {
+      this.logger.warn(`Could not determine origin PIN for seller ${order.sellerId}: ${err.message}`);
+    }
+
+    const rfqId = `SRFQ-${Date.now()}`;
+    const srfq = new this.shipmentRfqModel({
+      rfqId,
+      orderId: order._id,
+      originPin,
+      destinationPin: order.deliveryPin,
+      materialDetails: {
+        category: order.product.category,
+        grade: order.product.grade,
+        quantityMT: order.product.quantityMT,
+      },
+      expectedPickupDate: order.deliveryBy,
+      status: 'OPEN',
+    });
+
+    const saved = await srfq.save();
+    this.logger.log(`Created Shipment RFQ: ${saved.rfqId} for Order: ${orderId}`);
+
+    this.auditService.log({
+      action: AuditAction.SHIPMENT_RFQ_CREATED,
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT_RFQ,
+      entityId: saved._id as any,
+      entityIdStr: saved.rfqId,
+      afterState: { rfqId: saved.rfqId, orderId },
+      description: `Shipment RFQ ${saved.rfqId} created for Order ${orderId}`,
+    });
+
+    return saved;
+  }
+
+  async findAllOpenRfqs() {
+    return this.shipmentRfqModel.find({ status: 'OPEN' }).sort({ createdAt: -1 });
+  }
+
+  async findBidsByRfq(rfqId: string) {
+    return this.shipmentBidModel.find({ srfqId: new Types.ObjectId(rfqId) }).sort({ amount: 1 });
+  }
+
+  async submitBid(rfqId: string, carrierId: string, dto: { amount: number; transitTimeDays: number; vehicleType: string; notes?: string }) {
+    const rfq = await this.shipmentRfqModel.findById(rfqId);
+    if (!rfq) throw new NotFoundException('Shipment RFQ not found');
+    if (rfq.status !== 'OPEN') throw new BadRequestException('This RFQ is no longer open for bids');
+
+    const carrier = await this.organizationsService.getOrganization(carrierId);
+    if (!carrier) throw new NotFoundException('Carrier organization not found');
+
+    const bid = new this.shipmentBidModel({
+      srfqId: rfq._id,
+      carrierId,
+      carrierName: carrier.legalName,
+      ...dto,
+      status: 'SUBMITTED',
+    });
+
+    const saved = await bid.save();
+
+    this.auditService.log({
+      action: AuditAction.SHIPMENT_BID_SUBMITTED,
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT_BID,
+      entityId: saved._id as any,
+      actorId: carrierId,
+      description: `Bid of ₹${dto.amount} submitted by ${carrier.legalName} for SRFQ ${rfq.rfqId}`,
+    });
+
+    return saved;
+  }
+
+  async awardBid(rfqId: string, bidId: string, adminId: string) {
+    const rfq = await this.shipmentRfqModel.findById(rfqId);
+    if (!rfq) throw new NotFoundException('Shipment RFQ not found');
+    
+    const bid = await this.shipmentBidModel.findById(bidId);
+    if (!bid) throw new NotFoundException('Bid not found');
+    if (bid.srfqId.toString() !== rfqId) throw new BadRequestException('Bid does not belong to this RFQ');
+
+    rfq.status = 'ASSIGNED';
+    rfq.winningBidId = bid._id as any;
+    rfq.assignedCarrierId = bid.carrierId;
+    await rfq.save();
+
+    bid.status = 'ACCEPTED';
+    await bid.save();
+
+    // Reject other bids
+    await this.shipmentBidModel.updateMany(
+      { srfqId: rfq._id, _id: { $ne: bid._id } },
+      { status: 'REJECTED' }
+    );
+
+    // Update Order and Create Shipment
+    const orderId = rfq.orderId.toString();
+    const order = await this.ordersService.findByIdOrFail(orderId);
+    
+    // Fetch Seller's Origin PIN for actual shipment
+    let pickupPin = order.deliveryPin; // Fallback
+    try {
+      const sellerOrg = await this.organizationsService.getOrganization(order.sellerId.toString());
+      if (sellerOrg?.orgKyc?.registeredAddress) {
+        const pinMatch = sellerOrg.orgKyc.registeredAddress.match(/\b\d{6}\b/);
+        if (pinMatch) pickupPin = pinMatch[0];
+      }
+    } catch (err) {
+      this.logger.warn(`Could not determine pickup PIN for shipment: ${err.message}`);
+    }
+
+    // Create actual shipment
+    const shipmentId = `SHP-${Date.now()}`;
+    const shipment = new this.shipmentModel({
+      shipmentId,
+      orderId: order._id,
+      sellerId: order.sellerId,
+      buyerId: order.buyerId,
+      carrierId: bid.carrierId,
+      logisticsMode: LogisticsPreference.PLATFORM_3PL,
+      product: {
+        category: order.product.category,
+        grade: order.product.grade,
+        quantityMT: order.product.quantityMT,
+      },
+      pickup: {
+        location: 'Seller Warehouse',
+        pin: pickupPin,
+      },
+      delivery: {
+        location: order.deliveryCity || 'Buyer Location',
+        pin: order.deliveryPin,
+        city: order.deliveryCity || 'N/A',
+        state: order.deliveryState || 'N/A',
+        scheduledAt: order.deliveryBy,
+      },
+      status: 'PICKUP_PLANNED'
+    });
+
+    const savedShipment = await shipment.save();
+    await this.ordersService.registerShipment(orderId, savedShipment._id as any);
+
+    this.auditService.log({
+      action: AuditAction.SHIPMENT_AWARDED,
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT_RFQ,
+      entityId: rfq._id as any,
+      actorId: adminId,
+      description: `Shipment RFQ ${rfq.rfqId} awarded to ${bid.carrierName}`,
+    });
+
+    return { rfq, shipment: savedShipment };
   }
 
   private getMimeType(ext?: string): string {
