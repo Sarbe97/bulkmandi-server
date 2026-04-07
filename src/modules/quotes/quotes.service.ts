@@ -144,13 +144,23 @@ export class QuotesService {
     return savedQuote;
   }
 
-  async findBySellerId(sellerId: string) {
-    this.logger.debug(`Fetching quotes for seller organization: ${sellerId}`);
+  async findBySellerId(sellerId: string, filter: Record<string, any> = {}, page = 1, limit = 20) {
+    this.logger.debug(`Fetching quotes for seller organization: ${sellerId} (page ${page}, limit ${limit})`);
+
+    const skip = (page - 1) * limit;
+    const match: Record<string, any> = { sellerId: new Types.ObjectId(sellerId) };
+    
+    // Merge additional filters if present
+    if (filter && Object.keys(filter).length > 0) {
+      Object.assign(match, filter);
+    }
 
     // Use aggregation to join RFQ data for 100% data accuracy
     const quotes = await this.quoteModel.aggregate([
-      { $match: { sellerId: new Types.ObjectId(sellerId) } },
+      { $match: match },
       { $sort: { submittedAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
       {
         $lookup: {
           from: 'rfqs',
@@ -189,7 +199,7 @@ export class QuotesService {
           product: { 
             $ifNull: [
               '$product', 
-              { $concat: ['$rfq.product.category', ' (', '$rfq.product.subCategory', ', ', '$rfq.product.grade', ')'] }
+              { $concat: ['$rfq.product.category', ' (', { $ifNull: ['$rfq.product.subCategory', 'N/A'] }, ', ', { $ifNull: ['$rfq.product.grade', 'N/A'] }, ')'] }
             ] 
           },
           buyer: '$rfq.buyerOrgName'
