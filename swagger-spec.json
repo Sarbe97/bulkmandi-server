@@ -2388,6 +2388,22 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4194,6 +4210,177 @@
         ]
       }
     },
+    "/api/v1/shipments/rfqs/open": {
+      "get": {
+        "operationId": "ShipmentsController_getOpenRfqs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Browse open Shipment RFQs (Logistic/Admin)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/rfqs/{id}/bids": {
+      "post": {
+        "operationId": "ShipmentsController_submitBid",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Submit bid for Shipment RFQ (Logistic only)",
+        "tags": [
+          "Shipments"
+        ]
+      },
+      "get": {
+        "operationId": "ShipmentsController_getBids",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get bids for an Shipment RFQ (Admin/Logistic)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/rfqs/{id}/award/{bidId}": {
+      "post": {
+        "operationId": "ShipmentsController_awardBid",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bidId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Award Shipment RFQ to a carrier (Admin only)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/rfqs/{id}/accept": {
+      "post": {
+        "operationId": "ShipmentsController_acceptJob",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Carrier accepts an awarded job",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/rfqs/{id}/reject": {
+      "post": {
+        "operationId": "ShipmentsController_rejectJob",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Carrier rejects an awarded job",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
     "/api/v1/shipments/{id}": {
       "get": {
         "operationId": "ShipmentsController_getShipmentById",
@@ -4579,119 +4766,6 @@
           }
         ],
         "summary": "Confirm dispatch (Seller/Logistic)",
-        "tags": [
-          "Shipments"
-        ]
-      }
-    },
-    "/api/v1/shipments/rfqs/open": {
-      "get": {
-        "operationId": "ShipmentsController_getOpenRfqs",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Browse open Shipment RFQs (Logistic/Admin)",
-        "tags": [
-          "Shipments"
-        ]
-      }
-    },
-    "/api/v1/shipments/rfqs/{id}/bids": {
-      "post": {
-        "operationId": "ShipmentsController_submitBid",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Submit bid for Shipment RFQ (Logistic only)",
-        "tags": [
-          "Shipments"
-        ]
-      },
-      "get": {
-        "operationId": "ShipmentsController_getBids",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Get bids for an Shipment RFQ (Admin/Logistic)",
-        "tags": [
-          "Shipments"
-        ]
-      }
-    },
-    "/api/v1/shipments/rfqs/{id}/award/{bidId}": {
-      "post": {
-        "operationId": "ShipmentsController_awardBid",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "bidId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Award shipment job to a 3PL (Admin only)",
         "tags": [
           "Shipments"
         ]

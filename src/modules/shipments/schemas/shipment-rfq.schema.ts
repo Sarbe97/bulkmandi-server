@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { ShipmentRfqStatus } from 'src/common/enums';
 
 export type ShipmentRfqDocument = ShipmentRfq & Document;
 
@@ -30,7 +31,7 @@ export class ShipmentRfq {
   @Prop({ required: true })
   expectedPickupDate!: Date;
 
-  @Prop({ type: String, enum: ['OPEN', 'ASSIGNED', 'EXPIRED', 'CANCELLED'], default: 'OPEN' })
+  @Prop({ type: String, enum: Object.values(ShipmentRfqStatus), default: ShipmentRfqStatus.OPEN })
   status!: string;
 
   @Prop({ type: Types.ObjectId, ref: 'ShipmentBid' })
@@ -38,7 +39,17 @@ export class ShipmentRfq {
 
   @Prop({ type: Types.ObjectId, ref: 'Organization' })
   assignedCarrierId?: Types.ObjectId;
+
+  @Prop()
+  awardedAt?: Date;
+
+  @Prop()
+  acceptanceTimeout?: Date;
+
+  @Prop()
+  rejectionReason?: string;
 }
+
 
 export const ShipmentRfqSchema = SchemaFactory.createForClass(ShipmentRfq);
 ShipmentRfqSchema.index({ status: 1 });

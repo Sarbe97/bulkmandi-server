@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { DisputesModule } from '../disputes/disputes.module';
+import { ShipmentsModule } from '../shipments/shipments.module';
 import { QuotesModule } from '../quotes/quotes.module';
 import { AuditModule } from '../audit/audit.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -19,6 +20,7 @@ import { Order, OrderSchema } from './schemas/order.schema';
     forwardRef(() => QuotesModule),
     forwardRef(() => PaymentsModule),
     forwardRef(() => DisputesModule),
+    forwardRef(() => ShipmentsModule),
     RfqModule,
     OrganizationsModule,
     AuditModule,

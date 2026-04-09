@@ -39,4 +39,12 @@ export class CreateQuoteDto {
   @IsOptional()
   @IsString()
   priceJustification?: string;
+
+  @IsOptional()
+  @IsString()
+  sellerPlant?: string;
+
+  @IsOptional()
+  @IsString()
+  sellerPlantPin?: string;
 }

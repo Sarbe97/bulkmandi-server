@@ -98,6 +98,76 @@ export class ShipmentsController {
     }
   }
 
+  // ─── Shipment RFQ & Bidding ───────────────────────────────
+
+  @ApiOperation({ summary: 'Browse open Shipment RFQs (Logistic/Admin)' })
+  @Roles(UserRole.LOGISTIC, UserRole.ADMIN)
+  @Get('rfqs/open')
+  async getOpenRfqs() {
+    return this.shipmentsService.findAllOpenRfqs();
+  }
+
+  @ApiOperation({ summary: 'Submit bid for Shipment RFQ (Logistic only)' })
+  @Roles(UserRole.LOGISTIC)
+  @UseGuards(KycGuard)
+  @Post('rfqs/:id/bids')
+  async submitBid(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() dto: { amount: number; transitTimeDays: number; vehicleType: string; notes?: string },
+  ) {
+    return this.shipmentsService.submitBid(id, user.organizationId, dto);
+  }
+
+  @ApiOperation({ summary: 'Get bids for an Shipment RFQ (Admin/Logistic)' })
+  @Roles(UserRole.ADMIN, UserRole.LOGISTIC)
+  @Get('rfqs/:id/bids')
+  async getBids(
+    @Param('id') id: string,
+  ) {
+    return this.shipmentsService.findBidsByRfq(id);
+  }
+
+  @ApiOperation({ summary: 'Award Shipment RFQ to a carrier (Admin only)' })
+  @Roles(UserRole.ADMIN)
+  @Post('rfqs/:id/award/:bidId')
+  async awardBid(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Param('bidId') bidId: string,
+  ) {
+    return this.shipmentsService.awardBid(id, bidId, user.userId);
+  }
+
+  @ApiOperation({ summary: 'Carrier accepts an awarded job' })
+  @Roles(UserRole.LOGISTIC)
+  @UseGuards(KycGuard)
+  @Post('rfqs/:id/accept')
+  async acceptJob(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() dto: {
+      vehicleNumber: string;
+      vehicleType: string;
+      driverName: string;
+      driverMobile: string;
+    },
+  ) {
+    return this.shipmentsService.acceptJob(id, user.organizationId, dto);
+  }
+
+  @ApiOperation({ summary: 'Carrier rejects an awarded job' })
+  @Roles(UserRole.LOGISTIC)
+  @UseGuards(KycGuard)
+  @Post('rfqs/:id/reject')
+  async rejectJob(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+  ) {
+    return this.shipmentsService.rejectJob(id, user.organizationId, body.reason);
+  }
+
   @ApiOperation({ summary: 'Get shipment by ID' })
   @Roles(UserRole.BUYER, UserRole.SELLER, UserRole.LOGISTIC, UserRole.ADMIN)
   @Get(':id')
@@ -129,7 +199,7 @@ export class ShipmentsController {
     return this.shipmentsService.uploadDocument(
       id,
       uploadDocumentDto,
-      user.id,
+      user.userId,
       user.role,
     );
   }
@@ -149,10 +219,11 @@ export class ShipmentsController {
       id,
       docType,
       file,
-      user.id,
+      user.userId,
       user.role,
     );
   }
+
 
   @ApiOperation({ summary: 'Download shipment document (Secure)' })
   @Get(':id/documents/:docId/download')
@@ -183,7 +254,7 @@ export class ShipmentsController {
     @Param('id') id: string,
     @Param('docId') docId: string,
   ) {
-    return this.shipmentsService.deleteDocument(id, docId, user.id);
+    return this.shipmentsService.deleteDocument(id, docId, user.userId);
   }
 
   @ApiOperation({ summary: 'Upload POD (Logistic/Seller)' })
@@ -206,7 +277,7 @@ export class ShipmentsController {
     @Param('id') id: string,
     @Param('docId') docId: string,
   ) {
-    return this.shipmentsService.verifyDocument(id, docId, user.id);
+    return this.shipmentsService.verifyDocument(id, docId, user.userId);
   }
 
   @ApiOperation({ summary: 'Get shipment tracking' })
@@ -223,7 +294,7 @@ export class ShipmentsController {
     @CurrentUser() user: any,
     @Param('id') id: string,
   ) {
-    this.logger.log(`Delivery confirmation request for shipment: ${id} by user: ${user.id}`);
+    this.logger.log(`Delivery confirmation request for shipment: ${id} by user: ${user.userId}`);
     return this.shipmentsService.markDelivered(id);
   }
 
@@ -235,7 +306,7 @@ export class ShipmentsController {
     @CurrentUser() user: any,
     @Param('id') id: string,
   ) {
-    return this.shipmentsService.confirmDispatch(id, user.id, user.organizationId);
+    return this.shipmentsService.confirmDispatch(id, user.userId, user.organizationId);
   }
 
   @ApiOperation({ summary: 'Add tracking milestone (Carrier/Seller)' })
@@ -259,44 +330,7 @@ export class ShipmentsController {
     return this.shipmentsService.updateStatus(id, body.status);
   }
 
-  // ─── Shipment RFQ & Bidding ───────────────────────────────
-
-  @ApiOperation({ summary: 'Browse open Shipment RFQs (Logistic/Admin)' })
-  @Roles(UserRole.LOGISTIC, UserRole.ADMIN)
-  @Get('rfqs/open')
-  async getOpenRfqs() {
-    return this.shipmentsService.findAllOpenRfqs();
-  }
-
-  @ApiOperation({ summary: 'Submit bid for Shipment RFQ (Logistic only)' })
-  @Roles(UserRole.LOGISTIC)
-  @UseGuards(KycGuard)
-  @Post('rfqs/:id/bids')
-  async submitBid(
-    @CurrentUser() user: any,
-    @Param('id') id: string,
-    @Body() dto: { amount: number; transitTimeDays: number; vehicleType: string; notes?: string },
-  ) {
-    return this.shipmentsService.submitBid(id, user.organizationId, dto);
-  }
-
-  @ApiOperation({ summary: 'Get bids for an Shipment RFQ (Admin/Logistic)' })
-  @Roles(UserRole.ADMIN, UserRole.LOGISTIC)
-  @Get('rfqs/:id/bids')
-  async getBids(
-    @Param('id') id: string,
-  ) {
-    return this.shipmentsService.findBidsByRfq(id);
-  }
-
-  @ApiOperation({ summary: 'Award shipment job to a 3PL (Admin only)' })
-  @Roles(UserRole.ADMIN)
-  @Post('rfqs/:id/award/:bidId')
-  async awardBid(
-    @CurrentUser() user: any,
-    @Param('id') id: string,
-    @Param('bidId') bidId: string,
-  ) {
-    return this.shipmentsService.awardBid(id, bidId, user.id);
-  }
 }
+
+
+

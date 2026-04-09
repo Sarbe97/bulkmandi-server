@@ -10,8 +10,9 @@ import { RfqService } from '../rfq/rfq.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { Order, OrderDocument } from './schemas/order.schema';
 import { NotificationsService } from '../notifications/notifications.service';
-import { OrderStatus } from 'src/common/enums';
+import { OrderStatus, ShipmentRfqStatus } from 'src/common/enums';
 import { AuditAction, AuditModule, AuditEntityType, LogisticsPreference } from 'src/common/constants/app.constants';
+import { ShipmentsService } from '../shipments/shipments.service';
 
 @Injectable()
 export class OrdersService {
@@ -21,6 +22,7 @@ export class OrdersService {
     private readonly orgService: OrganizationsService,
     @Inject(forwardRef(() => PaymentsService)) private readonly paymentsService: PaymentsService,
     @Inject(forwardRef(() => DisputesService)) private readonly disputesService: DisputesService,
+    @Inject(forwardRef(() => ShipmentsService)) private readonly shipmentService: ShipmentsService,
     private readonly auditService: AuditService,
     private readonly notificationsService: NotificationsService,
     private readonly logger: CustomLoggerService,
@@ -63,9 +65,35 @@ export class OrdersService {
     ].filter(Boolean).join(', ');
 
     const TAX_RATE = 18;
+    const PLATFORM_FEE_RATE = 2; // 2% Platform Fee
+    const FREIGHT_RATE_PER_MT_KM = 3.4; // Conservative high-side rate per MT per KM
+
     const baseAmount = quote.totalPriceBase || (quote.pricePerMT * quote.quantityMT);
-    const freightTotal = quote.totalFreight || (quote.freightPerMT * quote.quantityMT);
-    const subTotal = baseAmount + freightTotal;
+    
+    // Determine Logistics Preference
+    const logisticsPreference = rfq.logisticsPreference || LogisticsPreference.PLATFORM_3PL;
+    
+    // Calculate Freight
+    let freightPerMT = quote.freightPerMT;
+    let freightTotal = quote.totalFreight || (quote.freightPerMT * quote.quantityMT);
+
+    if (logisticsPreference === LogisticsPreference.PLATFORM_3PL) {
+      // System-Calculated Estimate for 3PL
+      const sellerPin = parseInt(quote.sellerPlantPin?.replace(/\D/g, '') || '0') || 400001; // Fallback to Mumbai if missing
+      const buyerPin = parseInt(rfq.targetPin?.replace(/\D/g, '') || '0') || 110001; // Fallback to Delhi if missing
+      
+      const distance = Math.max(100, Math.abs(sellerPin - buyerPin) % 2000); // Deterministic dummy distance
+      freightPerMT = Math.round(distance * FREIGHT_RATE_PER_MT_KM);
+      freightTotal = freightPerMT * quote.quantityMT;
+      
+      this.logger.log(`3PL Freight Estimated: distance ${distance}km, rate ${freightPerMT}/MT, total ${freightTotal}`);
+    }
+    
+    // Calculate Platform Fee
+    const platformFee = Math.round(baseAmount * (PLATFORM_FEE_RATE / 100));
+    
+    // Final Landed Cost
+    const subTotal = baseAmount + freightTotal + platformFee;
     const taxAmount = Math.round(subTotal * (TAX_RATE / 100));
     const grandTotal = subTotal + taxAmount;
 
@@ -83,16 +111,30 @@ export class OrdersService {
         quantityMT: quote.quantityMT,
         specifications: specs || 'Standard',
       },
-      pricing: { pricePerMT: quote.pricePerMT, quantityMT: quote.quantityMT, baseAmount, freightPerMT: quote.freightPerMT, freightTotal, taxRate: TAX_RATE, taxAmount, grandTotal, currency: quote.currency || 'INR' },
+      pricing: { 
+        pricePerMT: quote.pricePerMT, 
+        quantityMT: quote.quantityMT, 
+        baseAmount, 
+        freightPerMT, 
+        freightTotal, 
+        platformFee,
+        taxRate: TAX_RATE, 
+        taxAmount, 
+        grandTotal, 
+        currency: quote.currency || 'INR' 
+      },
       incoterm: rfq.incoterm,
       deliveryPin: rfq.targetPin,
+      pickupPin: quote.sellerPlantPin,
       deliveryCity: 'N/A',
       deliveryState: 'N/A',
       deliveryBy: deliveryDate,
-      logisticsPreference: rfq.logisticsPreference || LogisticsPreference.PLATFORM_3PL,
+      logisticsPreference,
       status: OrderStatus.PI_ISSUED,
       lifecycle: { confirmedAt: new Date(), paymentPendingAt: new Date() },
     });
+
+
 
     const saved = await order.save();
 
@@ -162,9 +204,26 @@ export class OrdersService {
     if (!order || order.sellerId.toString() !== sellerId) throw new NotFoundException('Order not found');
 
     const prevStatus = order.status;
-    order.status = OrderStatus.DISPATCH_PREP;
+    
+    // Status Guard: Only move to DISPATCH_PREP if we are currently PAID or earlier.
+    // If it's already LOGISTICS_AWARDED or LOGISTICS_ACCEPTED, don't downgrade it.
+    const statusesHigherThanPrep = [OrderStatus.DISPATCH_PREP, OrderStatus.LOGISTICS_AWARDED, OrderStatus.LOGISTICS_ACCEPTED, OrderStatus.IN_TRANSIT, OrderStatus.DELIVERED, OrderStatus.COMPLETED];
+    if (!statusesHigherThanPrep.includes(order.status as any)) {
+      order.status = OrderStatus.DISPATCH_PREP;
+    }
+
     order.lifecycle.dispatchPrepAt = new Date();
     const saved = await order.save();
+
+    // TRIGGER Logistics Flow for Platform 3PL
+    if (saved.logisticsPreference === LogisticsPreference.PLATFORM_3PL) {
+      try {
+        await this.shipmentService.createShipmentRfq(saved._id.toString());
+        this.logger.log(`Automated Shipment RFQ triggered for Order ${saved.orderId}`);
+      } catch (err) {
+        this.logger.error(`Failed to trigger automated Shipment RFQ for Order ${saved.orderId}: ${err.message}`);
+      }
+    }
 
     this.auditService.log({
       action: AuditAction.ORDER_STATUS_CHANGED,
@@ -392,4 +451,51 @@ export class OrdersService {
       description: `48h Settlement Timer started for Order ${order.orderId}`,
     });
   }
+
+  /**
+   * Helper to determine the next action for an order based on its status and logistics preference.
+   */
+  getNextAction(order: any) {
+    const status = order.status;
+    const pref = order.logisticsPreference;
+
+    switch (status) {
+      case OrderStatus.PI_ISSUED:
+        return { actor: 'BUYER', action: 'Confirm Proforma Invoice', description: 'Review the proforma invoice and confirm to proceed to payment.' };
+      
+      case OrderStatus.PAYMENT_PENDING:
+        return { actor: 'BUYER', action: 'Submit Payment & UTR', description: 'Make the payment to the escrow account and upload the UTR details.' };
+      
+      case OrderStatus.PAYMENT_SUBMITTED:
+        return { actor: 'ADMIN', action: 'Verify Payment', description: 'Admin needs to verify the UTR and mark the payment as received.' };
+      
+      case OrderStatus.PAID:
+        return { actor: 'SELLER', action: 'Prepare Material', description: 'Payment verified. Please prepare the material for dispatch.' };
+      
+      case OrderStatus.DISPATCH_PREP:
+        if (pref === LogisticsPreference.PLATFORM_3PL) {
+          return { actor: 'ADMIN', action: 'Award Logistics Bid', description: 'Material is ready. Admin must award the shipment job to a carrier.' };
+        }
+        return { actor: 'SELLER', action: 'Confirm Dispatch', description: 'Material is ready. Please proceed with dispatch and upload documents.' };
+      
+      case OrderStatus.LOGISTICS_AWARDED:
+        return { actor: 'CARRIER', action: 'Accept Shipment Job', description: 'Job awarded. Carrier must explicitly accept the commitment.' };
+      
+      case OrderStatus.LOGISTICS_ACCEPTED:
+        return { actor: 'SELLER', action: 'Confirm Dispatch', description: 'Carrier has accepted. Seller can now hand over material and confirm dispatch.' };
+      
+      case OrderStatus.IN_TRANSIT:
+        return { actor: 'CARRIER', action: 'Update Tracking', description: 'Order is in transit. Carrier should update milestones until delivery.' };
+      
+      case OrderStatus.DELIVERED:
+        return { actor: 'BUYER', action: 'Accept Delivery', description: 'Goods delivered. Please verify and accept delivery to release final payout.' };
+      
+      case OrderStatus.COMPLETED:
+        return { actor: 'NONE', action: 'Order Completed', description: 'All steps finished successfully.' };
+      
+      default:
+        return { actor: 'NONE', action: 'No Action', description: 'The order is in a static or terminal state.' };
+    }
+  }
 }
+

@@ -12,7 +12,17 @@ import { UploadDocumentDto } from "./dto/upload-document.dto";
 import { Shipment, ShipmentDocument } from "./schemas/shipment.schema";
 import { ShipmentRfq, ShipmentRfqDocument } from "./schemas/shipment-rfq.schema";
 import { ShipmentBid, ShipmentBidDocument } from "./schemas/shipment-bid.schema";
-import { AuditAction, AuditModule, AuditEntityType, LogisticsPreference } from "src/common/constants/app.constants";
+import { 
+  AuditAction, 
+  AuditModule, 
+  AuditEntityType, 
+  LogisticsPreference 
+} from "src/common/constants/app.constants";
+import { 
+  ShipmentRfqStatus, 
+  OrderStatus 
+} from "src/common/enums";
+
 import { SellerPreference, SellerPreferenceDocument } from "../preferences/schemas/seller-preference.schema";
 import { OrdersService } from "../orders/orders.service";
 import { PaymentsService } from "../payments/payments.service";
@@ -85,6 +95,7 @@ export class ShipmentsService {
     const shipmentId = `SHP-${Date.now()}`;
     const shipment = new this.shipmentModel({
       ...dto,
+      transitDays: dto.transitDays, 
       product: {
         category: order.product.category,
         grade: order.product.grade,
@@ -142,6 +153,11 @@ export class ShipmentsService {
     if (!shipment) throw new NotFoundException("Shipment not found");
     return shipment;
   }
+
+  async findByOrderId(orderId: string) {
+    return this.shipmentModel.findOne({ orderId: new Types.ObjectId(orderId) });
+  }
+
 
   async addMilestone(id: string, dto: UpdateMilestoneDto) {
     this.logger.log(`Adding milestone: ${dto.event} to shipment: ${id}`);
@@ -476,13 +492,23 @@ export class ShipmentsService {
     const shipment = await this.shipmentModel.findById(id);
     if (!shipment) throw new NotFoundException("Shipment not found");
 
+    const order = await this.ordersService.findByIdOrFail(shipment.orderId.toString());
+
+    // ✅ Strict Guardrail: Block dispatch if logistics not confirmed for 3PL
+    if (shipment.logisticsMode === LogisticsPreference.PLATFORM_3PL) {
+      if (order.status !== OrderStatus.LOGISTICS_ACCEPTED) {
+        throw new BadRequestException('Dispatch blocked: Waiting for logistics provider to accept the job commitment.');
+      }
+    }
+
     // Only Seller or Logistics can confirm dispatch
     const isSeller = shipment.sellerId.toString() === organizationId;
     const isCarrier = shipment.carrierId?.toString() === organizationId;
 
     if (!isSeller && !isCarrier) {
-      throw new Error("Access Denied: Only the Seller or Logistic Provider can confirm dispatch");
+      throw new BadRequestException("Access Denied: Only the Seller or Logistic Provider can confirm dispatch");
     }
+
 
     const prevStatus = shipment.status;
     shipment.status = 'DISPATCH_CONFIRMED';
@@ -520,16 +546,19 @@ export class ShipmentsService {
     if (existing) return existing;
 
     // Fetch Seller's Origin PIN
-    let originPin = "000000";
-    try {
-      const sellerOrg = await this.organizationsService.getOrganization(order.sellerId.toString());
-      if (sellerOrg?.orgKyc?.registeredAddress) {
-        // Try to extract 6-digit PIN from address string if possible
-        const pinMatch = sellerOrg.orgKyc.registeredAddress.match(/\b\d{6}\b/);
-        if (pinMatch) originPin = pinMatch[0];
+    // Priority: Order.pickupPin > Org.registeredAddress regex
+    let originPin = order.pickupPin || "000000";
+    
+    if (originPin === "000000") {
+      try {
+        const sellerOrg = await this.organizationsService.getOrganization(order.sellerId.toString());
+        if (sellerOrg?.orgKyc?.registeredAddress) {
+          const pinMatch = sellerOrg.orgKyc.registeredAddress.match(/\b\d{6}\b/);
+          if (pinMatch) originPin = pinMatch[0];
+        }
+      } catch (err) {
+        this.logger.warn(`Could not determine origin PIN for seller ${order.sellerId}: ${err.message}`);
       }
-    } catch (err) {
-      this.logger.warn(`Could not determine origin PIN for seller ${order.sellerId}: ${err.message}`);
     }
 
     const rfqId = `SRFQ-${Date.now()}`;
@@ -564,8 +593,51 @@ export class ShipmentsService {
   }
 
   async findAllOpenRfqs() {
-    return this.shipmentRfqModel.find({ status: 'OPEN' }).sort({ createdAt: -1 });
+    return this.shipmentRfqModel.aggregate([
+      { $match: { status: ShipmentRfqStatus.OPEN } },
+      {
+        $lookup: {
+          from: 'orders',
+          localField: 'orderId',
+          foreignField: '_id',
+          as: 'order',
+        },
+      },
+      { $unwind: '$order' },
+      {
+        $lookup: {
+          from: 'shipmentbids',
+          localField: '_id',
+          foreignField: 'srfqId',
+          as: 'bids',
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          srfqId: 1,
+          orderId: 1,
+          humanOrderId: '$order.orderId',
+          materialDetails: 1,
+          originPin: 1,
+          destinationPin: 1,
+          quantityMT: 1,
+          status: 1,
+          pickupAt: 1,
+          bidCount: { $size: '$bids' },
+          createdAt: 1,
+        },
+      },
+      {
+        $addFields: {
+          lowestBid: { $min: '$bids.amount' },
+        },
+      },
+      { $project: { bids: 0 } },
+      { $sort: { createdAt: -1 } },
+    ]);
   }
+
 
   async findBidsByRfq(rfqId: string) {
     return this.shipmentBidModel.find({ srfqId: new Types.ObjectId(rfqId) }).sort({ amount: 1 });
@@ -601,58 +673,114 @@ export class ShipmentsService {
     return saved;
   }
 
+  /**
+   * Awards a logistics bid to a carrier.
+   * NOTE: This does NOT create a shipment anymore. It moves the process to a "Carrier Acceptance" phase.
+   */
   async awardBid(rfqId: string, bidId: string, adminId: string) {
+    this.logger.log(`Admin ${adminId} awarding Shipment RFQ ${rfqId} to bid ${bidId}`);
+    
     const rfq = await this.shipmentRfqModel.findById(rfqId);
     if (!rfq) throw new NotFoundException('Shipment RFQ not found');
+    if (rfq.status !== ShipmentRfqStatus.OPEN) throw new BadRequestException('RFQ is not open for awarding');
     
     const bid = await this.shipmentBidModel.findById(bidId);
     if (!bid) throw new NotFoundException('Bid not found');
     if (bid.srfqId.toString() !== rfqId) throw new BadRequestException('Bid does not belong to this RFQ');
 
-    rfq.status = 'ASSIGNED';
+    // 1. Update RFQ Status to AWARDED (Waiting for Carrier)
+    rfq.status = ShipmentRfqStatus.AWARDED;
     rfq.winningBidId = bid._id as any;
     rfq.assignedCarrierId = bid.carrierId;
+    rfq.awardedAt = new Date();
+    
+    // Set acceptance timeout (default: 4 hours)
+    const timeoutHours = 4;
+    const timeoutDate = new Date();
+    timeoutDate.setHours(timeoutDate.getHours() + timeoutHours);
+    rfq.acceptanceTimeout = timeoutDate;
+    
+    await rfq.save();
+
+    // 2. Update Bid Status
+    bid.status = 'AWARDED'; // Temporary status while waiting for acceptance
+    await bid.save();
+
+    // 3. Update Order Status
+    const orderId = rfq.orderId.toString();
+    await this.ordersService.updateStatus(orderId, OrderStatus.LOGISTICS_AWARDED);
+
+    this.auditService.log({
+      action: AuditAction.SHIPMENT_AWARDED,
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT_RFQ,
+      entityId: rfq._id as any,
+      entityIdStr: rfq.rfqId,
+      actorId: adminId,
+      afterState: { status: ShipmentRfqStatus.AWARDED, carrierId: bid.carrierId, timeout: timeoutDate },
+      description: `Shipment RFQ ${rfq.rfqId} awarded to ${bid.carrierName}. Waiting for acceptance until ${timeoutDate.toLocaleString()}.`,
+    });
+
+    // TODO: Trigger Notification to Carrier: "You have an incoming job! Please accept within 4h."
+
+    return { rfq, status: 'AWARDED_PENDING_ACCEPTANCE', timeout: timeoutDate };
+  }
+
+  /**
+   * Carrier explicitly accepts the awarded job.
+   * This finally creates the physical Shipment record.
+   */
+  async acceptJob(rfqId: string, carrierId: string, dto: {
+    vehicleNumber: string;
+    vehicleType: string;
+    driverName: string;
+    driverMobile: string;
+  }) {
+    this.logger.log(`Carrier ${carrierId} accepting job for RFQ ${rfqId}`);
+    
+    const rfq = await this.shipmentRfqModel.findById(rfqId);
+    if (!rfq) throw new NotFoundException('Shipment RFQ not found');
+    if (rfq.status !== ShipmentRfqStatus.AWARDED) throw new BadRequestException('This job is not in AWARDED status');
+    if (rfq.assignedCarrierId?.toString() !== carrierId) throw new BadRequestException('You are not the assigned carrier for this job');
+
+    // Check timeout
+    if (rfq.acceptanceTimeout && new Date() > rfq.acceptanceTimeout) {
+      rfq.status = ShipmentRfqStatus.OPEN; // Re-open if expired? Or EXPIRED.
+      await rfq.save();
+      throw new BadRequestException('Acceptance window has expired. Please contact admin.');
+    }
+
+    const bid = await this.shipmentBidModel.findById(rfq.winningBidId);
+    if (!bid) throw new Error('Winning bid record lost');
+
+    // 1. Finalize RFQ & Bid
+    rfq.status = ShipmentRfqStatus.ASSIGNED;
     await rfq.save();
 
     bid.status = 'ACCEPTED';
     await bid.save();
 
-    // Reject other bids
+    // Reject other bids for this RFQ
     await this.shipmentBidModel.updateMany(
       { srfqId: rfq._id, _id: { $ne: bid._id } },
       { status: 'REJECTED' }
     );
 
-    // Update Order and Create Shipment
+    // 2. Create the ACTUAL Shipment record now
     const orderId = rfq.orderId.toString();
     const order = await this.ordersService.findByIdOrFail(orderId);
-    
-    // Fetch Seller's Origin PIN for actual shipment
-    let pickupPin = order.deliveryPin; // Fallback
-    try {
-      const sellerOrg = await this.organizationsService.getOrganization(order.sellerId.toString());
-      if (sellerOrg?.orgKyc?.registeredAddress) {
-        const pinMatch = sellerOrg.orgKyc.registeredAddress.match(/\b\d{6}\b/);
-        if (pinMatch) pickupPin = pinMatch[0];
-      }
-    } catch (err) {
-      this.logger.warn(`Could not determine pickup PIN for shipment: ${err.message}`);
-    }
-
-    // Create actual shipment
     const shipmentId = `SHP-${Date.now()}`;
+    
+    let pickupPin = rfq.originPin; // Use the one from RFQ as it's the verified warehouse one
+    
     const shipment = new this.shipmentModel({
       shipmentId,
       orderId: order._id,
       sellerId: order.sellerId,
       buyerId: order.buyerId,
-      carrierId: bid.carrierId,
+      carrierId: new Types.ObjectId(carrierId),
       logisticsMode: LogisticsPreference.PLATFORM_3PL,
-      product: {
-        category: order.product.category,
-        grade: order.product.grade,
-        quantityMT: order.product.quantityMT,
-      },
+      product: order.product,
       pickup: {
         location: 'Seller Warehouse',
         pin: pickupPin,
@@ -664,23 +792,80 @@ export class ShipmentsService {
         state: order.deliveryState || 'N/A',
         scheduledAt: order.deliveryBy,
       },
+      vehicle: {
+        vehicleNumber: dto.vehicleNumber,
+        vehicleType: dto.vehicleType,
+        driverName: dto.driverName,
+        driverMobile: dto.driverMobile,
+      },
+      pricing: {
+        freightAmount: bid.amount,
+        currency: 'INR'
+      },
+      transitDays: bid.transitTimeDays,
       status: 'PICKUP_PLANNED'
     });
 
     const savedShipment = await shipment.save();
+    
+    // Register shipment with order
     await this.ordersService.registerShipment(orderId, savedShipment._id as any);
+    
+    // 3. Move Order to LOGISTICS_ACCEPTED
+    await this.ordersService.updateStatus(orderId, OrderStatus.LOGISTICS_ACCEPTED);
 
     this.auditService.log({
-      action: AuditAction.SHIPMENT_AWARDED,
+      action: AuditAction.SHIPMENT_CREATED,
+      module: AuditModule.SHIPMENT,
+      entityType: AuditEntityType.SHIPMENT,
+      entityId: savedShipment._id as any,
+      entityIdStr: savedShipment.shipmentId,
+      actorId: carrierId,
+      description: `Carrier ${bid.carrierName} accepted the job. Shipment ${savedShipment.shipmentId} created.`,
+    });
+
+    return savedShipment;
+  }
+
+  /**
+   * Carrier rejects the awarded job.
+   */
+  async rejectJob(rfqId: string, carrierId: string, reason: string) {
+    this.logger.log(`Carrier ${carrierId} REJECTING job for RFQ ${rfqId}. Reason: ${reason}`);
+    
+    const rfq = await this.shipmentRfqModel.findById(rfqId);
+    if (!rfq) throw new NotFoundException('Shipment RFQ not found');
+    if (rfq.status !== ShipmentRfqStatus.AWARDED) throw new BadRequestException('This job is not in AWARDED status');
+    if (rfq.assignedCarrierId?.toString() !== carrierId) throw new BadRequestException('You are not the assigned carrier for this job');
+
+    // 1. Reset RFQ to OPEN so others can bid or Admin can re-award
+    rfq.status = ShipmentRfqStatus.OPEN;
+    rfq.winningBidId = undefined;
+    rfq.assignedCarrierId = undefined;
+    rfq.rejectionReason = reason;
+    await rfq.save();
+
+    // 2. Mark the bid as REJECTED
+    await this.shipmentBidModel.findOneAndUpdate(
+      { srfqId: rfq._id, carrierId },
+      { status: 'REJECTED_BY_CARRIER' }
+    );
+
+    // 3. Reset Order Status back to DISPATCH_PREP
+    await this.ordersService.updateStatus(rfq.orderId.toString(), OrderStatus.DISPATCH_PREP);
+
+    this.auditService.log({
+      action: AuditAction.SHIPMENT_BID_SUBMITTED, // Reuse or add SHIPMENT_REJECTED
       module: AuditModule.SHIPMENT,
       entityType: AuditEntityType.SHIPMENT_RFQ,
       entityId: rfq._id as any,
-      actorId: adminId,
-      description: `Shipment RFQ ${rfq.rfqId} awarded to ${bid.carrierName}`,
+      actorId: carrierId,
+      description: `Carrier rejected the job award. Reason: ${reason}. RFQ re-opened for bidding.`,
     });
 
-    return { rfq, shipment: savedShipment };
+    return { status: 'REOPENED', rfq };
   }
+
 
   private getMimeType(ext?: string): string {
     const map = {

@@ -117,14 +117,19 @@ export class QuotesService {
       paymentTerms: dto.paymentTerms || '',
       notes: dto.notes || '',
       priceJustification: dto.priceJustification || '',
+      sellerPlant: dto.sellerPlant,
+      sellerPlantPin: dto.sellerPlantPin,
       status: QuoteStatus.SUBMITTED,
       submittedAt: new Date(),
     });
 
     const savedQuote = await quote.save();
 
-    rfq.quotesCount = (rfq.quotesCount || 0) + 1;
-    await rfq.save();
+    // Atomic increment to ensure accuracy and prevent race conditions
+    await this.rfqModel.updateOne(
+      { rfqId: dto.rfqId },
+      { $inc: { quotesCount: 1 } }
+    );
 
     this.auditService.log({
       action: AuditAction.QUOTE_SUBMITTED,
@@ -141,21 +146,58 @@ export class QuotesService {
         : (await this.usersService.findByOrgId(rfq.buyerId.toString())).map(u => (u as any)._id as any),
     });
 
+    // Fallback: If sellerPlantPin is missing, try to auto-populate from Org KYC
+    if (!savedQuote.sellerPlantPin) {
+      try {
+        const sellerOrg = await this.orgService.getOrganization(sellerId);
+        const plants = sellerOrg?.orgKyc?.plantLocations ?? [];
+        if (plants.length > 0) {
+          savedQuote.sellerPlant = plants[0].name || plants[0].address || 'Primary Plant';
+          savedQuote.sellerPlantPin = plants[0].pinCode || plants[0].pin || plants[0].pincode;
+          await savedQuote.save();
+          this.logger.debug(`Auto-populated missing plant PIN for quote ${savedQuote.quoteId} from Org KYC: ${savedQuote.sellerPlantPin}`);
+        }
+      } catch (e) {
+        this.logger.warn(`Failed to auto-populate plant PIN for quote ${savedQuote.quoteId}: ${e.message}`);
+      }
+    }
+
     return savedQuote;
   }
+
 
   async findBySellerId(sellerId: string, filter: Record<string, any> = {}, page = 1, limit = 20) {
     this.logger.debug(`Fetching quotes for seller organization: ${sellerId} (page ${page}, limit ${limit})`);
 
     const skip = (page - 1) * limit;
-    const match: Record<string, any> = { sellerId: new Types.ObjectId(sellerId) };
+    
+    // Construct match with support for both String and ObjectId formats to ensure 100% retrieval reliability
+    let sellerIdFilter: any = sellerId;
+    try {
+      if (typeof sellerId === 'string' && Types.ObjectId.isValid(sellerId)) {
+        sellerIdFilter = new Types.ObjectId(sellerId);
+      }
+    } catch (e) {
+      this.logger.warn(`Failed to cast sellerId to ObjectId: ${sellerId}`);
+    }
+
+    const match: Record<string, any> = { 
+      $or: [
+        { sellerId: sellerId },
+        { sellerId: sellerIdFilter }
+      ]
+    };
     
     // Merge additional filters if present
     if (filter && Object.keys(filter).length > 0) {
-      Object.assign(match, filter);
+      if (filter.status) match.status = filter.status;
+      if (filter.rfqId) match.rfqId = filter.rfqId;
     }
 
+
     // Use aggregation to join RFQ data for 100% data accuracy
+    this.logger.debug(`Aggregation Match Query: ${JSON.stringify(match)}`);
+    
     const quotes = await this.quoteModel.aggregate([
       { $match: match },
       { $sort: { submittedAt: -1 } },
@@ -195,20 +237,22 @@ export class QuotesService {
           submittedAt: 1,
           notes: 1,
           // Map joined fields
-          rfqNumber: { $ifNull: ['$rfqNumber', '$rfq.rfqId'] },
+          rfqNumber: { $ifNull: ['$rfqNumber', '$rfq.rfqId', '$rfqId'] },
           product: { 
             $ifNull: [
               '$product', 
-              { $concat: ['$rfq.product.category', ' (', { $ifNull: ['$rfq.product.subCategory', 'N/A'] }, ', ', { $ifNull: ['$rfq.product.grade', 'N/A'] }, ')'] }
+              { $concat: [{ $ifNull: ['$rfq.product.category', 'Product']}, ' (', { $ifNull: ['$rfq.product.grade', 'N/A'] }, ')'] }
             ] 
           },
-          buyer: '$rfq.buyerOrgName'
+          buyer: { $ifNull: ['$buyer', '$rfq.buyerOrgName', 'Unknown Buyer'] }
         },
       },
     ]);
 
+    this.logger.debug(`Found ${quotes.length} quotes for seller ${sellerId}`);
     return { quotes };
   }
+
 
   async findAll(filter: Record<string, any> = {}, page = 1, limit = 20) {
     const validFilters = Object.fromEntries(Object.entries(filter).filter(([_, v]) => v !== undefined && v !== null && v !== ''));
@@ -297,11 +341,12 @@ export class QuotesService {
     quote.status = QuoteStatus.WITHDRAWN;
     const result = await quote.save();
 
-    const rfq = await this.rfqModel.findOne({ rfqId: quote.rfqId });
-    if (rfq) {
-      rfq.quotesCount = Math.max(0, (rfq.quotesCount || 0) - 1);
-      await rfq.save();
-    }
+    // Atomic decrement
+    await this.rfqModel.updateOne(
+      { rfqId: quote.rfqId },
+      { $inc: { quotesCount: -1 } }
+    );
+
 
     this.auditService.log({
       action: AuditAction.QUOTE_WITHDRAWN,
@@ -390,6 +435,8 @@ export class QuotesService {
     quote.paymentTerms = dto.paymentTerms;
     quote.notes = dto.notes || '';
     quote.priceJustification = dto.priceJustification || '';
+    quote.sellerPlant = dto.sellerPlant;
+    quote.sellerPlantPin = dto.sellerPlantPin;
     quote.status = QuoteStatus.SUBMITTED;
     quote.submittedAt = new Date();
 

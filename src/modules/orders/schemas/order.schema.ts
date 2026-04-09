@@ -44,11 +44,13 @@ export class Order {
     baseAmount: number;
     freightPerMT: number;
     freightTotal: number;
+    platformFee: number; // Added platform fee
     taxRate: number;
     taxAmount: number;
     grandTotal: number;
     currency: string;
   };
+
 
   // Delivery
   @Prop({ required: true })
@@ -56,6 +58,9 @@ export class Order {
 
   @Prop({ required: true })
   deliveryPin!: string;
+
+  @Prop()
+  pickupPin?: string;
 
   @Prop()
   deliveryCity?: string;

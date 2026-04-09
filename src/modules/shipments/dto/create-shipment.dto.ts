@@ -76,4 +76,7 @@ export class CreateShipmentDto {
   @ValidateNested()
   @Type(() => DeliveryDto)
   delivery: DeliveryDto;
+
+  @IsOptional()
+  transitDays?: number;
 }

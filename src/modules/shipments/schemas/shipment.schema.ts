@@ -118,6 +118,12 @@ export class Shipment {
     eta?: Date;
   };
 
+  @Prop({ type: Object })
+  pricing?: {
+    freightAmount: number;
+    currency: string;
+  };
+
   // Status
   @Prop({ default: 'PICKUP_PLANNED' })
   status!: string; // PICKUP_PLANNED | PICKUP_CONFIRMED | DISPATCH_CONFIRMED | LR_VERIFIED | IN_TRANSIT | DELIVERED | CANCELLED
@@ -142,6 +148,9 @@ export class Shipment {
     podPhotos?: string[];
     podUploadedAt?: Date;
   };
+
+  @Prop()
+  transitDays?: number;
 }
 
 export const ShipmentSchema = SchemaFactory.createForClass(Shipment);

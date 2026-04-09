@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, NotFoundException, forwardRef } from "@nestjs/common";
 import { CustomLoggerService } from "src/core/logger/custom.logger.service";
 import { InjectModel } from "@nestjs/mongoose";
 import { ConfigService } from "@nestjs/config";
@@ -15,7 +15,13 @@ import { OrganizationsService } from "../organizations/organizations.service";
 import { PaymentsService } from "../payments/payments.service";
 import { MasterDataService } from "../master-data/master-data.service";
 import { NotificationsService } from "../notifications/notifications.service";
-import { AuditAction, AuditModule, AuditEntityType } from "src/common/constants/app.constants";
+import { 
+  AuditAction, 
+  AuditModule, 
+  AuditEntityType, 
+  LogisticsPreference 
+} from "src/common/constants/app.constants";
+import { ShipmentsService } from "../shipments/shipments.service";
 
 @Injectable()
 export class SettlementsService {
@@ -27,12 +33,14 @@ export class SettlementsService {
     private readonly ordersService: OrdersService,
     private readonly orgService: OrganizationsService,
     private readonly paymentsService: PaymentsService,
+    @Inject(forwardRef(() => ShipmentsService)) private readonly shipmentsService: ShipmentsService,
     private readonly masterDataService: MasterDataService,
     private readonly notificationsService: NotificationsService,
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
     private readonly logger: CustomLoggerService,
   ) { }
+
 
   async createBatch(dto: CreateBatchDto, adminId: string) {
     this.logger.log(`Creating settlement batch by admin: ${adminId} for ${dto.orderIds.length} orders`);
@@ -56,7 +64,10 @@ export class SettlementsService {
         continue;
       }
 
-      // 1. Seller Payout logic
+      // 1. Determine Payout Parties based on Logistics Preference
+      const isPlatformManaged = order.logisticsPreference === LogisticsPreference.PLATFORM_3PL;
+      
+      // Seller Payout (Product Value)
       const sellerId = order.sellerId.toString();
       if (!partyMap.has(sellerId)) {
         partyMap.set(sellerId, {
@@ -69,15 +80,49 @@ export class SettlementsService {
           disputeAdjustments: 0,
         });
       }
+      
       const sellerEntry = partyMap.get(sellerId);
       sellerEntry.orders.push(order.orderId);
-      sellerEntry.grossAmount += order.pricing.baseAmount + order.pricing.freightTotal;
-      // Use dynamic fee rate from platform config
+      
+      if (isPlatformManaged) {
+        // Seller only gets the material value (The platform handles freight separately)
+        sellerEntry.grossAmount += order.pricing.baseAmount + order.pricing.taxAmount;
+      } else {
+        // Seller gets everything (DAP/DDP model)
+        sellerEntry.grossAmount += order.pricing.baseAmount + order.pricing.freightTotal + order.pricing.taxAmount;
+      }
+      
+      // Platform fee is usually calculated on material base amount
       sellerEntry.platformFee += (order.pricing.baseAmount * feeRate);
 
-      // 2. 3PL Payout logic (Simplified: if freight exists, it might go to a carrier)
-      // For this implementation, we assume Seller handles freight unless 3PL module is active.
+      // 2. Logistics Payout logic (New: 3PL Allocation)
+      if (isPlatformManaged) {
+        // Find the accepted shipment for this order to get the carrier and bid amount
+        const shipment = await this.shipmentsService.findByOrderId(order._id.toString());
+        if (shipment && shipment.carrierId) {
+          const carrierId = shipment.carrierId.toString();
+          if (!partyMap.has(carrierId)) {
+            // Need to fetch carrier name
+            const carrierOrg = await this.orgService.getOrganization(carrierId);
+            partyMap.set(carrierId, {
+              partyId: shipment.carrierId,
+              partyName: carrierOrg?.legalName || 'Logistics Partner',
+              partyType: 'LOGISTIC',
+              orders: [],
+              grossAmount: 0,
+              platformFee: 0,
+              disputeAdjustments: 0,
+            });
+          }
+          
+          const carrierEntry = partyMap.get(carrierId);
+          carrierEntry.orders.push(order.orderId);
+          // Carrier gets the EXACT freight amount agreed in the shipment (winning bid)
+          carrierEntry.grossAmount += shipment.pricing?.freightAmount || order.pricing.freightTotal;
+        }
+      }
     }
+
 
     const lineItems = Array.from(partyMap.values()).map(item => ({
       ...item,

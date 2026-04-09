@@ -82,11 +82,13 @@ export class ProformaInvoiceTemplate implements ReportTemplate {
         pricePerMT: (o.pricing?.pricePerMT || 0).toLocaleString('en-IN'),
         baseAmount: (o.pricing?.baseAmount || 0).toLocaleString('en-IN'),
         freightTotal: (o.pricing?.freightTotal || 0).toLocaleString('en-IN'),
-        taxableValue: (o.pricing?.baseAmount + o.pricing?.freightTotal || 0).toLocaleString('en-IN'),
+        platformFee: (o.pricing?.platformFee || 0).toLocaleString('en-IN'),
+        taxableValue: (o.pricing?.baseAmount + o.pricing?.freightTotal + (o.pricing?.platformFee || 0)).toLocaleString('en-IN'),
         taxRate: o.pricing?.taxRate || 18,
         taxAmount: (o.pricing?.taxAmount || 0).toLocaleString('en-IN'),
         grandTotal: (o.pricing?.grandTotal || 0).toLocaleString('en-IN'),
       },
+
 
       // Logistics
       incoterm: o.incoterm || 'DAP',

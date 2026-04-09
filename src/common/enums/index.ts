@@ -34,11 +34,22 @@ export enum OrderStatus {
   PAYMENT_SUBMITTED = 'PAYMENT_SUBMITTED',
   PAID = 'PAID',
   DISPATCH_PREP = 'DISPATCH_PREP',
+  LOGISTICS_AWARDED = 'LOGISTICS_AWARDED',   // ✅ Admin has awarded, waiting for carrier
+  LOGISTICS_ACCEPTED = 'LOGISTICS_ACCEPTED', // ✅ Carrier has accepted, ready for dispatch
   IN_TRANSIT = 'IN_TRANSIT',
   DELIVERED = 'DELIVERED',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
 }
+
+export enum ShipmentRfqStatus {
+  OPEN = 'OPEN',
+  AWARDED = 'AWARDED', // Awaiting carrier acceptance
+  ASSIGNED = 'ASSIGNED',
+  EXPIRED = 'EXPIRED',
+  CANCELLED = 'CANCELLED',
+}
+
 
 export enum DocumentType {
   GST_CERTIFICATE = 'GST_CERTIFICATE',

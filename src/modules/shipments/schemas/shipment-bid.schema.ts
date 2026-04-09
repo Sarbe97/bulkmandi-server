@@ -26,7 +26,7 @@ export class ShipmentBid {
   @Prop()
   notes?: string;
 
-  @Prop({ type: String, enum: ['SUBMITTED', 'ACCEPTED', 'REJECTED'], default: 'SUBMITTED' })
+  @Prop({ type: String, enum: ['SUBMITTED', 'AWARDED', 'ACCEPTED', 'REJECTED'], default: 'SUBMITTED' })
   status!: string;
 }
 

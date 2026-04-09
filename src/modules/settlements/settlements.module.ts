@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
 import { AuditModule } from '../audit/audit.module';
@@ -11,6 +11,7 @@ import { Payout, PayoutSchema } from './schemas/payout.schema';
 import { SettlementBatch, SettlementBatchSchema } from './schemas/settlement-batch.schema';
 import { SettlementsController } from './settlements.controller';
 import { SettlementsService } from './settlements.service';
+import { ShipmentsModule } from '../shipments/shipments.module';
 
 @Module({
   imports: [
@@ -25,7 +26,9 @@ import { SettlementsService } from './settlements.service';
     MasterDataModule,
     NotificationsModule,
     AuditModule,
+    forwardRef(() => ShipmentsModule),
   ],
+
   controllers: [SettlementsController],
   providers: [SettlementsService],
   exports: [SettlementsService],

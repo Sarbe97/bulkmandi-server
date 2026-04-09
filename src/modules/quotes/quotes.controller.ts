@@ -44,15 +44,19 @@ export class QuotesController {
     @CurrentUser() user: any,
     @Query('status') status?: string,
     @Query('rfqId') rfqId?: string,
-    @Query('page') page = 1,
-    @Query('limit') limit = 20,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '20',
   ) {
     const filter: any = {};
     if (status) filter.status = status;
     if (rfqId) filter.rfqId = rfqId;
 
-    return this.quotesService.findBySellerId(user.organizationId, filter, page, limit);
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 20);
+
+    return this.quotesService.findBySellerId(user.organizationId, filter, pageNum, limitNum);
   }
+
 
   @ApiOperation({ summary: 'Get quotes for RFQ (Buyer)' })
   @Roles(UserRole.BUYER)
