@@ -1,0 +1,36 @@
+<div class="status-header">
+    <div class="tag">Quote Received</div>
+    <h1>New Quote for {{rfqId}}</h1>
+    <p>A seller has submitted a new quote for your open RFQ. Review the pricing and terms below.</p>
+</div>
+
+<div class="highlight-box">
+    <div class="info-row">
+        <div class="info-label">Quote Summary</div>
+        <div class="info-value" style="font-size: 24px; color: #2563eb;">₹{{landedPrice}} / MT</div>
+        <div style="font-size: 11px; color: #64748b;">Landed Rate for {{quantity}} MT</div>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <table cellpadding="0" cellspacing="0">
+        <tr>
+            <td width="50%" style="padding-right: 10px;">
+                <div class="info-label">Seller</div>
+                <div class="info-value">{{sellerName}}</div>
+            </td>
+            <td width="50%">
+                <div class="info-label">Lead Time</div>
+                <div class="info-value">{{leadDays}} Days</div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{rfqUrl}}" class="btn">Compare & Accept Quote</a>
+</div>
+
+<p style="margin-top: 32px; font-size: 13px; color: #64748b; text-align: center; font-style: italic;">
+    Tip: Accepting a quote early ensures better availability of material and logistics slots.
+</p>

@@ -36,6 +36,7 @@ export enum OrderStatus {
   DISPATCH_PREP = 'DISPATCH_PREP',
   LOGISTICS_AWARDED = 'LOGISTICS_AWARDED',   // ✅ Admin has awarded, waiting for carrier
   LOGISTICS_ACCEPTED = 'LOGISTICS_ACCEPTED', // ✅ Carrier has accepted, ready for dispatch
+  DISPATCH_CONFIRMED = 'DISPATCH_CONFIRMED', // ✅ Seller confirmed dispatch; pending Admin LR verification
   IN_TRANSIT = 'IN_TRANSIT',
   DELIVERED = 'DELIVERED',
   COMPLETED = 'COMPLETED',
@@ -49,16 +50,64 @@ export enum ShipmentRfqStatus {
   EXPIRED = 'EXPIRED',
   CANCELLED = 'CANCELLED',
 }
+export enum ShipmentStatus {
+  PICKUP_PLANNED = 'PICKUP_PLANNED',
+  PICKUP_CONFIRMED = 'PICKUP_CONFIRMED',
+  DISPATCH_CONFIRMED = 'DISPATCH_CONFIRMED',
+  LR_VERIFIED = 'LR_VERIFIED',
+  IN_TRANSIT = 'IN_TRANSIT',
+  DELIVERED = 'DELIVERED',
+  CANCELLED = 'CANCELLED',
+}
 
+export enum ShipmentBidStatus {
+  SUBMITTED = 'SUBMITTED',
+  AWARDED = 'AWARDED',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+  REJECTED_BY_CARRIER = 'REJECTED_BY_CARRIER', // ✅ Carrier explicitly rejected an awarded job
+}
+
+export enum DisputeStatus {
+  NEW = 'NEW',
+  IN_REVIEW = 'IN_REVIEW',
+  RESOLVED = 'RESOLVED',
+  CLOSED = 'CLOSED',
+}
+
+export enum SettlementBatchStatus {
+  DRAFT = 'DRAFT',
+  READY = 'READY',
+  PROCESSING = 'PROCESSING',
+  PAID = 'PAID',
+}
+
+export enum LogisticsMode {
+  PLATFORM_3PL = 'PLATFORM_3PL',
+  SELF_PICKUP = 'SELF_PICKUP',
+  SELLER_MANAGED = 'SELLER_MANAGED',
+}
+
+export enum DisputeType {
+  SHORTAGE = 'SHORTAGE',
+  QC_FAILURE = 'QC_FAILURE',
+  DOCS_MISSING = 'DOCS_MISSING',
+  DAMAGE = 'DAMAGE',
+  OTHER = 'OTHER',
+}
 
 export enum DocumentType {
   GST_CERTIFICATE = 'GST_CERTIFICATE',
   PAN_CERTIFICATE = 'PAN_CERTIFICATE',
   CANCELLED_CHEQUE = 'CANCELLED_CHEQUE',
-  BANK_LETTER = 'BANK_LETTER',                 // ✅ Added
-  BUSINESS_LICENSE = 'BUSINESS_LICENSE',       // ✅ Added
+  BANK_LETTER = 'BANK_LETTER',
+  BUSINESS_LICENSE = 'BUSINESS_LICENSE',
   FACTORY_LICENSE = 'FACTORY_LICENSE',
-  INCORPORATION_CERT = 'INCORPORATION_CERT',   // ✅ Added
-  QA_CERTIFICATE = 'QA_CERTIFICATE',           // ✅ Added
-  COMPANY_PAN = 'COMPANY_PAN',                 // ✅ Added
+  INCORPORATION_CERT = 'INCORPORATION_CERT',
+  QA_CERTIFICATE = 'QA_CERTIFICATE',
+  COMPANY_PAN = 'COMPANY_PAN',
+  LORRY_RECEIPT = 'LORRY_RECEIPT',
+  WEIGHBRIDGE_SLIP = 'WEIGHBRIDGE_SLIP',
+  E_WAY_BILL = 'E_WAY_BILL',
+  POD = 'POD',
 }

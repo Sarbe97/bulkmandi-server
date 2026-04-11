@@ -11,6 +11,7 @@ import { OrdersModule } from '../orders/orders.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { MasterDataModule } from '../master-data/master-data.module';
 import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { UsersModule } from '../users/users.module';
     AuthModule,
     AuditModule,
     UsersModule,
+    NotificationsModule,
   ],
 
   providers: [QuotesService],

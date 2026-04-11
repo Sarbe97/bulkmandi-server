@@ -10,6 +10,8 @@ import { Payment, PaymentDocument } from './schemas/payment.schema';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ReportsService } from '../reports/reports.service';
 import { ShipmentsService } from '../shipments/shipments.service';
+import { OrganizationsService } from '../organizations/organizations.service';
+import { IdGeneratorService } from 'src/common/services/id-generator.service';
 import { Inject, forwardRef } from '@nestjs/common';
 import { AuditAction, AuditModule, AuditEntityType, LogisticsPreference } from 'src/common/constants/app.constants';
 import { OrderStatus } from 'src/common/enums';
@@ -22,6 +24,8 @@ export class PaymentsService {
     private readonly auditService: AuditService,
     private readonly notificationsService: NotificationsService,
     private readonly reportsService: ReportsService,
+    private readonly orgService: OrganizationsService,
+    private readonly idGenerator: IdGeneratorService,
     @Inject(forwardRef(() => ShipmentsService)) private readonly shipmentsService: ShipmentsService,
     private readonly logger: CustomLoggerService,
   ) {}
@@ -38,8 +42,22 @@ export class PaymentsService {
 
     // If existing exists but is REJECTED/CANCELLED, we can proceed to create a new one (or we could update, but create new with fresh ID is cleaner for tracking)
 
-    const paymentId = `PAY-${Date.now()}`;
+    const buyerOrg = await this.orgService.getOrganization(orgId);
+    const paymentId = this.idGenerator.generateBusinessId('PAY', buyerOrg?.orgCode);
     const isAutoVerify = dto.paymentMethod === 'UPI' || dto.paymentMethod === 'NETBANKING';
+
+    // ✅ Dynamic Stage Calculation based on Payment Terms
+    const terms = order.paymentTerms || '80/20 Escrow (Loading/POD)';
+    let s1p = 80;
+    let s2p = 20;
+
+    if (terms === '100% Escrow (Full Advance)') {
+      s1p = 100;
+      s2p = 0;
+    } else if (terms === '50/50 Escrow (Advance/Loading)') {
+      s1p = 50;
+      s2p = 50;
+    }
 
     const payment = new this.paymentModel({
       paymentId,
@@ -49,11 +67,10 @@ export class PaymentsService {
       paymentMethod: dto.paymentMethod,
       escrowHoldAmount: order.pricing.grandTotal,
       escrowHoldStatus: 'ACTIVE',
-      // Staged escrow: 80% on LR, 20% on delivery acceptance
-      escrowStage1Percent: 80,
-      escrowStage2Percent: 20,
-      escrowStage1Amount: Math.round(order.pricing.grandTotal * 0.80),
-      escrowStage2Amount: Math.round(order.pricing.grandTotal * 0.20),
+      escrowStage1Percent: s1p,
+      escrowStage2Percent: s2p,
+      escrowStage1Amount: Math.round(order.pricing.grandTotal * (s1p / 100)),
+      escrowStage2Amount: Math.round(order.pricing.grandTotal * (s2p / 100)),
       escrowStage1Status: 'PENDING',
       escrowStage2Status: 'PENDING',
       payerId: orgId,
@@ -61,7 +78,7 @@ export class PaymentsService {
       statusTimeline: [{ status: 'INITIATED', timestamp: new Date() }, { status: 'PENDING_VERIFICATION', timestamp: new Date() }],
       initiatedAt: new Date(),
       ...(isAutoVerify && {
-        utr: `AUTO-${Date.now()}`,
+        utr: this.idGenerator.generateBusinessId('AUTO'),
         bankVerificationMethod: 'GATEWAY',
       }),
     });
@@ -85,7 +102,7 @@ export class PaymentsService {
     order.payment = {
       paymentId: savedPayment.paymentId,
       paymentMethod: dto.paymentMethod,
-      utr: isAutoVerify ? `AUTO-${Date.now()}` : undefined,
+      utr: isAutoVerify ? savedPayment.utr : undefined,
       escrowHolds: order.pricing.grandTotal,
       escrowReleased: false,
     };
@@ -131,14 +148,20 @@ export class PaymentsService {
       order.payment.escrowHolds = payment.escrowHoldAmount;
       await order.save();
 
-      // ✅ Trigger Shipment RFQ if Platform Managed
-      if (order.logisticsPreference === LogisticsPreference.PLATFORM_3PL) {
+      // ✅ BUSINESS LOGIC: If term is '50/50 Escrow (Advance/Loading)', release Stage 1 (50%) IMMEDIATELY
+      if (order.paymentTerms === '50/50 Escrow (Advance/Loading)') {
         try {
-          await this.shipmentsService.createShipmentRfq(order._id.toString());
-        } catch (rfqErr) {
-          this.logger.error(`Failed to create Shipment RFQ for order ${order.orderId}: ${rfqErr.message}`);
+          await this.releaseStage1(order._id.toString());
+          this.logger.log(`Auto-released Stage 1 Advance for Order ${order.orderId} (50/50 Term)`);
+        } catch (err) {
+          this.logger.error(`Failed to auto-release Advance for 50/50 term: ${err.message}`);
         }
       }
+
+      // 🚫 DO NOT trigger ShipmentRFQ here. Payment verified ≠ goods ready.
+      //    The Seller must explicitly click "Notify Material Ready" first.
+      // ✅ ShipmentRFQ is created in: orders.service.ts → markDispatchReady() → createShipmentRfq()
+      //    This ensures the Load Board is only populated AFTER the Seller confirms material readiness.
     }
 
     this.auditService.log({
@@ -152,46 +175,45 @@ export class PaymentsService {
       description: `Payment ${payment.paymentId} manually verified by Admin ${adminId}`,
     });
 
-    // ✅ Notify Buyer & Seller
+    // ✅ Notify Buyer & Seller using NEW branded template
     try {
-      // 1. Notify Seller: Order is PAID, please dispatch
-      await this.notificationsService.notify(
+      const { buffer, filename } = await this.reportsService.generateProformaInvoice(order.orderId);
+
+      // 1. Notify Seller
+      const sellerUsers = await this.notificationsService.notify(
         order.sellerId.toString(),
-        "🚀 Order Ready for Dispatch",
-        `Payment for Order ${order.orderId} has been verified. You can now proceed with dispatch preparations.`,
+        "🚀 Payment Secured - Ready for Dispatch",
+        `Payment for Order #${order.orderId} is now in Escrow.`,
         {
-          template: "order-status",
+          template: "payment-received",
           data: {
+            userName: "Seller Account", // notificationsService will overwrite with real name if userId found
             orderId: order.orderId,
-            status: "PAID - READY FOR DISPATCH",
-            type: "ORDER UPDATE",
-            orderUrl: `${process.env.FRONTEND_URL}/seller/orders/${order._id}`,
+            amount: payment.escrowHoldAmount.toLocaleString('en-IN'),
+            orderUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/seller/orders/${order._id}`,
           },
-          category: AuditModule.ORDER,
+          category: AuditModule.PAYMENT,
         }
       );
 
-      // 2. Notify Buyer: Payment Verified + Attach Proforma Invoice
-      const { buffer, filename } = await this.reportsService.generateProformaInvoice(order.orderId);
-      
+      // 2. Notify Buyer
       await this.notificationsService.notify(
         order.buyerId.toString(),
-        "✅ Payment Verified",
-        `Your payment for Order ${order.orderId} has been successfully verified. The order is now being processed for dispatch.`,
+        "✅ Payment Verified & Secured",
+        `Your payment for Order #${order.orderId} has been successfully verified and is now held in BulkMandi Escrow.`,
         {
-          template: "order-status",
+          template: "payment-received",
           data: {
             orderId: order.orderId,
-            status: "PAID",
-            type: "PAYMENT VERIFIED",
-            orderUrl: `${process.env.FRONTEND_URL}/buyer/orders/${order._id}`,
+            amount: payment.escrowHoldAmount.toLocaleString('en-IN'),
+            orderUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/buyer/orders/${order._id}`,
           },
           attachments: [{ filename, content: buffer, contentType: 'application/pdf' }],
           category: AuditModule.PAYMENT,
         }
       );
     } catch (notifyErr) {
-      this.logger.error(`Failed to dispatch payment verification notifications: ${notifyErr.message}`);
+      this.logger.error(`Failed to dispatch branded payment verification notifications: ${notifyErr.message}`);
     }
 
     return payment;
@@ -210,9 +232,32 @@ export class PaymentsService {
 
     const order = await this.orderModel.findById(payment.orderId);
     if (order) {
-      order.status = 'REJECTED'; // Keeping REJECTED for now as it's common
+      // ✅ Revert to PAYMENT_PENDING so the buyer can re-submit with correct details
+      order.status = OrderStatus.PAYMENT_PENDING;
       order.payment.utr = undefined;
       await order.save();
+
+      // ✅ Notify Buyer about the rejection (inside the if-guard to prevent null refs)
+      try {
+        await this.notificationsService.notify(
+          order.buyerId.toString(),
+          "⚠️ Payment Rejected — Action Required",
+          `Your payment for Order ${order.orderId} was rejected. Please re-submit with correct details.`,
+          {
+            template: "order-status",
+            data: {
+              orderId: order.orderId,
+              status: "PAYMENT REJECTED",
+              type: "PAYMENT ALERT",
+              remarks: `${reason}. Please review and re-submit your payment.`,
+              orderUrl: `${process.env.FRONTEND_URL}/buyer/orders/${order._id}`,
+            },
+            category: AuditModule.PAYMENT,
+          }
+        );
+      } catch (notifyErr) {
+        this.logger.error(`Failed to dispatch payment rejection notifications: ${notifyErr.message}`);
+      }
     }
 
     this.auditService.log({
@@ -223,30 +268,8 @@ export class PaymentsService {
       entityIdStr: payment.paymentId,
       actorId: adminId,
       afterState: { status: 'REJECTED', orderId: payment.orderId, reason },
-      description: `Payment ${payment.paymentId} rejected by Admin ${adminId}. Reason: ${reason}`,
+      description: `Payment ${payment.paymentId} rejected by Admin ${adminId}. Order reverted to PAYMENT_PENDING. Reason: ${reason}`,
     });
-
-    // ✅ Notify Buyer about the rejection
-    try {
-      await this.notificationsService.notify(
-        order.buyerId.toString(),
-        "⚠️ Payment Rejected",
-        `Your payment for Order ${order.orderId} was rejected by the administrator.`,
-        {
-          template: "order-status",
-          data: {
-            orderId: order.orderId,
-            status: "PAYMENT REJECTED",
-            type: "PAYMENT ALERT",
-            remarks: reason,
-            orderUrl: `${process.env.FRONTEND_URL}/buyer/orders/${order._id}`,
-          },
-          category: AuditModule.PAYMENT,
-        }
-      );
-    } catch (notifyErr) {
-      this.logger.error(`Failed to dispatch payment rejection notifications: ${notifyErr.message}`);
-    }
 
     return payment;
   }
@@ -313,7 +336,7 @@ export class PaymentsService {
       entityIdStr: payment.paymentId,
       actorType: 'SYSTEM',
       afterState: { escrowStage1Status: 'RELEASED', amount: payment.escrowStage1Amount, orderId },
-      description: `Escrow Stage 1 (80%) released for Order ${orderId} on LR upload`,
+      description: `Escrow Stage 1 (${payment.escrowStage1Percent}%) released to seller for Order ${orderId}`,
     });
 
     // Update order's escrow info
@@ -350,7 +373,7 @@ export class PaymentsService {
       entityIdStr: payment.paymentId,
       actorType: 'SYSTEM',
       afterState: { escrowStage2Status: 'RELEASED', amount: payment.escrowStage2Amount, orderId },
-      description: `Escrow Stage 2 (20%) fully released for Order ${orderId} — buyer accepted delivery`,
+      description: `Escrow Stage 2 (${payment.escrowStage2Percent}%) fully released for Order ${orderId}`,
     });
 
     // Update order's escrow info
@@ -384,7 +407,7 @@ export class PaymentsService {
       entityIdStr: saved.paymentId,
       actorType: 'SYSTEM',
       afterState: { escrowStage2Status: 'DISPUTED', amount: saved.escrowStage2Amount, orderId },
-      description: `Escrow Stage 2 (20%) held pending dispute resolution for Order ${orderId}`,
+      description: `Escrow Stage 2 (${saved.escrowStage2Percent}%) held pending dispute resolution for Order ${orderId}`,
       severity: 'WARNING',
     });
 

@@ -8,6 +8,7 @@ import { QuotesModule } from '../quotes/quotes.module';
 import { AuditModule } from '../audit/audit.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { RfqModule } from '../rfq/rfq.module';
+import { UsersModule } from '../users/users.module';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { Order, OrderSchema } from './schemas/order.schema';
@@ -25,6 +26,7 @@ import { Order, OrderSchema } from './schemas/order.schema';
     OrganizationsModule,
     AuditModule,
     NotificationsModule,
+    UsersModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

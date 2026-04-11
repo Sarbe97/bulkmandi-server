@@ -8,6 +8,8 @@ import { User, UserDocument } from "@modules/users/schemas/user.schema";
 import { IdGeneratorService } from "src/common/services/id-generator.service";
 import { UserOrgKycDto } from "../../dto";
 
+import { KYCStatus } from "src/common/constants/app.constants";
+
 @Injectable()
 export class OrgKycStepService {
     constructor(
@@ -36,7 +38,7 @@ export class OrgKycStepService {
                     role: userRole,
                     completedSteps: [],
                     isOnboardingLocked: false,
-                    kycStatus: "DRAFT",
+                    kycStatus: KYCStatus.DRAFT,
                     status: "Active",
                 });
 
@@ -63,7 +65,7 @@ export class OrgKycStepService {
                 const existingName = await this.orgModel.findOne({
                     legalName: new RegExp(`^${dto.legalName.trim()}$`, 'i'),
                     _id: { $ne: org._id },
-                    kycStatus: { $in: ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'INFO_REQUESTED'] },
+                    kycStatus: { $in: [KYCStatus.DRAFT, KYCStatus.SUBMITTED, KYCStatus.APPROVED, KYCStatus.REJECTED, KYCStatus.INFO_REQUESTED] },
                 });
                 if (existingName) {
                     throw new ConflictException(`An organization with the name "${dto.legalName}" already exists in the system.`);

@@ -10,6 +10,8 @@ import { ShipmentBid, ShipmentBidSchema } from './schemas/shipment-bid.schema';
 import { SellerPreference, SellerPreferenceSchema } from '../preferences/schemas/seller-preference.schema';
 import { ShipmentsController } from './shipments.controller';
 import { ShipmentsService } from './shipments.service';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { ShipmentsService } from './shipments.service';
     OrganizationsModule,
     forwardRef(() => PaymentsModule),
     AuditModule,
+    NotificationsModule,
+    UsersModule,
   ],
   controllers: [ShipmentsController],
   providers: [ShipmentsService],

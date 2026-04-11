@@ -1,0 +1,28 @@
+<div class="status-header">
+    <div class="tag" style="background: #eff6ff; color: #1e40af;">ACTION REQUIRED</div>
+    <h1>Verify Delivery</h1>
+    <p>The shipment for Order #{{orderId}} has reached its destination.</p>
+</div>
+
+<div class="highlight-box">
+    <div class="info-row">
+        <div class="info-label">Order Number</div>
+        <div class="info-value">#{{orderId}}</div>
+    </div>
+    <div class="info-row">
+        <div class="info-label">Vehicle No</div>
+        <div class="info-value">{{vehicleNumber}}</div>
+    </div>
+</div>
+
+<p>
+    Please inspect the material and <strong>Accept Delivery</strong> on the BulkMandi platform. This action is required to release the final escrow payout to the seller.
+</p>
+
+<p style="font-size: 11px; font-style: italic; margin-top: 10px; color: #94a3b8;">
+    Note: If you do not take action within 48 hours, the system may automatically process the settlement.
+</p>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{ctaUrl}}" class="btn">Accept Delivery Now</a>
+</div>

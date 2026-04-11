@@ -1,0 +1,27 @@
+<div class="status-header">
+    <div class="tag" style="background: #f0fdf4; color: #166534;">COMPLETED</div>
+    <h1>Deal Settled Successfully</h1>
+    <p>Order #{{orderId}} has been marked as COMPLETED.</p>
+</div>
+
+<div class="highlight-box">
+    <p style="color: #475569; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+        All lifecycle milestones for this trade are finished. The final payout has been released, and the transaction is now closed.
+    </p>
+    <div class="info-row">
+        <div class="info-label">Order Number</div>
+        <div class="info-value">#{{orderId}}</div>
+    </div>
+    <div class="info-row">
+        <div class="info-label">Total Trade Value</div>
+        <div class="info-value">₹{{grandTotal}}</div>
+    </div>
+</div>
+
+<p style="color: #64748b; font-size: 11px; text-align: center;">
+    Thank you for trading through BulkMandi. We hope to serve you again soon!
+</p>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{ctaUrl}}" class="btn">View Order History</a>
+</div>

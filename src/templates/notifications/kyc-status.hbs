@@ -1,0 +1,31 @@
+<div class="status-header">
+    <div class="tag">{{type}}</div>
+    <h1>KYC Verification Update</h1>
+    <p>Important update regarding your organization's KYC status on BulkMandi.</p>
+</div>
+
+<div class="highlight-box">
+    <div class="info-row">
+        <div class="info-label">Verification Status</div>
+        <div class="info-value" style="color: #2563eb;">{{status}}</div>
+    </div>
+    {{#if remarks}}
+    <div class="divider"></div>
+    <div class="info-row">
+        <div class="info-label">Remarks from Admin</div>
+        <div style="font-size: 13px; color: #64748b; margin-top: 4px;">{{remarks}}</div>
+    </div>
+    {{/if}}
+</div>
+
+<p>
+    You can now log in to your dashboard to see the latest updates and proceed with your trade transactions.
+</p>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{dashboardUrl}}" class="btn">View My Dashboard</a>
+</div>
+
+<p style="margin-top: 32px; font-size: 13px; color: #94a3b8; text-align: center;">
+    If you have any questions, please contact our support team.
+</p>

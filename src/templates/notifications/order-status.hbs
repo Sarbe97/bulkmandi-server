@@ -1,0 +1,28 @@
+<div class="status-header">
+    <div class="tag">{{type}}</div>
+    <h1>Order Status Update</h1>
+    <p>Hello <strong>{{userName}}</strong>, the status of your order has been updated.</p>
+</div>
+
+<div class="highlight-box">
+    <div class="info-row">
+        <div class="info-label">Order Reference</div>
+        <div class="info-value">Order #{{orderId}}</div>
+    </div>
+    <div class="info-row">
+        <div class="info-label">New Status</div>
+        <div class="info-value" style="color: #2563eb;">{{status}}</div>
+    </div>
+</div>
+
+<p>
+    You can view the full details of this order in your dashboard, including current status timeline and attached documents.
+</p>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{orderUrl}}" class="btn">View Order Details</a>
+</div>
+
+<p style="margin-top: 32px; font-size: 13px; color: #94a3b8; text-align: center;">
+    Thank you for using BulkMandi for your transactions.
+</p>

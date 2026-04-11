@@ -5,17 +5,31 @@ import { Model } from 'mongoose';
 import { RaiseDisputeDto } from './dto/raise-dispute.dto';
 import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
 import { Dispute, DisputeDocument } from './schemas/dispute.schema';
+import { OrganizationsService } from '../organizations/organizations.service';
+import { IdGeneratorService } from 'src/common/services/id-generator.service';
 
 @Injectable()
 export class DisputesService {
   constructor(
     @InjectModel(Dispute.name) private disputeModel: Model<DisputeDocument>,
+    private readonly orgService: OrganizationsService,
+    private readonly idGenerator: IdGeneratorService,
     private readonly logger: CustomLoggerService,
   ) {}
 
   async raise(orgId: string, dto: RaiseDisputeDto) {
     this.logger.log(`Raising dispute for order: ${dto.orderId} by org: ${orgId}`);
-    const disputeId = `DSP-${Date.now()}`;
+    
+    // FETCH CLAIMANT ORG CODE
+    let orgCode: string | undefined;
+    try {
+      const org = await this.orgService.getOrganization(orgId);
+      orgCode = org.orgCode;
+    } catch {
+      this.logger.warn(`Could not fetch org code for claimant ${orgId}`);
+    }
+
+    const disputeId = this.idGenerator.generateBusinessId('DSP', orgCode);
     const dispute = new this.disputeModel({
       ...dto,
       claimantId: orgId,
@@ -39,7 +53,7 @@ export class DisputesService {
   async uploadEvidence(id: string, body: { evidenceType: string; fileUrl: string; description: string }, userId: string) {
     const dispute = await this.disputeModel.findById(id);
     if (!dispute) throw new NotFoundException('Dispute not found');
-    dispute.evidence.push({ ...body, evidenceId: `EVI-${Date.now()}`, uploadedAt: new Date(), uploadedBy: userId });
+    dispute.evidence.push({ ...body, evidenceId: this.idGenerator.generateBusinessId('EVI'), uploadedAt: new Date(), uploadedBy: userId });
     return dispute.save();
   }
 

@@ -5,12 +5,14 @@ import { AuditService } from './audit.service';
 import { ActivityTransformService } from './services/activity-transform.service';
 import { AuditLog, AuditLogSchema } from './schemas/audit-log.schema';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { OrganizationsModule } from '../organizations/organizations.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: AuditLog.name, schema: AuditLogSchema },
     ]),
+    OrganizationsModule,
     forwardRef(() => NotificationsModule),
   ],
   controllers: [AuditController],

@@ -8,6 +8,9 @@ import { Rfq, RfqDocument } from './schemas/rfq.schema';
 import { RfqStatus } from 'src/common/enums';
 import { AuditAction, AuditModule, AuditEntityType, LogisticsPreference } from 'src/common/constants/app.constants';
 import { UsersService } from '../users/services/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { IdGeneratorService } from 'src/common/services/id-generator.service';
+import { OrganizationsService } from '../organizations/organizations.service';
 
 @Injectable()
 export class RfqService {
@@ -16,12 +19,18 @@ export class RfqService {
     private rfqModel: Model<RfqDocument>,
     private readonly auditService: AuditService,
     private readonly usersService: UsersService,
+    private readonly notificationsService: NotificationsService,
+    private readonly idGenerator: IdGeneratorService,
+    private readonly organizationsService: OrganizationsService,
     private readonly logger: CustomLoggerService,
   ) {}
 
   async create(userId: string, orgId: string, dto: CreateRfqDto) {
     this.logger.log(`Creating new RFQ for org: ${orgId} by user: ${userId}`);
-    const rfqId = `RFQ-${Date.now()}`;
+    
+    // FETCH ORG CODE FOR BUSINESS ID
+    const org = await this.organizationsService.getOrganization(orgId);
+    const rfqId = this.idGenerator.generateBusinessId('RFQ', org?.orgCode);
     const rfq = new this.rfqModel({
       rfqId,
       buyerId: orgId,
@@ -42,6 +51,7 @@ export class RfqService {
       logisticsPreference: dto.logisticsPreference || LogisticsPreference.PLATFORM_3PL,
       notes: dto.notes,
       status: dto.status || RfqStatus.OPEN,
+      publishedAt: (dto.status || RfqStatus.OPEN) === RfqStatus.OPEN ? new Date() : null,
       createdBy: new Types.ObjectId(userId),
     });
     const saved = await rfq.save();
@@ -62,6 +72,27 @@ export class RfqService {
       targetUserIds: verifiedSellers.map(s => s._id as any),
       description: `RFQ ${saved.rfqId} created by org ${orgId}${saved.status === RfqStatus.OPEN ? ' and published to sellers' : ''}`,
     });
+
+    if (saved.status === RfqStatus.OPEN) {
+      for (const seller of verifiedSellers) {
+        await this.notificationsService.notify(
+          (seller as any)._id.toString(),
+          'New RFQ Opportunity',
+          `A new RFQ for ${saved.product.category} is now open for bidding.`,
+          {
+            template: 'rfq-created',
+            data: {
+              category: saved.product.category,
+              grade: saved.product.grade,
+              quantity: saved.quantityMT,
+              targetPin: saved.targetPin,
+              incoterm: saved.incoterm,
+              rfqUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/seller/rfqs/${saved.rfqId}`,
+            }
+          }
+        ).catch(e => this.logger.error(`Failed to notify seller ${seller._id}: ${e.message}`));
+      }
+    }
 
     return saved;
   }
@@ -94,6 +125,25 @@ export class RfqService {
       targetUserIds: verifiedSellers.map(s => s._id as any),
     });
 
+    for (const seller of verifiedSellers) {
+      await this.notificationsService.notify(
+        (seller as any)._id.toString(),
+        'New RFQ Opportunity',
+        `A new RFQ for ${saved.product.category} is now open for bidding.`,
+        {
+          template: 'rfq-created',
+          data: {
+            category: saved.product.category,
+            grade: saved.product.grade,
+            quantity: saved.quantityMT,
+            targetPin: saved.targetPin,
+            incoterm: saved.incoterm,
+            rfqUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/seller/rfqs/${saved.rfqId}`,
+          }
+        }
+      ).catch(e => this.logger.error(`Failed to notify seller ${seller._id}: ${e.message}`));
+    }
+
     return saved;
   }
 
@@ -103,7 +153,10 @@ export class RfqService {
   }
 
   async findOpenRFQs(filters: Record<string, any> = {}, page = 1, limit = 20) {
-    return this.rfqModel.find({ status: RfqStatus.OPEN, ...filters }).skip((page - 1) * limit).limit(limit).sort({ publishedAt: -1 });
+    return this.rfqModel.find({ status: RfqStatus.OPEN, ...filters })
+      .sort({ publishedAt: -1, createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
   }
 
   async findAll(filters: Record<string, any> = {}, page = 1, limit = 20) {

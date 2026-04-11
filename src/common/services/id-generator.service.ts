@@ -30,8 +30,8 @@ export class IdGeneratorService {
      */
     /**
      * Generate unique organization code
-     * Format: {NAME_PREFIX}-{RANDOM_4_DIGIT}
-     * Example: ABCS-1234
+     * Format: {NAME_PREFIX}{RANDOM_4_DIGIT}
+     * Example: ABCS1234
      */
     async generateOrgCode(legalName: string): Promise<string> {
         // Sanitize: A-Z only, Uppercase
@@ -46,7 +46,7 @@ export class IdGeneratorService {
         let retries = 0;
         while (retries < 10) {
             const suffix = Math.floor(1000 + Math.random() * 9000); // 1000-9999
-            const orgCode = `${prefix}-${suffix}`;
+            const orgCode = `${prefix}${suffix}`;
 
             const exists = await this.orgModel.exists({ orgCode });
             if (!exists) {
@@ -55,7 +55,7 @@ export class IdGeneratorService {
             retries++;
         }
         // Fallback to timestamp to guarantee uniqueness
-        return `${prefix}-${Date.now().toString().slice(-6)}`;
+        return `${prefix}${Date.now().toString().slice(-6)}`;
     }
 
     /**
@@ -90,5 +90,25 @@ export class IdGeneratorService {
             organizationCode: match[1],
             attempt: parseInt(match[2], 10),
         };
+    }
+
+    /**
+     * Generate a business-friendly ID
+     * Format: {PREFIX}-{ORG_CODE}-{YYMMDD}-{RANDOM}
+     * Example: RFQ-GLOB-260412-RHTQ
+     */
+    generateBusinessId(prefix: string, orgCode?: string): string {
+        const date = new Date();
+        const yy = date.getFullYear().toString().slice(-2);
+        const mm = (date.getMonth() + 1).toString().padStart(2, '0');
+        const dd = date.getDate().toString().padStart(2, '0');
+        const dateStr = `${yy}${mm}${dd}`;
+
+        const alphaPart = Math.random().toString(36).substring(2, 6).toUpperCase(); // 4 chars
+
+        if (orgCode) {
+            return `${prefix.toUpperCase()}-${orgCode.toUpperCase()}-${dateStr}-${alphaPart}`;
+        }
+        return `${prefix.toUpperCase()}-${dateStr}-${alphaPart}`;
     }
 }

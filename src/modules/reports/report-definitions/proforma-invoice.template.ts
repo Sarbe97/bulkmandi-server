@@ -37,7 +37,7 @@ export class ProformaInvoiceTemplate implements ReportTemplate {
     // Load logo as base64
     let logoBase64 = '';
     try {
-      const logoPath = path.join(process.cwd(), 'assets/logo.png');
+      const logoPath = path.join(process.cwd(), 'assets/bm-logo.png');
       if (fs.existsSync(logoPath)) {
         const logoData = fs.readFileSync(logoPath);
         logoBase64 = `data:image/png;base64,${logoData.toString('base64')}`;
@@ -93,6 +93,20 @@ export class ProformaInvoiceTemplate implements ReportTemplate {
       // Logistics
       incoterm: o.incoterm || 'DAP',
       deliveryPin: o.deliveryPin || 'N/A',
+
+      // Payment Terms
+      paymentTerms: o.paymentTerms || 'Standard (80/20)',
+      payoutRemark: (() => {
+        const terms = o.paymentTerms;
+        if (terms === '100% Escrow (Full Advance)') {
+          return 'Escrow release to seller: 100% released immediately upon dispatch confirmation.';
+        }
+        if (terms === '50/50 Escrow (Advance/Loading)') {
+          return 'Escrow release to seller: 50% mobilization advance on payment receipt, 50% on dispatch.';
+        }
+        // Default (80/20)
+        return 'Escrow release to seller follows the 80/20 rule (80% on dispatch, 20% on delivery acceptance).';
+      })(),
 
       // Escrow Details
       escrow: {

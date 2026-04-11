@@ -1,0 +1,29 @@
+<div class="tag">In Transit</div>
+<h2>Your Goods are on the Way!</h2>
+<p>Hello <strong>{{userName}}</strong>,</p>
+<p>The material for <strong>Order #{{orderId}}</strong> has been dispatched and is currently in transit to your location.</p>
+
+<div style="background-color: #f8fafc; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 24px 0;">
+    <div style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">Delivery Details</div>
+    <div style="font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">{{quantity}} MT - {{productName}}</div>
+    <div style="font-size: 13px; color: #64748b;">Vehicle: {{vehicleNumber}}</div>
+    <div class="divider"></div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div>
+            <div style="font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">LR Number</div>
+            <div style="font-size: 12px; font-weight: 700;">{{lrNumber}}</div>
+        </div>
+        <div>
+            <div style="font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Estimated TAT</div>
+            <div style="font-size: 12px; font-weight: 700;">{{eta}}</div>
+        </div>
+    </div>
+</div>
+
+<p>You can track the live location of the shipment and download the dispatch documents from your dashboard.</p>
+
+<div style="text-align: center;">
+    <a href="{{trackingUrl}}" class="btn">Track Shipment</a>
+</div>
+
+<p style="margin-top: 32px; font-size: 13px; color: #64748b;">Remember to mark the shipment as "Delivered" once you receive and verify the material to release the final payment.</p>

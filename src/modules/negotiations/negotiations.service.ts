@@ -16,6 +16,7 @@ import { CreateNegotiationDto } from './dto/create-negotiation.dto';
 import { RespondNegotiationDto } from './dto/respond-negotiation.dto';
 import { AuditAction, AuditModule, AuditEntityType } from 'src/common/constants/app.constants';
 import { QuoteStatus, RfqStatus } from 'src/common/enums';
+import { IdGeneratorService } from 'src/common/services/id-generator.service';
 
 export enum NegotiationStatus {
   BUYER_COUNTERED = 'BUYER_COUNTERED',
@@ -33,6 +34,7 @@ export class NegotiationsService {
     @InjectModel(Rfq.name) private rfqModel: Model<RfqDocument>,
     private readonly orgService: OrganizationsService,
     private readonly auditService: AuditService,
+    private readonly idGenerator: IdGeneratorService,
     private readonly logger: CustomLoggerService,
   ) {}
 
@@ -66,12 +68,14 @@ export class NegotiationsService {
 
     // Resolve org names
     let buyerOrgName = 'Unknown Buyer';
+    let orgCode: string | undefined;
     try {
       const buyerOrg = await this.orgService.getOrganization(buyerOrgId);
       buyerOrgName = buyerOrg.legalName || buyerOrgName;
+      orgCode = buyerOrg.orgCode;
     } catch {}
 
-    const negotiationId = `NEG-${Date.now()}`;
+    const negotiationId = this.idGenerator.generateBusinessId('NEG', orgCode);
 
     const negotiation = new this.negotiationModel({
       negotiationId,

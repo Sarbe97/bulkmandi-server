@@ -20,7 +20,7 @@ export class CustomLoggerService implements LoggerService {
     maxSize: '20m',
     maxFiles: '14d',
   };
- 
+
   constructor(
     private readonly config: ConfigService,
     @InjectModel(Log.name) private readonly logModel: Model<Log>,
@@ -34,7 +34,7 @@ export class CustomLoggerService implements LoggerService {
     const silent = this.config.get<boolean>('LOG_SILENT', false);
 
     return createLogger({
-      level: logLevel, //'debug',
+      level: 'debug', //logLevel
       silent,
       format: format.combine(
         format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
@@ -90,11 +90,11 @@ export class CustomLoggerService implements LoggerService {
       write: async (log: string, _: string, callback: Function) => {
         try {
           const logObj = JSON.parse(log);
-          
+
           // Ensure mandatory string fields are actually strings to avoid Mongoose validation errors
           const level = typeof logObj.level === 'string' ? logObj.level : String(logObj.level || 'info');
-          const message = typeof logObj.message === 'string' 
-            ? logObj.message 
+          const message = typeof logObj.message === 'string'
+            ? logObj.message
             : (logObj.message && typeof logObj.message === 'object') ? JSON.stringify(logObj.message) : String(logObj.message || '');
           const context = typeof logObj.context === 'string' ? logObj.context : JSON.stringify(logObj.context || 'General');
 

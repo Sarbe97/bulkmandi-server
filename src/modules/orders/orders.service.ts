@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
+import { UsersService } from '../users/services/users.service';
 import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -13,6 +14,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { OrderStatus, ShipmentRfqStatus } from 'src/common/enums';
 import { AuditAction, AuditModule, AuditEntityType, LogisticsPreference } from 'src/common/constants/app.constants';
 import { ShipmentsService } from '../shipments/shipments.service';
+import { IdGeneratorService } from 'src/common/services/id-generator.service';
 
 @Injectable()
 export class OrdersService {
@@ -25,12 +27,24 @@ export class OrdersService {
     @Inject(forwardRef(() => ShipmentsService)) private readonly shipmentService: ShipmentsService,
     private readonly auditService: AuditService,
     private readonly notificationsService: NotificationsService,
+    private readonly usersService: UsersService,
+    private readonly idGenerator: IdGeneratorService,
     private readonly logger: CustomLoggerService,
   ) {}
 
   async create(dto: CreateOrderDto) {
     this.logger.log('Creating new order manually');
-    const orderId = `ORD-${Date.now()}`;
+    
+    // FETCH BUYER ORG CODE
+    let orgCode: string | undefined;
+    try {
+      const org = await this.orgService.getOrganization(dto.buyerId);
+      orgCode = org.orgCode;
+    } catch {
+      this.logger.warn(`Could not fetch org code for buyer ${dto.buyerId}`);
+    }
+
+    const orderId = this.idGenerator.generateBusinessId('ORD', orgCode);
     const order = new this.orderModel({ ...dto, orderId, createdAt: new Date(), status: OrderStatus.PI_ISSUED });
     const saved = await order.save();
 
@@ -55,7 +69,7 @@ export class OrdersService {
     const deliveryDate = new Date();
     deliveryDate.setDate(deliveryDate.getDate() + (quote.leadDays || 7));
 
-    const orderId = `ORD-${Date.now()}`;
+    const orderId = this.idGenerator.generateBusinessId('ORD', buyerOrg?.orgCode);
 
     const specs = [
       rfq.product?.subCategory ? `Sub: ${rfq.product.subCategory}` : '',
@@ -124,6 +138,7 @@ export class OrdersService {
         currency: quote.currency || 'INR' 
       },
       incoterm: rfq.incoterm,
+      paymentTerms: quote.paymentTerms || '80/20 Escrow (Loading/POD)',
       deliveryPin: rfq.targetPin,
       pickupPin: quote.sellerPlantPin,
       deliveryCity: 'N/A',
@@ -156,25 +171,44 @@ export class OrdersService {
   }
 
   async findByBuyerId(buyerId: string, filter = {}, page = 1, limit = 20) {
-    return this.orderModel.find({ buyerId: new Types.ObjectId(buyerId), ...filter }).skip((page - 1) * limit).limit(limit).sort({ createdAt: -1 });
+    return this.orderModel.find({ buyerId: new Types.ObjectId(buyerId), ...filter })
+      .populate('buyerOrganization')
+      .populate('sellerOrganization')
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
   }
 
   async findBySellerId(sellerId: string, filter = {}, page = 1, limit = 20) {
-    return this.orderModel.find({ sellerId: new Types.ObjectId(sellerId), ...filter }).skip((page - 1) * limit).limit(limit).sort({ createdAt: -1 });
+    return this.orderModel.find({ sellerId: new Types.ObjectId(sellerId), ...filter })
+      .populate('buyerOrganization')
+      .populate('sellerOrganization')
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
   }
 
   async findAll(filter = {}, page = 1, limit = 50) {
-    return this.orderModel.find(filter).skip((page - 1) * limit).limit(limit).sort({ createdAt: -1 });
+    return this.orderModel.find(filter)
+      .populate('buyerOrganization')
+      .populate('sellerOrganization')
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 });
   }
 
   async findByIdOrFail(id: string) {
-    const order = await this.orderModel.findById(id);
+    const order = await this.orderModel.findById(id)
+      .populate('buyerOrganization')
+      .populate('sellerOrganization');
     if (!order) throw new NotFoundException('Order not found');
     return order;
   }
 
   async findByOrderIdOrFail(orderId: string) {
-    const order = await this.orderModel.findOne({ orderId });
+    const order = await this.orderModel.findOne({ orderId })
+      .populate('buyerOrganization')
+      .populate('sellerOrganization');
     if (!order) throw new NotFoundException(`Order ${orderId} not found`);
     return order;
   }
@@ -203,9 +237,19 @@ export class OrdersService {
     const order = await this.orderModel.findById(id);
     if (!order || order.sellerId.toString() !== sellerId) throw new NotFoundException('Order not found');
 
+    // ✅ PAYMENT GATE: Dispatch cannot begin until payment is verified (PAID)
+    // ✅ DISPATCH_PREP: allowed for re-trigger after a carrier rejection (order resets back here)
+    // ❌ LOGISTICS_AWARDED / LOGISTICS_ACCEPTED: blocked — logistics is already in progress
+    const allowedFromStatuses = [OrderStatus.PAID, OrderStatus.DISPATCH_PREP];
+    if (!allowedFromStatuses.includes(order.status as any)) {
+      throw new BadRequestException(
+        `Cannot mark dispatch ready: Order is in '${order.status}' status. Payment must be verified (PAID) first.`
+      );
+    }
+
     const prevStatus = order.status;
     
-    // Status Guard: Only move to DISPATCH_PREP if we are currently PAID or earlier.
+    // Status Guard: Only move to DISPATCH_PREP if we are currently PAID.
     // If it's already LOGISTICS_AWARDED or LOGISTICS_ACCEPTED, don't downgrade it.
     const statusesHigherThanPrep = [OrderStatus.DISPATCH_PREP, OrderStatus.LOGISTICS_AWARDED, OrderStatus.LOGISTICS_ACCEPTED, OrderStatus.IN_TRANSIT, OrderStatus.DELIVERED, OrderStatus.COMPLETED];
     if (!statusesHigherThanPrep.includes(order.status as any)) {
@@ -213,6 +257,7 @@ export class OrdersService {
     }
 
     order.lifecycle.dispatchPrepAt = new Date();
+    order.markModified('lifecycle');
     const saved = await order.save();
 
     // TRIGGER Logistics Flow for Platform 3PL
@@ -223,6 +268,26 @@ export class OrdersService {
       } catch (err) {
         this.logger.error(`Failed to trigger automated Shipment RFQ for Order ${saved.orderId}: ${err.message}`);
       }
+    }
+
+    // Notify Buyer (Material Ready)
+    const buyerUsers = await this.usersService.findByOrgId(saved.buyerId.toString());
+    for (const user of buyerUsers) {
+      await this.notificationsService.notify(
+        (user as any)._id.toString(),
+        'Shipment is Ready!',
+        `Good news! Your order #${saved.orderId} is ready for dispatch.`,
+        {
+          template: 'shipment-ready',
+          data: {
+            orderId: saved.orderId,
+            pickupCity: saved.pickupPin || 'Seller Yard',
+            logisticsPreference: saved.logisticsPreference,
+            is3PL: saved.logisticsPreference === LogisticsPreference.PLATFORM_3PL,
+            ctaUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/user/orders/${saved._id}`,
+          }
+        }
+      ).catch(e => this.logger.error(`Failed to notify buyer for Ready: ${e.message}`));
     }
 
     this.auditService.log({
@@ -249,9 +314,10 @@ export class OrdersService {
     order.shipmentIds.push(new Types.ObjectId(shipmentId));
     order.shipmentCount = (order.shipmentCount || 0) + 1;
 
-    if (order.status !== OrderStatus.IN_TRANSIT && order.status !== OrderStatus.DELIVERED) {
-      order.status = OrderStatus.IN_TRANSIT;
-    }
+    // ✅ DO NOT change order status here.
+    // For PLATFORM_3PL: status is managed by the dedicated flow:
+    //   acceptJob → LOGISTICS_ACCEPTED → confirmDispatch → IN_TRANSIT
+    // For SELF_PICKUP/SELLER_MANAGED: status is set by the caller explicitly.
 
     return order.save();
   }
@@ -279,6 +345,23 @@ export class OrdersService {
       severity: 'WARNING',
     });
 
+    // Notify both parties of cancellation
+    const notifyOrgs = [saved.buyerId.toString(), saved.sellerId.toString()];
+    for (const orgId of notifyOrgs) {
+        const users = await this.usersService.findByOrgId(orgId);
+        for (const user of users) {
+            await this.notificationsService.notify(
+              (user as any)._id.toString(),
+              'Order Cancelled',
+              `Order #${saved.orderId} has been cancelled.`,
+              {
+                template: 'order-cancelled',
+                data: { orderId: saved.orderId, reason, ctaUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard` }
+              }
+            ).catch(e => this.logger.error(`Failed to notify cancellation for ${orgId}: ${e.message}`));
+        }
+    }
+
     return saved;
   }
 
@@ -297,10 +380,24 @@ export class OrdersService {
       order.payoutTimer.remainingMs = 0;
     }
 
-    try {
-      await this.paymentsService.releaseStage2(orderId);
-    } catch (err) {
-      this.logger.warn(`Stage 2 escrow release failed for order ${orderId}: ${err.message}`);
+    // ✅ TERM-AWARE STAGE 2 RELEASE:
+    // - 80/20: Release Stage 2 (20%) on buyer acceptance — correct trigger
+    // - 50/50: Stage 2 was already released at LR verification — skip
+    // - 100%:  Stage 2 amount is ₹0 — skip
+    const payment = await this.paymentsService.findByOrderId(orderId);
+    const shouldReleaseStage2 =
+      payment &&
+      payment.escrowStage2Amount > 0 &&
+      payment.escrowStage2Status !== 'RELEASED';
+
+    if (shouldReleaseStage2) {
+      try {
+        await this.paymentsService.releaseStage2(orderId);
+      } catch (err) {
+        this.logger.warn(`Stage 2 escrow release failed for order ${orderId}: ${err.message}`);
+      }
+    } else {
+      this.logger.log(`Skipping Stage 2 release for order ${orderId}: term=${order.paymentTerms}, s2Status=${payment?.escrowStage2Status}, s2Amount=${payment?.escrowStage2Amount}`);
     }
 
     await order.save();
@@ -319,7 +416,22 @@ export class OrdersService {
       targetOrgIds: [order.buyerId as any, order.sellerId as any],
     });
 
-    // Manual notification removed: handled by AuditService derivation
+    // Notify both parties of Completion
+    const notifyOrgs = [order.buyerId.toString(), order.sellerId.toString()];
+    for (const orgId of notifyOrgs) {
+        const users = await this.usersService.findByOrgId(orgId);
+        for (const user of users) {
+            await this.notificationsService.notify(
+              (user as any)._id.toString(),
+              'Order Completed',
+              `Transaction for Order #${order.orderId} is now settled.`,
+              {
+                template: 'order-completed',
+                data: { orderId: order.orderId, grandTotal: order.pricing.grandTotal.toLocaleString('en-IN'), ctaUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard` }
+              }
+            ).catch(e => this.logger.error(`Failed to notify completion for ${orgId}: ${e.message}`));
+        }
+    }
 
     return order;
   }

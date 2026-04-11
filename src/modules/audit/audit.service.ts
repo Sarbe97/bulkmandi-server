@@ -6,6 +6,8 @@ import { QueryAuditLogDto } from './dto/query-audit-log.dto';
 import { AuditLog, AuditLogDocument } from './schemas/audit-log.schema';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditAction } from 'src/common/constants/app.constants';
+import { RfqStatus } from '@common/enums';
+import { IdGeneratorService } from 'src/common/services/id-generator.service';
 
 @Injectable()
 export class AuditService {
@@ -16,6 +18,7 @@ export class AuditService {
     private readonly auditLogModel: Model<AuditLogDocument>,
     @Inject(forwardRef(() => NotificationsService))
     private readonly notificationsService: NotificationsService,
+    private readonly idGenerator: IdGeneratorService,
   ) {}
 
   /**
@@ -26,7 +29,7 @@ export class AuditService {
    *   this.auditService.log({ action: 'RFQ_CREATED', module: 'RFQ', ... });
    */
   log(dto: CreateAuditLogDto): void {
-    const logId = `AUD-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const logId = this.idGenerator.generateBusinessId('AUD');
 
     const payload: Partial<AuditLog> = {
       logId,
@@ -132,7 +135,7 @@ export class AuditService {
       case AuditAction.RFQ_PUBLISHED:
       case AuditAction.RFQ_CREATED:
         // Only notify if status is OPEN (published)
-        if (log.afterState?.status === 'OPEN') {
+        if (log.afterState?.status === RfqStatus.OPEN) {
            title = '🎯 New RFQ Published';
            message = `A new RFQ for ${log.afterState?.category || 'Material'} is now open for bidding (#${log.entityIdStr})`;
         } else {

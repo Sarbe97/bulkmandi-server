@@ -3105,6 +3105,56 @@
         ]
       }
     },
+    "/api/v1/master-data/incoterms": {
+      "get": {
+        "operationId": "MasterDataController_getIncoterms",
+        "parameters": [
+          {
+            "name": "onlyEnabled",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Get all Incoterms",
+        "tags": [
+          "Master Data"
+        ]
+      },
+      "put": {
+        "operationId": "MasterDataController_updateIncoterms",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Update Incoterms (Admin)",
+        "tags": [
+          "Master Data"
+        ]
+      }
+    },
     "/api/v1/master-data/catalog-items": {
       "get": {
         "operationId": "MasterDataController_getAllCatalogItems",
@@ -4225,6 +4275,26 @@
           }
         ],
         "summary": "Browse open Shipment RFQs (Logistic/Admin)",
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/shipments/rfqs/awarded": {
+      "get": {
+        "operationId": "ShipmentsController_getAwardedRfqs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get awarded Shipment RFQs for current carrier or all for Admin",
         "tags": [
           "Shipments"
         ]

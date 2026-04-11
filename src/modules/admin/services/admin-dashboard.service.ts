@@ -11,6 +11,15 @@ import { Dispute, DisputeDocument } from '../../disputes/schemas/dispute.schema'
 import { SettlementBatch, SettlementBatchDocument } from '../../settlements/schemas/settlement-batch.schema';
 import { ShipmentRfq, ShipmentRfqDocument } from '../../shipments/schemas/shipment-rfq.schema';
 import { ShipmentBid, ShipmentBidDocument } from '../../shipments/schemas/shipment-bid.schema';
+import { 
+  UserRole, 
+  RfqStatus, 
+  QuoteStatus, 
+  ShipmentRfqStatus, 
+  DisputeStatus, 
+  SettlementBatchStatus 
+} from '@common/enums';
+import { KYCStatus } from 'src/common/constants/app.constants';
 
 @Injectable()
 export class AdminDashboardService {
@@ -30,7 +39,7 @@ export class AdminDashboardService {
   async getDashboardStats() {
     this.logger.log('Fetching admin dashboard statistics');
     // KYC Statistics
-    const kycPendingStatuses = ['SUBMITTED', 'INFO_REQUESTED', 'REVISION_REQUESTED'];
+    const kycPendingStatuses = [KYCStatus.SUBMITTED, KYCStatus.INFO_REQUESTED, KYCStatus.REVISION_REQUESTED];
     const kycPending = await this.kycCaseModel.countDocuments({ status: { $in: kycPendingStatuses } });
     
     const kycByRole = await this.kycCaseModel.aggregate([
@@ -53,16 +62,16 @@ export class AdminDashboardService {
     ]);
 
     const kycBreakdown = {
-      buyers: kycByRole.find(r => r._id === 'BUYER')?.count || 0,
-      sellers: kycByRole.find(r => r._id === 'SELLER')?.count || 0,
-      threepl: kycByRole.find(r => r._id === 'LOGISTIC')?.count || 0,
+      buyers: kycByRole.find(r => r._id === UserRole.BUYER)?.count || 0,
+      sellers: kycByRole.find(r => r._id === UserRole.SELLER)?.count || 0,
+      threepl: kycByRole.find(r => r._id === UserRole.LOGISTIC)?.count || 0,
     };
 
     // RFQ & Quote Statistics
     const totalRfqs = await this.rfqModel.countDocuments();
-    const openRfqs = await this.rfqModel.countDocuments({ status: 'OPEN' });
+    const openRfqs = await this.rfqModel.countDocuments({ status: RfqStatus.OPEN });
     const totalQuotes = await this.quoteModel.countDocuments();
-    const acceptedQuotes = await this.quoteModel.countDocuments({ status: 'ACCEPTED' });
+    const acceptedQuotes = await this.quoteModel.countDocuments({ status: QuoteStatus.ACCEPTED });
 
     // Settlement & Escrow Statistics
     const escrowStats = await this.paymentModel.aggregate([
@@ -99,8 +108,8 @@ export class AdminDashboardService {
     const escrow = escrowStats[0] || { totalHold: 0, stage1Hold: 0, stage2Hold: 0, releasedToday: 0 };
 
     const totalDisputes = await this.disputeModel.countDocuments();
-    const newDisputes = await this.disputeModel.countDocuments({ status: 'NEW' });
-    const reviewDisputes = await this.disputeModel.countDocuments({ status: 'IN_REVIEW' });
+    const newDisputes = await this.disputeModel.countDocuments({ status: DisputeStatus.NEW });
+    const reviewDisputes = await this.disputeModel.countDocuments({ status: DisputeStatus.IN_REVIEW });
     const openDisputes = newDisputes + reviewDisputes;
     
     // Check SLA Escalated
@@ -110,10 +119,12 @@ export class AdminDashboardService {
     });
 
     // Batches
-    const pendingBatches = await this.batchModel.countDocuments({ status: { $in: ['DRAFT', 'READY', 'PROCESSING'] } });
+    const pendingBatches = await this.batchModel.countDocuments({ 
+      status: { $in: [SettlementBatchStatus.DRAFT, SettlementBatchStatus.READY, SettlementBatchStatus.PROCESSING] } 
+    });
 
     // Logistics Statistics
-    const openSrfqs = await this.srfqModel.countDocuments({ status: 'OPEN' });
+    const openSrfqs = await this.srfqModel.countDocuments({ status: ShipmentRfqStatus.OPEN });
     const totalSrfqBids = await this.bidModel.countDocuments();
 
     return {

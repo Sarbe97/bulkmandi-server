@@ -10,6 +10,7 @@ import { ShipmentRfq, ShipmentRfqDocument } from '../../shipments/schemas/shipme
 import { ShipmentBid, ShipmentBidDocument } from '../../shipments/schemas/shipment-bid.schema';
 import { AuditService } from '../../audit/audit.service';
 import { ActivityTransformService } from '../../audit/services/activity-transform.service';
+import { ShipmentRfqStatus, ShipmentBidStatus } from '@common/enums';
 
 @Injectable()
 export class UserDashboardService {
@@ -142,16 +143,16 @@ export class UserDashboardService {
 
     const issues = await this.shipmentModel.countDocuments({
       carrierId: organizationId,
-      status: 'ISSUE_REPORTED'
+      status: 'ISSUE_REPORTED' // TODO: Define in ShipmentStatus enum if available
     });
 
     const openShipmentRfqs = await this.shipmentRfqModel.countDocuments({
-      status: 'OPEN'
+      status: ShipmentRfqStatus.OPEN
     });
 
     const pendingBids = await this.shipmentBidModel.countDocuments({
       carrierId: organizationId,
-      status: 'SUBMITTED'
+      status: 'SUBMITTED' // Needs ShipmentBidStatus enum
     });
 
     return {

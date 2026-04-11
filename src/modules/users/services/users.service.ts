@@ -251,4 +251,16 @@ export class UsersService {
       isActive: true 
     }).exec();
   }
+
+  /**
+   * Find all active Admin and Super Admin users on the platform.
+   * Used for system-level notifications (e.g. carrier rejection, dispute escalations).
+   */
+  async findAdmins(): Promise<User[]> {
+    this.logger.debug('Finding all active admin users for system notification');
+    return this.userModel.find({
+      role: { $in: ['ADMIN', 'SUPER_ADMIN'] },
+      isActive: true,
+    }).select('_id email firstName lastName role').exec();
+  }
 }

@@ -6,7 +6,7 @@
     "deleteOutDir": true,
     "assets": [
       {
-        "include": "modules/reports/templates/**/*.hbs",
+        "include": "templates/**/*.hbs",
         "watchAssets": true
       }
     ]

@@ -32,6 +32,7 @@ export class MasterDataService implements OnModuleInit {
   async onModuleInit() {
     await this.seedLegacyMasterData();
     await this.seedCatalogData();
+    await this.seedIncoterms();
   }
 
   /** Original legacy seed – fleet types & product categories */
@@ -74,6 +75,26 @@ export class MasterDataService implements OnModuleInit {
       };
       exists.escrowAccount = defaultEscrow as any;
       await exists.save();
+    }
+  }
+
+  /** Seed default incoterms */
+  private async seedIncoterms() {
+    const data = await this.masterDataModel.findOne();
+    if (data && (!data.incoterms || data.incoterms.length === 0)) {
+      const defaultIncoterms = [
+        { code: 'DAP', label: 'DAP - Delivered At Place', description: 'Seller handles transport to your door. You only handle unloading.', responsibility: 'Seller Managed', isEnabled: true },
+        { code: 'EXW', label: 'EXW - Ex Works', description: 'You pick up from factory. BulkMandi can arrange transport (3PL).', responsibility: 'Platform/Buyer', isEnabled: true },
+        { code: 'FCA', label: 'FCA - Free Carrier', description: 'Seller loads your truck. BulkMandi can manage high-seas/road transport.', responsibility: 'Platform/Buyer', isEnabled: true },
+        { code: 'FOB', label: 'FOB - Free On Board', description: 'Seller loads the ship. BulkMandi can manage sea freight & clearing.', responsibility: 'Platform/Buyer', isEnabled: true },
+        { code: 'CPT', label: 'CPT - Carriage Paid To', description: 'Seller pays for carriage to destination. Risk transfers at pickup.', responsibility: 'Seller Managed', isEnabled: true },
+        { code: 'CIP', label: 'CIP - Carriage and Insurance Paid To', description: 'Same as CPT, plus Seller provided insurance.', responsibility: 'Seller Managed', isEnabled: true },
+        { code: 'DDP', label: 'DDP - Delivered Duty Paid', description: 'Seller handles everything including taxes and duties.', responsibility: 'Seller Managed', isEnabled: true },
+        { code: 'CIF', label: 'CIF - Cost, Insurance and Freight', description: 'Seller pays for transport to your port and provides insurance.', responsibility: 'Seller Managed', isEnabled: true }
+      ];
+      data.incoterms = defaultIncoterms as any;
+      await data.save();
+      this.logger.log('Incoterms seeded successfully.');
     }
   }
 
@@ -213,6 +234,25 @@ export class MasterDataService implements OnModuleInit {
     }
     await data.save();
     return data.platformConfig;
+  }
+
+  // ══════════════════════════════════════════
+  //  INCOTERMS
+  // ══════════════════════════════════════════
+
+  async getIncoterms(onlyEnabled = false) {
+    const data = await this.masterDataModel.findOne().select('incoterms');
+    if (!data || !data.incoterms) return [];
+    if (onlyEnabled) return data.incoterms.filter(i => i.isEnabled);
+    return data.incoterms;
+  }
+
+  async updateIncoterms(incoterms: any[]) {
+    const data = await this.masterDataModel.findOne();
+    if (!data) return [];
+    data.incoterms = incoterms;
+    await data.save();
+    return data.incoterms;
   }
 
   // ══════════════════════════════════════════

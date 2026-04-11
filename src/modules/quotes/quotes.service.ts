@@ -10,6 +10,8 @@ import { OrdersService } from '../orders/orders.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { MasterDataService } from '../master-data/master-data.service';
 import { UsersService } from '../users/services/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { IdGeneratorService } from 'src/common/services/id-generator.service';
 import { RfqStatus, QuoteStatus } from 'src/common/enums';
 import { AuditAction, AuditModule, AuditEntityType, LogisticsPreference } from 'src/common/constants/app.constants';
 
@@ -23,6 +25,8 @@ export class QuotesService {
     private readonly masterDataService: MasterDataService,
     private readonly auditService: AuditService,
     private readonly usersService: UsersService,
+    private readonly notificationsService: NotificationsService,
+    private readonly idGenerator: IdGeneratorService,
     private readonly logger: CustomLoggerService,
   ) {}
 
@@ -86,16 +90,19 @@ export class QuotesService {
       }
     }
 
-    const quoteId = `QUOTE-${Date.now()}`;
     const validityExpiresAt = new Date(Date.now() + dto.validityHours * 60 * 60 * 1000);
 
     let sellerOrgName = 'Unknown Seller';
+    let sellerOrgCode: string | undefined;
     try {
       const sellerOrg = await this.orgService.getOrganization(sellerId);
       sellerOrgName = sellerOrg.legalName || sellerOrgName;
+      sellerOrgCode = sellerOrg.orgCode;
     } catch {
       // Fallback if org lookup fails
     }
+
+    const quoteId = this.idGenerator.generateBusinessId('QUOTE', sellerOrgCode);
 
     const quote = new this.quoteModel({
       quoteId,
@@ -146,20 +153,25 @@ export class QuotesService {
         : (await this.usersService.findByOrgId(rfq.buyerId.toString())).map(u => (u as any)._id as any),
     });
 
-    // Fallback: If sellerPlantPin is missing, try to auto-populate from Org KYC
-    if (!savedQuote.sellerPlantPin) {
-      try {
-        const sellerOrg = await this.orgService.getOrganization(sellerId);
-        const plants = sellerOrg?.orgKyc?.plantLocations ?? [];
-        if (plants.length > 0) {
-          savedQuote.sellerPlant = plants[0].name || plants[0].address || 'Primary Plant';
-          savedQuote.sellerPlantPin = plants[0].pinCode || plants[0].pin || plants[0].pincode;
-          await savedQuote.save();
-          this.logger.debug(`Auto-populated missing plant PIN for quote ${savedQuote.quoteId} from Org KYC: ${savedQuote.sellerPlantPin}`);
+    // Notify Buyer
+    const buyerIdToNotify = rfq.createdBy?.toString();
+    if (buyerIdToNotify) {
+      await this.notificationsService.notify(
+        buyerIdToNotify,
+        'New Quote Received',
+        `You have received a new quote for RFQ ${rfq.rfqId}.`,
+        {
+          template: 'quote-submitted',
+          data: {
+            rfqId: rfq.rfqId,
+            landedPrice: (grandTotal / dto.quantityMT).toLocaleString('en-IN'),
+            quantity: dto.quantityMT,
+            sellerName: sellerOrgName,
+            leadDays: dto.leadDays,
+            rfqUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/buyer/rfqs/${rfq._id}`,
+          }
         }
-      } catch (e) {
-        this.logger.warn(`Failed to auto-populate plant PIN for quote ${savedQuote.quoteId}: ${e.message}`);
-      }
+      ).catch(e => this.logger.error(`Failed to notify buyer ${buyerIdToNotify}: ${e.message}`));
     }
 
     return savedQuote;
@@ -329,6 +341,43 @@ export class QuotesService {
       description: `Quote ${saved.quoteId} accepted → Order ${order.orderId} created`,
       targetOrgIds: [buyerId as any, saved.sellerId as any],
     });
+
+    // Notify Seller
+    const sellerOrgUsers = await this.usersService.findByOrgId(saved.sellerId.toString());
+    for (const user of sellerOrgUsers) {
+        await this.notificationsService.notify(
+          (user as any)._id.toString(),
+          'Your Quote was Accepted!',
+          `Congratulations! Your quote ${saved.quoteId} has been accepted and Order #${order.orderId} is created.`,
+          {
+            template: 'order-created',
+            data: {
+              productName: saved.product || 'Material',
+              orderId: order.orderId,
+              grandTotal: saved.grandTotal.toLocaleString('en-IN'),
+              orderUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/seller/orders/${order._id}`,
+            }
+          }
+        ).catch(e => this.logger.error(`Failed to notify seller user ${(user as any)._id}: ${e.message}`));
+    }
+
+    // Notify Buyer (Payment Instructions)
+    const buyerOrgUsers = await this.usersService.findByOrgId(buyerId);
+    for (const user of buyerOrgUsers) {
+        await this.notificationsService.notify(
+          (user as any)._id.toString(),
+          'Action Required: Fund Escrow',
+          `Your order #${order.orderId} is created. Please fund the escrow account to proceed.`,
+          {
+            template: 'order-payment-pending',
+            data: {
+              orderId: order.orderId,
+              amount: saved.grandTotal.toLocaleString('en-IN'),
+              ctaUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/user/orders/${order._id}`,
+            }
+          }
+        ).catch(e => this.logger.error(`Failed to notify buyer user ${(user as any)._id}: ${e.message}`));
+    }
 
     return saved;
   }

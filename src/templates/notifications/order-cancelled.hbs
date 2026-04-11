@@ -1,0 +1,27 @@
+<div class="status-header">
+    <div class="tag" style="background: #fef2f2; color: #991b1b;">CANCELLED</div>
+    <h1>Order Cancelled</h1>
+    <p>Important update regarding Order #{{orderId}}.</p>
+</div>
+
+<div class="highlight-box" style="border-color: #fecaca; background-color: #fffafb;">
+    <p style="color: #475569; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+        This order has been cancelled on the BulkMandi platform. If any escrow payments were made, our team will initiate the refund process as per policy.
+    </p>
+    <div class="info-row">
+        <div class="info-label">Order Number</div>
+        <div class="info-value">#{{orderId}}</div>
+    </div>
+    <div class="info-row">
+        <div class="info-label">Cancellation Reason</div>
+        <div class="info-value" style="color: #991b1b;">{{reason}}</div>
+    </div>
+</div>
+
+<p style="color: #64748b; font-size: 13px; text-align: center;">
+    If you have questions regarding this cancellation, please contact BulkMandi support.
+</p>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{ctaUrl}}" class="btn" style="background-color: #0f172a;">View Dashboard</a>
+</div>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            color: #1e293b; 
+            line-height: 1.6; 
+            margin: 0; 
+            padding: 0; 
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+            background-color: #f1f5f9;
+        }
+        table { border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; }
+        img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; display: block; }
+        
+        .layout-container { 
+            max-width: 600px; 
+            margin: 20px auto; 
+            background-color: #ffffff;
+            border-radius: 12px; 
+            overflow: hidden; 
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .main-header { 
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            padding: 30px 20px; 
+            text-align: center; 
+        }
+        .brand-box { text-align: center; }
+        .logo { 
+            height: 32px; 
+            margin: 0 auto;
+        }
+        .brand-name {
+            font-size: 22px;
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: -0.5px;
+            text-transform: uppercase;
+            margin-top: 8px;
+        }
+        .brand-name span { color: #3b82f6; }
+        
+        .main-content { 
+            padding: 40px 30px; 
+            background-color: #ffffff;
+        }
+        
+        /* Typography */
+        h1 { color: #0f172a; font-size: 24px; font-weight: 800; margin-top: 0; margin-bottom: 12px; line-height: 1.2; }
+        h2 { color: #1e293b; font-size: 20px; font-weight: 700; margin-top: 0; }
+        h3 { color: #334155; font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+        p { margin-top: 0; margin-bottom: 16px; font-size: 14px; color: #475569; }
+        
+        /* Components */
+        .status-header { text-align: center; margin-bottom: 30px; }
+        .tag { 
+            display: inline-block; 
+            padding: 4px 12px; 
+            background-color: #dbeafe; 
+            color: #1e40af;
+            border-radius: 99px; 
+            font-size: 10px; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px;
+            margin-bottom: 12px; 
+        }
+        .btn { 
+            display: inline-block; 
+            padding: 14px 28px; 
+            background-color: #2563eb; 
+            color: #ffffff !important; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            font-weight: 700; 
+            font-size: 14px;
+            text-align: center;
+        }
+        .highlight-box {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+        .divider { height: 1px; background-color: #e2e8f0; margin: 24px 0; border: 0; }
+        
+        /* Info Grid - Legacy / Fallback */
+        .info-row { margin-bottom: 12px; }
+        .info-label { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 2px; }
+        .info-value { font-size: 14px; font-weight: 700; color: #1e293b; }
+
+        .footer { 
+            background-color: #f8fafc; 
+            padding: 30px; 
+            text-align: center; 
+            font-size: 11px; 
+            color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
+        }
+        .footer-logo { font-weight: 800; color: #64748b; margin-bottom: 6px; }
+
+        /* Mobile Specific */
+        @media only screen and (max-width: 480px) {
+            .main-content { padding: 30px 20px; }
+            h1 { font-size: 20px; }
+            .layout-container { margin: 10px; border-radius: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout-container">
+        <div class="main-header">
+            <div class="brand-box">
+                <img src="cid:logo" alt="logo" class="logo">
+                <div class="brand-name">BULK<span>MANDI</span></div>
+            </div>
+        </div>
+        <div class="main-content">
+            {{{body}}}
+        </div>
+        <div class="footer">
+            <div class="footer-logo">BulkMandi Platform</div>
+            &copy; {{year}} BulkMandi Technologies. All rights reserved.<br>
+            Trust & Security: Digitally Encrypted Transaction<br><br>
+            <div style="margin-top: 10px; font-weight: 600;">
+                Support: <a href="mailto:support@bulkmandi.in" style="color: #2563eb; text-decoration: none;">support@bulkmandi.in</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -16,6 +16,9 @@ export class CreateOrderDto {
   @IsString()
   incoterm: string;
 
+  @IsString()
+  paymentTerms: string;
+
   @IsNumber()
   deliveryBy: number;
 

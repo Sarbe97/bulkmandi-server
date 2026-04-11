@@ -39,21 +39,41 @@ export class EmailNotificationChannel extends BaseNotificationChannel {
     // 1. Template Rendering
     if (payload.template) {
       try {
-        const templatePath = path.join(process.cwd(), 'src/modules/notifications/templates', `${payload.template}.hbs`);
-        const layoutPath = path.join(process.cwd(), 'src/modules/notifications/templates/layout.hbs');
-        
-        if (fs.existsSync(templatePath)) {
-          const templateContent = fs.readFileSync(templatePath, 'utf-8');
-          const emailTemplate = handlebars.compile(templateContent);
-          const bodyHtml = emailTemplate(payload.data || {});
+        const possibleDirs = [
+          path.join(process.cwd(), 'src', 'templates', 'notifications'),
+          path.join(process.cwd(), 'dist', 'src', 'templates', 'notifications'),
+          path.join(process.cwd(), 'dist', 'templates', 'notifications'),
+          path.join(process.cwd(), 'templates', 'notifications'),
+          path.join(__dirname, '..', '..', '..', 'templates', 'notifications'),
+        ];
 
-          if (fs.existsSync(layoutPath)) {
-            const layoutContent = fs.readFileSync(layoutPath, 'utf-8');
-            const layoutTemplate = handlebars.compile(layoutContent);
-            html = layoutTemplate({ ...payload.data, body: bodyHtml, title: payload.title });
-          } else {
-            html = bodyHtml;
+        let templatesDir = '';
+        for (const d of possibleDirs) {
+          if (fs.existsSync(d)) {
+            templatesDir = d;
+            break;
           }
+        }
+
+        if (templatesDir) {
+          const templatePath = path.join(templatesDir, `${payload.template}.hbs`);
+          const layoutPath = path.join(templatesDir, 'layout.hbs');
+
+          if (fs.existsSync(templatePath)) {
+            const templateContent = fs.readFileSync(templatePath, 'utf-8');
+            const emailTemplate = handlebars.compile(templateContent);
+            const bodyHtml = emailTemplate(payload.data || {});
+
+            if (fs.existsSync(layoutPath)) {
+              const layoutContent = fs.readFileSync(layoutPath, 'utf-8');
+              const layoutTemplate = handlebars.compile(layoutContent);
+              html = layoutTemplate({ ...payload.data, body: bodyHtml, title: payload.title });
+            } else {
+              html = bodyHtml;
+            }
+          }
+        } else {
+          this.logger.warn(`Could not find templates directory for ${payload.template}`);
         }
       } catch (err) {
         this.logger.error(`Error rendering email template ${payload.template}: ${err.message}`);
@@ -69,7 +89,7 @@ export class EmailNotificationChannel extends BaseNotificationChannel {
     }));
 
     // 3. Logo Embedding (Branding)
-    const logoPath = path.join(process.cwd(), 'assets/logo.png');
+    const logoPath = path.join(process.cwd(), 'assets/bm-logo.png');
     if (fs.existsSync(logoPath)) {
         attachments.push({
             filename: 'bm-logo.png',

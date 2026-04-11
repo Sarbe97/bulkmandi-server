@@ -24,6 +24,25 @@ export class ProductCategoryItem {
 const ProductCategoryItemSchema = SchemaFactory.createForClass(ProductCategoryItem);
 
 @Schema()
+export class IncotermItem {
+    @Prop({ required: true })
+    code: string;
+
+    @Prop({ required: true })
+    label: string;
+
+    @Prop({ required: true })
+    description: string;
+
+    @Prop({ required: true })
+    responsibility: string;
+
+    @Prop({ default: true })
+    isEnabled: boolean;
+}
+const IncotermItemSchema = SchemaFactory.createForClass(IncotermItem);
+
+@Schema()
 export class EscrowAccount {
     @Prop({ required: true, default: 'BulkMandi Escrow Services' })
     beneficiaryName: string;
@@ -89,6 +108,9 @@ export class MasterData {
 
     @Prop({ type: [ProductCategoryItemSchema], default: [] })
     productCategories: ProductCategoryItem[];
+
+    @Prop({ type: [IncotermItemSchema], default: [] })
+    incoterms: IncotermItem[];
 
     @Prop({ type: EscrowAccountSchema, default: () => ({}) })
     escrowAccount: EscrowAccount;

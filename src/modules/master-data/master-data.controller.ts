@@ -67,6 +67,19 @@ export class MasterDataController {
     return this.masterDataService.updatePlatformConfig(body);
   }
 
+  @ApiOperation({ summary: 'Get all Incoterms' })
+  @Get('incoterms')
+  async getIncoterms(@Query('onlyEnabled') onlyEnabled?: string) {
+    return this.masterDataService.getIncoterms(onlyEnabled === 'true');
+  }
+
+  @ApiOperation({ summary: 'Update Incoterms (Admin)' })
+  @Put('incoterms')
+  async updateIncoterms(@Body() body: any[]) {
+    this.logger.log('Updating incoterms');
+    return this.masterDataService.updateIncoterms(body);
+  }
+
   // ══════════════════════════════════════════
   //  CATALOG ITEMS
   // ══════════════════════════════════════════

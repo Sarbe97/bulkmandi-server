@@ -1,0 +1,30 @@
+<div class="status-header">
+    <div class="tag">Congratulations</div>
+    <h1>Your Quote was Accepted!</h1>
+    <p>Great news! Your quote for <strong>{{productName}}</strong> has been accepted by the buyer.</p>
+</div>
+
+<div class="highlight-box">
+    <div class="info-row">
+        <div class="info-label">Order Reference</div>
+        <div class="info-value">Order #{{orderId}}</div>
+    </div>
+    <div class="info-row">
+        <div class="info-label">Order Value</div>
+        <div class="info-value">₹{{grandTotal}}</div>
+    </div>
+    <div class="divider"></div>
+    <p style="font-size: 13px; font-weight: 700; margin: 0; color: #2563eb;">Next Step: Waiting for Buyer to fund Escrow.</p>
+</div>
+
+<p>
+    You will be notified as soon as the payment is secured in the BulkMandi Escrow account. You can track this order in your seller dashboard.
+</p>
+
+<p style="font-size: 13px; font-weight: 600; color: #ef4444; margin-top: 20px;">
+    ⚠️ Please do not dispatch material until you receive the payment confirmation notification.
+</p>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{orderUrl}}" class="btn">View Order Details</a>
+</div>

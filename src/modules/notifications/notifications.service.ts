@@ -77,7 +77,10 @@ export class NotificationsService {
       }
     });
 
-    await Promise.all(dispatchPromises);
+    // Fire and forget to avoid blocking the main thread (improves performance significantly)
+    Promise.all(dispatchPromises).catch(err => {
+      this.logger.error(`Background notification dispatch failed: ${err.message}`);
+    });
   }
 
   async findAllForUser(userId: string, page = 1, limit = 20) {

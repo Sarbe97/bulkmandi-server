@@ -22,6 +22,7 @@ import {
   LogisticsPreference 
 } from "src/common/constants/app.constants";
 import { ShipmentsService } from "../shipments/shipments.service";
+import { IdGeneratorService } from "src/common/services/id-generator.service";
 
 @Injectable()
 export class SettlementsService {
@@ -38,6 +39,7 @@ export class SettlementsService {
     private readonly notificationsService: NotificationsService,
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
+    private readonly idGenerator: IdGeneratorService,
     private readonly logger: CustomLoggerService,
   ) { }
 
@@ -126,7 +128,7 @@ export class SettlementsService {
 
     const lineItems = Array.from(partyMap.values()).map(item => ({
       ...item,
-      lineItemId: `LI-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      lineItemId: this.idGenerator.generateBusinessId('LI'),
       netPayable: item.grossAmount - item.platformFee - item.disputeAdjustments,
       status: 'READY'
     }));
@@ -140,7 +142,7 @@ export class SettlementsService {
     };
 
     const batch = new this.settlementBatchModel({
-      batchId: `ST-${Date.now()}`,
+      batchId: this.idGenerator.generateBusinessId('SET'),
       batchName: `Batch-${new Date().toISOString().split('T')[0]}`,
       orderIds: dto.orderIds,
       orderCount: dto.orderIds.length,
@@ -190,7 +192,7 @@ export class SettlementsService {
       const org = await this.orgService.getOrganization(li.partyId.toString());
 
       const payoutData: any = {
-        payoutId: `PO-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        payoutId: this.idGenerator.generateBusinessId('PO', org?.orgCode),
         batchId: batch._id,
         payeeId: li.partyId,
         payeeName: li.partyName,
@@ -215,8 +217,8 @@ export class SettlementsService {
 
       if (isTestMode) {
         payoutData.confirmedAt = new Date();
-        payoutData.bankReference = `TEST-REF-${Date.now()}`;
-        payoutData.utrs = [`TEST-UTR-${Date.now()}`];
+        payoutData.bankReference = this.idGenerator.generateBusinessId('TEST-REF');
+        payoutData.utrs = [this.idGenerator.generateBusinessId('TEST-UTR')];
       }
 
       const payout = new this.payoutModel(payoutData);

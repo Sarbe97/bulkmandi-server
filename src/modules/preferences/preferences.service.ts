@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { UserRole } from '@common/enums';
 import { BuyerPreference, BuyerPreferenceDocument } from './schemas/buyer-preference.schema';
 import { SellerPreference, SellerPreferenceDocument } from './schemas/seller-preference.schema';
 import { LogisticPreference, LogisticPreferenceDocument } from './schemas/logistic-preference.schema';
@@ -15,10 +16,19 @@ export class PreferencesService {
   ) {}
 
   async getPreferences(organizationId: string | Types.ObjectId, role: string) {
-    if (role === 'BUYER') return this.buyerModel.findOne({ organizationId }).exec();
-    if (role === 'SELLER') return this.sellerModel.findOne({ organizationId }).exec();
-    if (role === 'LOGISTIC') return this.logisticModel.findOne({ organizationId }).exec();
-    return null;
+    if (role === UserRole.BUYER) {
+      const doc = await this.buyerModel.findOne({ organizationId }).exec();
+      return { buyerPreference: doc };
+    }
+    if (role === UserRole.SELLER) {
+      const doc = await this.sellerModel.findOne({ organizationId }).exec();
+      return { sellerPreference: doc };
+    }
+    if (role === UserRole.LOGISTIC) {
+      const doc = await this.logisticModel.findOne({ organizationId }).exec();
+      return { logisticPreference: doc };
+    }
+    return {};
   }
 
   async upsertBuyerPreference(organizationId: string | Types.ObjectId, dto: UpdateBuyerPreferenceDto) {

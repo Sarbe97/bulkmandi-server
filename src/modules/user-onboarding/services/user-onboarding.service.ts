@@ -73,7 +73,7 @@ export class UserOnboardingService {
    */
   async updateOrgKyc(organizationId: string | null, dto: UserOrgKycDto, userRole: UserRole, userId: string): Promise<any> {
     const org = await this.orgKycService.updateOrgKyc(organizationId, dto, userRole, userId);
-    return this.formatResponse(org);
+    return this.formatFullResponse(org);
   }
 
   /**
@@ -81,7 +81,7 @@ export class UserOnboardingService {
    */
   async updateBankDetails(organizationId: string, dto: UserBankDto, userRole: UserRole): Promise<any> {
     const org = await this.bankDetailsService.updateBankDetails(organizationId, dto, userRole);
-    return this.formatResponse(org);
+    return this.formatFullResponse(org);
   }
 
   /**
@@ -110,7 +110,7 @@ export class UserOnboardingService {
    */
   async updateComplianceDocs(organizationId: string, dto: any, userRole: UserRole): Promise<any> {
     const org = await this.complianceService.updateComplianceDocs(organizationId, dto, userRole);
-    return this.formatResponse(org);
+    return this.formatFullResponse(org);
   }
 
   /**
@@ -127,7 +127,7 @@ export class UserOnboardingService {
       await org.save();
     }
 
-    return this.formatResponse(org);
+    return this.formatFullResponse(org);
   }
 
   // ===== COMMON STATUS & SUBMISSION =====
@@ -204,15 +204,7 @@ export class UserOnboardingService {
       const org = await this.orgModel.findById(organizationId);
       if (!org) throw new NotFoundException("Organization not found");
 
-      // Now fetch the related preferences dynamically based on role
-      const prefDoc = await this.preferencesService.getPreferences(organizationId, org.role);
-      const res = this.formatResponse(org);
-      
-      if (org.role === UserRole.BUYER) res.buyerPreferences = prefDoc;
-      if (org.role === UserRole.SELLER) res.catalog = prefDoc;
-      if (org.role === UserRole.LOGISTIC) res.fleetAndCompliance = prefDoc;
-      
-      return res;
+      return this.formatFullResponse(org);
     } catch (error) {
       this.logger.error(`Error getting onboarding data for org ${organizationId}: ${error.message}`);
       throw error;
@@ -241,7 +233,7 @@ export class UserOnboardingService {
       // ✅ Check for duplicate organization name (excluding self) globally
       const duplicate = await this.orgModel.findOne({
         legalName: new RegExp(`^${org.legalName}$`, 'i'),
-        kycStatus: { $in: ['SUBMITTED', 'APPROVED', 'REJECTED'] },
+        kycStatus: { $in: [KYCStatus.SUBMITTED, KYCStatus.APPROVED, KYCStatus.REJECTED] },
         _id: { $ne: org._id },
       });
 
@@ -295,6 +287,26 @@ export class UserOnboardingService {
   }
 
   // ===== HELPERS =====
+
+  /**
+   * Format completion response with preferences included
+   */
+  private async formatFullResponse(org: OrganizationDocument): Promise<any> {
+    const res = this.formatResponse(org);
+
+    try {
+      const prefWrapper: any = await this.preferencesService.getPreferences(org._id as any, org.role);
+
+      if (prefWrapper) {
+        Object.assign(res, prefWrapper);
+      }
+    } catch (e) {
+      this.logger.error(`Error attaching preferences to onboarding response: ${e.message}`);
+      // Fallback: return without preferences if they fail
+    }
+
+    return res;
+  }
 
   /**
    * Format standardized response

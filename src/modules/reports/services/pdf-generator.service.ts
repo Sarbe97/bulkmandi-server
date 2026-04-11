@@ -16,13 +16,13 @@
  */
 
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import Handlebars from 'handlebars';
 import puppeteer, { Browser } from 'puppeteer';
 import { ReportTemplate } from '../interfaces/report-template.interface';
-import { ShipmentManifestTemplate } from '../templates/shipment-manifest.template';
-import { ProformaInvoiceTemplate } from '../templates/proforma-invoice.template';
+import { ShipmentManifestTemplate } from '../report-definitions/shipment-manifest.template';
+import { ProformaInvoiceTemplate } from '../report-definitions/proforma-invoice.template';
 import { CustomLoggerService } from 'src/core/logger/custom.logger.service';
 
 @Injectable()
@@ -73,18 +73,42 @@ export class PdfGeneratorService implements OnModuleInit, OnModuleDestroy {
     this.logger.log(`Registered PDF template: ${template.templateKey} → ${template.templateFile}`);
   }
 
-  /** Pre-compile all registered .hbs templates and cache them */
   private precompileTemplates(): void {
-    const templatesDir = join(__dirname, '..', 'templates');
+    const possibleDirs = [
+      join(process.cwd(), 'src', 'templates', 'reports'),
+      join(process.cwd(), 'dist', 'src', 'templates', 'reports'),
+      join(process.cwd(), 'dist', 'templates', 'reports'),
+      join(process.cwd(), 'templates', 'reports'),
+      join(__dirname, '..', '..', '..', 'templates', 'reports'),
+    ];
+
+    let templatesDir = '';
+    for (const dir of possibleDirs) {
+      if (existsSync(dir)) {
+        templatesDir = dir;
+        break;
+      }
+    }
+
+    if (!templatesDir) {
+      this.logger.error(`Failed to locate PDF templates directory. Checked: ${possibleDirs.join(', ')}`);
+      return;
+    }
+
+    this.logger.log(`Using templates directory: ${templatesDir}`);
 
     for (const [key, template] of this.templates) {
       try {
         const filePath = join(templatesDir, template.templateFile);
+        if (!existsSync(filePath)) {
+          this.logger.error(`Template file NOT found: ${filePath} (key: ${key})`);
+          continue;
+        }
         const source = readFileSync(filePath, 'utf-8');
         this.compiledTemplates.set(key, Handlebars.compile(source));
-        this.logger.log(`Compiled HBS template: ${template.templateFile}`);
+        this.logger.log(`Successfully compiled HBS template: ${template.templateFile}`);
       } catch (err: any) {
-        this.logger.error(`Failed to compile template "${key}": ${err.message}`);
+        this.logger.error(`Exception while compiling template "${key}": ${err.message}`);
       }
     }
   }

@@ -4,6 +4,7 @@ import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { RfqController } from './rfq.controller';
 import { RfqService } from './rfq.service';
 import { Rfq, RfqSchema } from './schemas/rfq.schema';
@@ -17,6 +18,7 @@ import { Rfq, RfqSchema } from './schemas/rfq.schema';
     UsersModule,
     AuthModule,
     AuditModule,
+    NotificationsModule,
   ],
 
 

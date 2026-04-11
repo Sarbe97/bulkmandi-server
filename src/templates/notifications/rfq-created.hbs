@@ -1,0 +1,42 @@
+<div class="status-header">
+    <div class="tag">New Opportunity</div>
+    <h1>New RFQ for {{category}}</h1>
+    <p>A new purchase requirement has been published that matches your seller profile.</p>
+</div>
+
+<div class="highlight-box">
+    <div class="info-row">
+        <div class="info-label">Requirement</div>
+        <div class="info-value">{{quantity}} MT - {{category}}</div>
+    </div>
+    <div class="info-row">
+        <div class="info-label">Grade / Spec</div>
+        <div class="info-value">{{grade}}</div>
+    </div>
+    <div class="divider"></div>
+    
+    <table cellpadding="0" cellspacing="0">
+        <tr>
+            <td width="50%" style="padding-right: 10px;">
+                <div class="info-label">Delivery Location</div>
+                <div class="info-value">PIN: {{targetPin}}</div>
+            </td>
+            <td width="50%">
+                <div class="info-label">Incoterm</div>
+                <div class="info-value">{{incoterm}}</div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<p>
+    Log in to your dashboard to view full specifications and submit your best quote before the RFQ expires.
+</p>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{rfqUrl}}" class="btn">View RFQ & Submit Quote</a>
+</div>
+
+<p style="margin-top: 32px; font-size: 13px; color: #94a3b8; text-align: center;">
+    If you have any questions about this RFQ, please contact the BulkMandi ops team.
+</p>

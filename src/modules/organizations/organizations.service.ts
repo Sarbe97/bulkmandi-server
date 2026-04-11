@@ -7,6 +7,7 @@ import { CustomLoggerService } from "src/core/logger/custom.logger.service";
 import { IdGeneratorService } from "src/common/services/id-generator.service";
 import { Organization, OrganizationDocument } from "./schemas/organization.schema";
 import { UserRole } from "@common/enums";
+import { KYCStatus } from "src/common/constants/app.constants";
 
 export interface OrgSearchResult {
   orgCode: string;
@@ -64,7 +65,7 @@ export class OrganizationsService {
         ...data,
         orgCode, // ✅ Set generated orgCode
         orgId: orgCode, // ✅ Set orgId alias
-        kycStatus: "DRAFT",
+        kycStatus: KYCStatus.DRAFT,
         isOnboardingLocked: false,
         completedSteps: [],
       });
@@ -236,7 +237,7 @@ export class OrganizationsService {
   async checkOrgNameAvailability(legalName: string): Promise<{ available: boolean; message?: string }> {
     const existing = await this.orgModel.findOne({
       legalName: new RegExp(`^${legalName}$`, 'i'),
-      kycStatus: { $in: ['SUBMITTED', 'APPROVED', 'REJECTED', 'INFO_REQUESTED'] },
+      kycStatus: { $in: [KYCStatus.SUBMITTED, KYCStatus.APPROVED, KYCStatus.REJECTED, KYCStatus.INFO_REQUESTED] },
     });
 
     if (existing) {
@@ -272,7 +273,7 @@ export class OrganizationsService {
     return organizations.map((org) => ({
       orgCode: org.orgCode,
       legalName: org.legalName,
-      kycStatus: org.kycStatus || 'DRAFT',
+      kycStatus: org.kycStatus || KYCStatus.DRAFT,
       role: org.role,
       canAcceptNewUsers: this.canOrgAcceptNewUsers(org.kycStatus),
     }));
@@ -282,7 +283,7 @@ export class OrganizationsService {
    * Check if organization can accept new users based on KYC status
    */
   private canOrgAcceptNewUsers(kycStatus: string): boolean {
-    return kycStatus !== 'REJECTED';
+    return kycStatus !== KYCStatus.REJECTED;
   }
 
   /**
@@ -311,7 +312,7 @@ export class OrganizationsService {
           organizationId: currentOrg._id.toString(),
           orgCode: currentOrg.orgCode,
           kycStatus: currentOrg.kycStatus,
-          redirectTo: currentOrg.kycStatus === 'APPROVED' ? 'dashboard' : 'onboarding',
+          redirectTo: currentOrg.kycStatus === KYCStatus.APPROVED ? 'dashboard' : 'onboarding',
           message: 'Already linked to this organization',
         };
       }
@@ -325,7 +326,7 @@ export class OrganizationsService {
     }
 
     // Check if organization can accept new users
-    if (org.kycStatus === 'REJECTED') {
+    if (org.kycStatus === KYCStatus.REJECTED) {
       return {
         success: false,
         organizationId: org._id.toString(),
@@ -344,7 +345,7 @@ export class OrganizationsService {
     let redirectTo: 'dashboard' | 'onboarding' | 'error' = 'onboarding';
     let message = 'Successfully linked to organization';
 
-    if (org.kycStatus === 'APPROVED') {
+    if (org.kycStatus === KYCStatus.APPROVED) {
       if (requestRevision) {
         redirectTo = 'onboarding';
         message = 'Organization KYC marked for revision. Please update the information.';
@@ -352,7 +353,7 @@ export class OrganizationsService {
         redirectTo = 'dashboard';
         message = 'Welcome! Your organization is already approved.';
       }
-    } else if (org.kycStatus === 'SUBMITTED' || org.kycStatus === 'INFO_REQUESTED') {
+    } else if (org.kycStatus === KYCStatus.SUBMITTED || org.kycStatus === KYCStatus.INFO_REQUESTED) {
       redirectTo = 'onboarding';
       message = 'Your organization\'s KYC is under review.';
     } else {

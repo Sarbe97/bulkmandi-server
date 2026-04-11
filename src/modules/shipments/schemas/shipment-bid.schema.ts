@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { ShipmentBidStatus } from 'src/common/enums';
 
 export type ShipmentBidDocument = ShipmentBid & Document;
 
@@ -26,7 +27,8 @@ export class ShipmentBid {
   @Prop()
   notes?: string;
 
-  @Prop({ type: String, enum: ['SUBMITTED', 'AWARDED', 'ACCEPTED', 'REJECTED'], default: 'SUBMITTED' })
+  // ✅ Uses enum to stay in sync — adding a new status to the enum auto-updates the schema
+  @Prop({ type: String, enum: Object.values(ShipmentBidStatus), default: ShipmentBidStatus.SUBMITTED })
   status!: string;
 }
 
@@ -34,3 +36,4 @@ export const ShipmentBidSchema = SchemaFactory.createForClass(ShipmentBid);
 ShipmentBidSchema.index({ srfqId: 1 });
 ShipmentBidSchema.index({ carrierId: 1 });
 ShipmentBidSchema.index({ status: 1 });
+

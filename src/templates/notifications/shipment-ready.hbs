@@ -1,0 +1,31 @@
+<div class="status-header">
+    <div class="tag" style="background: #f0fdf4; color: #166534;">MATERIAL READY</div>
+    <h1>Ready for Dispatch</h1>
+    <p>Good news! Material for Order #{{orderId}} is ready at the seller's yard.</p>
+</div>
+
+<div class="highlight-box">
+    <div class="info-row">
+        <div class="info-label">Order Number</div>
+        <div class="info-value">#{{orderId}}</div>
+    </div>
+    <div class="info-row">
+        <div class="info-label">Seller Location</div>
+        <div class="info-value">{{pickupCity}}</div>
+    </div>
+</div>
+
+<h3>Logistics Details</h3>
+<p>
+    <strong>Mode:</strong> {{logisticsPreference}}<br>
+    <strong>Next Action:</strong> 
+    {{#if is3PL}}
+        Platform Admin will now award the 3PL bid to a carrier.
+    {{else}}
+        Please arrange for your vehicle pickup as per the agreed incoterms.
+    {{/if}}
+</p>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{ctaUrl}}" class="btn">Track Order Execution</a>
+</div>

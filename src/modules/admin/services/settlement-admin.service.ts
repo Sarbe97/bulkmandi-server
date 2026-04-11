@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { CreateBatchDto } from 'src/modules/settlements/dto/create-batch.dto';
 import { SettlementsService } from 'src/modules/settlements/settlements.service';
 import { SettlementBatch, SettlementBatchDocument } from 'src/modules/settlements/schemas/settlement-batch.schema';
+import { SettlementBatchStatus } from '@common/enums';
 
 @Injectable()
 export class SettlementsAdminService {
@@ -18,9 +19,9 @@ export class SettlementsAdminService {
     const batch = new this.settlementBatchModel({
       ...dto,
       createdAt: new Date(),
-      status: 'DRAFT',
+      status: SettlementBatchStatus.DRAFT,
       orderCount: dto.orderIds.length,
-      statusTimeline: [{ status: 'DRAFT', timestamp: new Date() }],
+      statusTimeline: [{ status: SettlementBatchStatus.DRAFT, timestamp: new Date() }],
     });
     return batch.save();
   }

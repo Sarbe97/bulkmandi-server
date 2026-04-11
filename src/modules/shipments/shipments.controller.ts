@@ -101,10 +101,19 @@ export class ShipmentsController {
   // ─── Shipment RFQ & Bidding ───────────────────────────────
 
   @ApiOperation({ summary: 'Browse open Shipment RFQs (Logistic/Admin)' })
-  @Roles(UserRole.LOGISTIC, UserRole.ADMIN)
+  @Roles(UserRole.LOGISTIC, UserRole.ADMIN, UserRole['3PL'])
   @Get('rfqs/open')
-  async getOpenRfqs() {
-    return this.shipmentsService.findAllOpenRfqs();
+  async getOpenRfqs(@CurrentUser() user: any) {
+    const carrierId = (user.role === UserRole.LOGISTIC || user.role === UserRole['3PL']) ? user.organizationId : undefined;
+    return this.shipmentsService.findAllOpenRfqs(carrierId);
+  }
+
+  @ApiOperation({ summary: 'Get awarded Shipment RFQs for current carrier or all for Admin' })
+  @Roles(UserRole.LOGISTIC, UserRole.ADMIN, UserRole['3PL'])
+  @Get('rfqs/awarded')
+  async getAwardedRfqs(@CurrentUser() user: any) {
+    const carrierId = (user.role === UserRole.LOGISTIC || user.role === UserRole['3PL']) ? user.organizationId : undefined;
+    return this.shipmentsService.findAllAwardedRfqs(carrierId);
   }
 
   @ApiOperation({ summary: 'Submit bid for Shipment RFQ (Logistic only)' })

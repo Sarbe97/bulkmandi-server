@@ -3,7 +3,11 @@ import { Document, Types } from 'mongoose';
 
 export type OrderDocument = Order & Document;
 
-@Schema({ timestamps: true })
+@Schema({ 
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+})
 export class Order {
   @Prop({ required: true, unique: true })
   orderId!: string; // ORD-2025-00001
@@ -55,6 +59,9 @@ export class Order {
   // Delivery
   @Prop({ required: true })
   incoterm!: string;
+
+  @Prop({ required: true })
+  paymentTerms!: string;
 
   @Prop({ required: true })
   deliveryPin!: string;
@@ -140,6 +147,9 @@ export class Order {
     eWayBillId?: string;
     eWayBillUrl?: string;
   };
+
+  buyerOrganization?: any;
+  sellerOrganization?: any;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
@@ -149,3 +159,17 @@ OrderSchema.index({ buyerId: 1, createdAt: -1 });
 OrderSchema.index({ sellerId: 1, createdAt: -1 });
 OrderSchema.index({ status: 1 });
 // OrderSchema.index({ rfqId: 1 });
+
+OrderSchema.virtual('buyerOrganization', {
+  ref: 'Organization',
+  localField: 'buyerId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+OrderSchema.virtual('sellerOrganization', {
+  ref: 'Organization',
+  localField: 'sellerId',
+  foreignField: '_id',
+  justOne: true,
+});

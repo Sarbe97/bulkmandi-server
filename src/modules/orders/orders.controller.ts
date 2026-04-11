@@ -69,7 +69,7 @@ export class OrdersController {
   }
 
   @ApiOperation({ summary: 'Get order by ID' })
-  @Roles(UserRole.BUYER, UserRole.SELLER, UserRole['3PL'], UserRole.ADMIN)
+  @Roles(UserRole.BUYER, UserRole.SELLER, UserRole.LOGISTIC, UserRole['3PL'], UserRole.ADMIN)
   @Get('by-id/:id')
   async getOrderById(@Param('id') id: string, @CurrentUser() user: any) {
     return this.ordersService.findByIdOrFail(id);
@@ -111,7 +111,7 @@ export class OrdersController {
   }
 
   @ApiOperation({ summary: 'Get order documents' })
-  @Roles(UserRole.BUYER, UserRole.SELLER, UserRole['3PL'], UserRole.ADMIN)
+  @Roles(UserRole.BUYER, UserRole.SELLER, UserRole.LOGISTIC, UserRole['3PL'], UserRole.ADMIN)
   @Get(':id/documents')
   async getOrderDocuments(@Param('id') id: string) {
     return this.ordersService.getDocuments(id);
