@@ -227,15 +227,19 @@ export class MasterDataController {
 
   @ApiOperation({ summary: 'Bulk upload catalog items (Admin)' })
   @Post('bulk/catalog-items')
-  async bulkUploadCatalogItems(@Body() body: { rows: any[] }) {
-    this.logger.log('Bulk uploading catalog items');
-    return this.masterDataService.bulkUploadCatalogItems(body.rows);
+  async bulkUploadCatalogItems(@Body() body: any, @Query('overwrite') overwrite: string) {
+    this.logger.log(`Bulk uploading catalog items (overwrite: ${overwrite})`);
+    // Accept { data: ... }, { rows: ... }, raw array, or raw string
+    const data = body.data || body.rows || body;
+    return this.masterDataService.bulkUploadCatalogItems(data, overwrite === 'true');
   }
 
   @ApiOperation({ summary: 'Bulk upload catalog listings (Admin)' })
   @Post('bulk/catalog-listings')
-  async bulkUploadCatalogListings(@Body() body: { rows: any[] }) {
-    return this.masterDataService.bulkUploadCatalogListings(body.rows);
+  async bulkUploadCatalogListings(@Body() body: any, @Query('overwrite') overwrite: string) {
+    this.logger.log(`Bulk uploading catalog listings (overwrite: ${overwrite})`);
+    const data = body.data || body.rows || body;
+    return this.masterDataService.bulkUploadCatalogListings(data, overwrite === 'true');
   }
 
   // ══════════════════════════════════════════

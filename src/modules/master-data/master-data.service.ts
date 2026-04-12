@@ -526,7 +526,20 @@ export class MasterDataService implements OnModuleInit {
   //  BULK UPLOAD
   // ══════════════════════════════════════════
 
-  async bulkUploadCatalogItems(rows: any[]) {
+  async bulkUploadCatalogItems(data: any[] | string, overwrite = false) {
+    if (overwrite) {
+      this.logger.warn('Overwriting existing catalog items. Deleting all records...');
+      await this.catalogItemModel.deleteMany({});
+    }
+    let rows: any[] = [];
+    if (typeof data === 'string') {
+      rows = this.parseCsvToJson(data);
+    } else if (Array.isArray(data)) {
+      rows = data;
+    } else {
+      throw new BadRequestException('Invalid data format. Expected CSV string or JSON array.');
+    }
+
     let created = 0, updated = 0;
     const errors: { row: number; error: string }[] = [];
 
@@ -538,12 +551,17 @@ export class MasterDataService implements OnModuleInit {
           continue;
         }
 
-        const isActive = row.is_active !== undefined ? (row.is_active === 'true' || row.is_active === '1' || row.is_active === true) : true;
+        // Standardize isActive (handle both isActive and is_active)
+        const isActiveVal = row.isActive !== undefined ? row.isActive : row.is_active;
+        const isActive = isActiveVal !== undefined ? (isActiveVal === 'true' || isActiveVal === '1' || isActiveVal === true) : true;
 
         let search_keywords: string[] = [];
-        if (typeof row.search_keywords === 'string' && row.search_keywords.trim()) {
+        if (Array.isArray(row.search_keywords)) {
+          search_keywords = row.search_keywords;
+        } else if (typeof row.search_keywords === 'string' && row.search_keywords.trim()) {
           search_keywords = row.search_keywords.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
         }
+
         if (!search_keywords.length) {
           search_keywords = [
             row.category.toLowerCase(),
@@ -552,27 +570,29 @@ export class MasterDataService implements OnModuleInit {
           ];
         }
 
-        // Parse attributes JSON string from CSV
+        // Parse attributes (handle both Object and JSON string)
         let attributes: Record<string, any> = {};
-        if (typeof row.attributes === 'string' && row.attributes.trim()) {
+        if (row.attributes && typeof row.attributes === 'object') {
+          attributes = row.attributes;
+        } else if (typeof row.attributes === 'string' && row.attributes.trim()) {
           let attrStr = row.attributes.trim();
-          // Apply defensive CSV unescaping in case PapaParse sends the raw string
           if (attrStr.startsWith('"') && attrStr.endsWith('"')) {
             attrStr = attrStr.replace(/^"|"$/g, '').replace(/""/g, '"').trim();
           } else if (attrStr.includes('""')) {
             attrStr = attrStr.replace(/""/g, '"').trim();
           }
-
           try {
             attributes = JSON.parse(attrStr);
           } catch (e: any) {
-            this.logger.warn(`Row ${i + 1}: Invalid attributes JSON. Raw string: [${row.attributes}]. Parsed as: [${attrStr}]. Error: ${e.message}`);
+            this.logger.warn(`Row ${i + 1}: Invalid attributes JSON. Error: ${e.message}`);
           }
         }
 
-        // Parse specifications JSON string from CSV
+        // Parse specifications
         let specifications: any = {};
-        if (typeof row.specifications === 'string' && row.specifications.trim()) {
+        if (row.specifications && typeof row.specifications === 'object') {
+          specifications = row.specifications;
+        } else if (typeof row.specifications === 'string' && row.specifications.trim()) {
           let specStr = row.specifications.trim();
           if (specStr.startsWith('"') && specStr.endsWith('"')) {
             specStr = specStr.replace(/^"|"$/g, '').replace(/""/g, '"').trim();
@@ -585,9 +605,6 @@ export class MasterDataService implements OnModuleInit {
         }
 
         const showOnHome = row.showOnHome === 'true' || row.showOnHome === '1' || row.showOnHome === true;
-
-        // Ensure attributes is an object
-        if (!attributes) attributes = {};
 
         const existing = await this.catalogItemModel.findOne({ slug: row.slug });
         if (existing) {
@@ -631,7 +648,20 @@ export class MasterDataService implements OnModuleInit {
     return { created, updated, errors, total: rows.length };
   }
 
-  async bulkUploadCatalogListings(rows: any[]) {
+  async bulkUploadCatalogListings(data: any[] | string, overwrite = false) {
+    if (overwrite) {
+      this.logger.warn('Overwriting existing catalog listings. Deleting all records...');
+      await this.catalogListingModel.deleteMany({});
+    }
+    let rows: any[] = [];
+    if (typeof data === 'string') {
+      rows = this.parseCsvToJson(data);
+    } else if (Array.isArray(data)) {
+      rows = data;
+    } else {
+      throw new BadRequestException('Invalid data format. Expected CSV string or JSON array.');
+    }
+
     let created = 0, updated = 0;
     const errors: { row: number; error: string }[] = [];
 
@@ -639,13 +669,16 @@ export class MasterDataService implements OnModuleInit {
       try {
         const row = rows[i];
         const city = row.city ? row.city.toLowerCase().trim() : '';
-        if (!row.brand || !city || !row.basePrice || !row.attributes) {
+        if (!row.brand || !city || (!row.basePrice && row.basePrice !== 0) || !row.attributes) {
           errors.push({ row: i + 1, error: 'Missing required fields: brand, city, basePrice, attributes' });
           continue;
         }
 
+        // Parse attributes
         let attributes: Record<string, string> = {};
-        if (typeof row.attributes === 'string' && row.attributes.trim()) {
+        if (row.attributes && typeof row.attributes === 'object') {
+          attributes = row.attributes;
+        } else if (typeof row.attributes === 'string' && row.attributes.trim()) {
           let attrStr = row.attributes.trim();
           if (attrStr.startsWith('"') && attrStr.endsWith('"')) {
             attrStr = attrStr.replace(/^"|"$/g, '').replace(/""/g, '"').trim();
@@ -661,10 +694,11 @@ export class MasterDataService implements OnModuleInit {
 
         const supplier_name = row.supplier_name ? row.supplier_name.trim().toLowerCase() : '';
         const lead_time = row.lead_time ? Number(row.lead_time) : 0;
-        const isActive = row.is_active !== undefined ? (row.is_active === 'true' || row.is_active === '1' || row.is_active === true) : true;
+        
+        const isActiveVal = row.isActive !== undefined ? row.isActive : row.is_active;
+        const isActive = isActiveVal !== undefined ? (isActiveVal === 'true' || isActiveVal === '1' || isActiveVal === true) : true;
 
         // Resolve catalogItemId from slug
-        let itemId = row.catalogItemId;
         let item: any = null;
         if (row.catalogItemSlug) {
           item = await this.catalogItemModel.findOne({ slug: row.catalogItemSlug });
@@ -672,16 +706,16 @@ export class MasterDataService implements OnModuleInit {
             errors.push({ row: i + 1, error: `Catalog item "${row.catalogItemSlug}" not found` });
             continue;
           }
-          itemId = item._id;
-        } else if (itemId) {
-          item = await this.catalogItemModel.findById(itemId);
+        } else if (row.catalogItemId) {
+          item = await this.catalogItemModel.findById(row.catalogItemId);
         }
 
-        if (!itemId || !item) {
-          errors.push({ row: i + 1, error: 'No catalogItemId or catalogItemSlug provided / valid' });
+        if (!item) {
+          errors.push({ row: i + 1, error: 'No valid catalogItemId or catalogItemSlug provided' });
           continue;
         }
 
+        const catalogItemId = item._id;
         const catalogItemSlug = item.slug;
 
         // Validate attributes against catalog and DO NOT store nulls if inapplicable
@@ -720,7 +754,7 @@ export class MasterDataService implements OnModuleInit {
         } else {
           await this.catalogListingModel.create({
             uniqueKey,
-            catalogItemId: itemId,
+            catalogItemId,
             catalogItemSlug,
             brand: row.brand,
             city,

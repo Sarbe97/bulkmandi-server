@@ -3611,7 +3611,16 @@
     "/api/v1/master-data/bulk/catalog-items": {
       "post": {
         "operationId": "MasterDataController_bulkUploadCatalogItems",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "overwrite",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "201": {
             "description": ""
@@ -3626,7 +3635,16 @@
     "/api/v1/master-data/bulk/catalog-listings": {
       "post": {
         "operationId": "MasterDataController_bulkUploadCatalogListings",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "overwrite",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "201": {
             "description": ""
