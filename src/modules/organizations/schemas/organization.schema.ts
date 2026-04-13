@@ -138,8 +138,11 @@ export class Organization {
   @Prop({ type: [String], default: [] })
   lastRequestedFields?: string[]; // Fields that need update
 
+  @Prop({ type: [{ tag: String, isVerified: Boolean }], default: [] })
+  expertiseTags: Array<{ tag: string; isVerified: boolean }>;
+
   @Prop()
-  lastAdminRemarks?: string; // Admin's message for info request
+  lastAdminRemarks?: string;
 
   createdAt?: Date;
   updatedAt?: Date;

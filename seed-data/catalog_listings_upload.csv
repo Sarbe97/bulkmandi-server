@@ -1,6 +1,0 @@
-catalogItemSlug,supplier_name,brand,city,basePrice,stockQty,moq,attributes,lead_time,isActive
-primary_tmt,ABC Steel,Tata Tiscon,bhubaneswar,52000,500,5,"{""grade"":""Fe500"",""size"":""12mm""}",2,true
-primary_tmt,ABC Steel,Tata Tiscon,bhubaneswar,53000,300,5,"{""grade"":""Fe500"",""size"":""16mm""}",2,true
-primary_tmt,ABC Steel,JSW Neo,bhubaneswar,51000,800,10,"{""grade"":""Fe500D"",""size"":""12mm""}",3,true
-wire_rod,XYZ Metals,SAIL,kolkata,48000,1000,20,"{""grade"":""SAE1008"",""size"":""5.5mm""}",4,true
-aluminium_ingot,Global Traders,Hindalco,mumbai,210000,50,1,"{""grade"":""P1020""}",1,true

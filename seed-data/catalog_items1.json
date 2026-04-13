@@ -1,0 +1,560 @@
+[
+    {
+        "_id": "69c1be176ad74568f5f22635",
+        "product_type": "Sponge Iron (DRI)",
+        "slug": "sponge_iron_dri",
+        "category": "Ferrous Metals",
+        "subcategory": "Semi-Finished",
+        "displayOrder": 1,
+        "image": "/images/sponge_pellet.png",
+        "description": "High-quality Direct Reduced Iron (DRI) pellets for steelmaking.",
+        "unit": "MT",
+        "hsnCode": "7203",
+        "attributes": {},
+        "specifications": {
+            "gst_rate": 18,
+            "min_order_quantity": 50
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "sponge",
+            "pellet",
+            "iron",
+            "dri",
+            "direct reduced iron"
+        ],
+        "createdAt": "2026-03-23T22:26:31.407Z",
+        "updatedAt": "2026-03-23T22:26:31.407Z",
+        "__v": 0
+    },
+    {
+        "_id": "69c1be176ad74568f5f22640",
+        "product_type": "Billets (Secondary Producers)",
+        "slug": "ms_billets",
+        "category": "Ferrous Metals",
+        "subcategory": "Long Products",
+        "displayOrder": 2,
+        "image": "/images/ingot.png",
+        "description": "Continuous cast mild steel billets from secondary producers for re-rolling.",
+        "unit": "MT",
+        "hsnCode": "7207",
+        "attributes": {
+            "grade": [
+                "IS2830",
+                "3SP/4SP"
+            ],
+            "size": [
+                "100mm",
+                "130mm",
+                "150mm"
+            ]
+        },
+        "specifications": {
+            "standard": "IS 2830",
+            "gst_rate": 18,
+            "min_order_quantity": 100
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "billets",
+            "secondary",
+            "steel billets",
+            "ms billets",
+            "bits"
+        ],
+        "createdAt": "2026-03-23T22:26:31.415Z",
+        "updatedAt": "2026-03-23T22:26:31.415Z",
+        "__v": 0
+    },
+    {
+        "_id": "ferrous_new_001",
+        "product_type": "Iron Ore (Fines + Lumps)",
+        "slug": "iron_ore_fines_lumps",
+        "category": "Ferrous Metals",
+        "subcategory": "Raw Materials",
+        "displayOrder": 3,
+        "image": "/images/iron_ore.png",
+        "description": "High-grade iron ore fines and lumps for blast furnace and DRI plants.",
+        "unit": "MT",
+        "hsnCode": "2601",
+        "attributes": {
+            "grade": [
+                "62% Fe",
+                "63% Fe",
+                "64% Fe"
+            ],
+            "form": [
+                "Fines",
+                "Lumps"
+            ]
+        },
+        "specifications": {
+            "gst_rate": 5,
+            "min_order_quantity": 500
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "iron ore",
+            "fines",
+            "lumps",
+            "fe",
+            "ore",
+            "hematite"
+        ],
+        "createdAt": "2026-04-12T00:00:00.000Z",
+        "updatedAt": "2026-04-12T00:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "ferrous_new_002",
+        "product_type": "Steel Scrap (MS + Shredded)",
+        "slug": "steel_scrap_ms_shredded",
+        "category": "Ferrous Metals",
+        "subcategory": "Scrap",
+        "displayOrder": 4,
+        "image": "/images/steel_scrap.png",
+        "description": "Mild steel and shredded steel scrap for EAF and induction furnace melting.",
+        "unit": "MT",
+        "hsnCode": "7204",
+        "attributes": {
+            "type": [
+                "MS Scrap",
+                "Shredded Scrap"
+            ],
+            "grade": [
+                "ISRI 200",
+                "ISRI 211"
+            ]
+        },
+        "specifications": {
+            "gst_rate": 18,
+            "min_order_quantity": 25
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "steel scrap",
+            "ms scrap",
+            "shredded",
+            "isri",
+            "heavy melting scrap",
+            "hms"
+        ],
+        "createdAt": "2026-04-12T00:00:00.000Z",
+        "updatedAt": "2026-04-12T00:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "ferrous_new_003",
+        "product_type": "Pig Iron",
+        "slug": "pig_iron",
+        "category": "Ferrous Metals",
+        "subcategory": "Semi-Finished",
+        "displayOrder": 5,
+        "image": "/images/pig_iron.png",
+        "description": "Basic grade pig iron for foundries and steelmaking.",
+        "unit": "MT",
+        "hsnCode": "7201",
+        "attributes": {
+            "grade": [
+                "Foundry Grade",
+                "Steelmaking Grade"
+            ]
+        },
+        "specifications": {
+            "gst_rate": 18,
+            "min_order_quantity": 50
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "pig iron",
+            "foundry",
+            "basic pig iron",
+            "cast iron"
+        ],
+        "createdAt": "2026-04-12T00:00:00.000Z",
+        "updatedAt": "2026-04-12T00:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "ferrous_new_004",
+        "product_type": "Ferro Alloys",
+        "slug": "ferro_alloys",
+        "category": "Ferrous Metals",
+        "subcategory": "Alloys",
+        "displayOrder": 6,
+        "image": "/images/ferro_alloys.png",
+        "description": "Ferro alloys for steelmaking and foundry applications.",
+        "unit": "MT",
+        "hsnCode": "7202",
+        "attributes": {
+            "grade": [
+                "Ferro Manganese",
+                "Ferro Silicon",
+                "Ferro Chrome"
+            ]
+        },
+        "specifications": {
+            "gst_rate": 18,
+            "min_order_quantity": 20
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "ferro alloys",
+            "ferro manganese",
+            "ferro silicon",
+            "ferro chrome",
+            "femn",
+            "fesi",
+            "ferrochrome",
+            "hc ferro chrome",
+            "lc ferro chrome"
+        ],
+        "createdAt": "2026-04-12T00:00:00.000Z",
+        "updatedAt": "2026-04-12T00:00:00.000Z",
+        "__v": 0
+    },
+    {
+        "_id": "69c1be176ad74568f5f22646",
+        "product_type": "TMT Bars (Primary)",
+        "slug": "primary_tmt",
+        "category": "Ferrous Metals",
+        "subcategory": "Long Products",
+        "displayOrder": 1,
+        "image": "/images/wire_rod.png",
+        "description": "Premium grade reinforcement bars with high ductility and earthquake resistance.",
+        "unit": "MT",
+        "hsnCode": "7214",
+        "attributes": {
+            "grade": [
+                "Fe500",
+                "Fe500D"
+            ],
+            "size": [
+                "8mm",
+                "10mm",
+                "12mm",
+                "16mm",
+                "20mm",
+                "25mm",
+                "32mm"
+            ]
+        },
+        "specifications": {
+            "standard": "IS 1786:2008",
+            "gst_rate": 18,
+            "min_order_quantity": 20
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "tmt",
+            "saria",
+            "reinforcement",
+            "rebar",
+            "steel rod"
+        ],
+        "createdAt": "2026-03-23T22:26:31.418Z",
+        "updatedAt": "2026-03-23T22:26:31.418Z",
+        "__v": 0
+    },
+    {
+        "_id": "69c1be176ad74568f5f22649",
+        "product_type": "TMT Bars (Secondary)",
+        "slug": "secondary_tmt",
+        "category": "Ferrous Metals",
+        "subcategory": "Long Products",
+        "displayOrder": 2,
+        "image": "/images/wire_rod.png",
+        "description": "Cost-effective TMT bars ideal for general construction and housing projects.",
+        "unit": "MT",
+        "hsnCode": "7214",
+        "attributes": {
+            "grade": [
+                "Fe500",
+                "Fe500D",
+                "Fe550"
+            ],
+            "size": [
+                "8mm",
+                "10mm",
+                "12mm",
+                "16mm"
+            ]
+        },
+        "specifications": {
+            "standard": "IS 1786:2008",
+            "gst_rate": 18,
+            "min_order_quantity": 25
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "tmt",
+            "saria",
+            "reinforcement",
+            "rebar",
+            "steel rod"
+        ],
+        "createdAt": "2026-03-23T22:26:31.420Z",
+        "updatedAt": "2026-03-23T22:26:31.420Z",
+        "__v": 0
+    },
+    {
+        "_id": "69c1be176ad74568f5f22652",
+        "product_type": "Aluminium Wire Rod",
+        "slug": "aluminium_wire_rod",
+        "category": "Non Ferrous",
+        "subcategory": "Long Products",
+        "displayOrder": 1,
+        "image": "/images/aluminium_wire_rod.png",
+        "description": "High-conductivity aluminium wire rods for electrical conductor manufacturing.",
+        "unit": "MT",
+        "hsnCode": "7604",
+        "attributes": {
+            "grade": [
+                "EC",
+                "Alloy"
+            ],
+            "size": [
+                "9.5mm",
+                "12mm"
+            ]
+        },
+        "specifications": {
+            "is_lme_linked": true,
+            "gst_rate": 18,
+            "min_order_quantity": 5
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "aluminium",
+            "wire",
+            "rod"
+        ],
+        "createdAt": "2026-03-23T22:26:31.424Z",
+        "updatedAt": "2026-03-23T22:26:31.424Z",
+        "__v": 0
+    },
+    {
+        "_id": "69c1be176ad74568f5f22657",
+        "product_type": "CCR Wire Rod",
+        "slug": "ccr_wire_rod",
+        "category": "Non Ferrous",
+        "subcategory": "Long Products",
+        "displayOrder": 2,
+        "image": "/images/ccr_wire_rod.png",
+        "description": "Continuous Cast Copper Wire Rods with superior surface finish for fine wire drawing.",
+        "unit": "MT",
+        "hsnCode": "7407",
+        "attributes": {
+            "grade": [
+                "Domestic"
+            ],
+            "size": [
+                "8mm"
+            ]
+        },
+        "specifications": {
+            "is_lme_linked": true,
+            "gst_rate": 18,
+            "min_order_quantity": 2
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "ccr",
+            "wire",
+            "rod"
+        ],
+        "createdAt": "2026-03-23T22:26:31.426Z",
+        "updatedAt": "2026-03-23T22:26:31.426Z",
+        "__v": 0
+    },
+    {
+        "_id": "69c1be176ad74568f5f2265a",
+        "product_type": "Copper Wire Rod",
+        "slug": "copper_wire_rod",
+        "category": "Non Ferrous",
+        "subcategory": "Long Products",
+        "displayOrder": 3,
+        "image": "/images/copper_wire_rod.png",
+        "description": "Electrolytic Tough Pitch (ETP) copper rods for cable and electrical industries.",
+        "unit": "MT",
+        "hsnCode": "7407",
+        "attributes": {
+            "grade": [
+                "ETP"
+            ],
+            "size": [
+                "8mm"
+            ]
+        },
+        "specifications": {
+            "is_lme_linked": true,
+            "gst_rate": 18,
+            "min_order_quantity": 5
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "copper",
+            "wire",
+            "rod"
+        ],
+        "createdAt": "2026-03-23T22:26:31.427Z",
+        "updatedAt": "2026-03-23T22:26:31.427Z",
+        "__v": 0
+    },
+    {
+        "_id": "69c1be176ad74568f5f2265d",
+        "product_type": "Copper Cathode",
+        "slug": "copper_cathode",
+        "category": "Non Ferrous",
+        "subcategory": "Long Products",
+        "displayOrder": 4,
+        "image": "/images/copper_cathode.png",
+        "description": "High-purity Grade A copper cathodes for melting and alloying applications.",
+        "unit": "MT",
+        "hsnCode": "7403",
+        "attributes": {},
+        "specifications": {
+            "is_lme_linked": true,
+            "gst_rate": 18,
+            "min_order_quantity": 1
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "copper",
+            "cathode"
+        ],
+        "createdAt": "2026-03-23T22:26:31.429Z",
+        "updatedAt": "2026-03-23T22:26:31.429Z",
+        "__v": 0
+    },
+    {
+        "_id": "69c1be176ad74568f5f22660",
+        "product_type": "Aluminium Ingot",
+        "slug": "aluminium_ingot",
+        "category": "Non Ferrous",
+        "subcategory": "Semi-Finished",
+        "displayOrder": 1,
+        "image": "/images/ingot.png",
+        "description": "Primary aluminium ingots (P1020) for casting and extrusion industries.",
+        "unit": "MT",
+        "hsnCode": "7601",
+        "attributes": {
+            "grade": [
+                "P1020"
+            ]
+        },
+        "specifications": {
+            "is_lme_linked": true,
+            "gst_rate": 18,
+            "min_order_quantity": 5
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "aluminium",
+            "ingot"
+        ],
+        "createdAt": "2026-03-23T22:26:31.431Z",
+        "updatedAt": "2026-03-23T22:26:31.431Z",
+        "__v": 0
+    },
+    {
+        "_id": "69c1be176ad74568f5f22663",
+        "product_type": "Aluminium T/Sow Ingot",
+        "slug": "aluminium_t_sow_ingot",
+        "category": "Non Ferrous",
+        "subcategory": "Semi-Finished",
+        "displayOrder": 2,
+        "image": "/images/ingot.png",
+        "description": "Industrial grade T-Sow ingots for large-scale foundry operations.",
+        "unit": "MT",
+        "hsnCode": "7601",
+        "attributes": {
+            "grade": [
+                "P1020"
+            ]
+        },
+        "specifications": {
+            "is_lme_linked": true,
+            "gst_rate": 18,
+            "min_order_quantity": 10
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "aluminium",
+            "t",
+            "sow",
+            "ingot"
+        ],
+        "createdAt": "2026-03-23T22:26:31.432Z",
+        "updatedAt": "2026-03-23T22:26:31.432Z",
+        "__v": 0
+    },
+    {
+        "_id": "69c1be176ad74568f5f22666",
+        "product_type": "Lead Ingot",
+        "slug": "lead_ingot",
+        "category": "Non Ferrous",
+        "subcategory": "Semi-Finished",
+        "displayOrder": 3,
+        "image": "/images/ingot.png",
+        "description": "Refined lead ingots with 99.97% purity for battery and oxide manufacturing.",
+        "unit": "MT",
+        "hsnCode": "7801",
+        "attributes": {},
+        "specifications": {
+            "is_lme_linked": true,
+            "gst_rate": 18,
+            "min_order_quantity": 1
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "lead",
+            "ingot"
+        ],
+        "createdAt": "2026-03-23T22:26:31.433Z",
+        "updatedAt": "2026-03-23T22:26:31.433Z",
+        "__v": 0
+    },
+    {
+        "_id": "69c1be176ad74568f5f22669",
+        "product_type": "Zinc Ingot",
+        "slug": "zinc_ingot",
+        "category": "Non Ferrous",
+        "subcategory": "Semi-Finished",
+        "displayOrder": 4,
+        "image": "/images/ingot.png",
+        "description": "Special High Grade (SHG) Zinc ingots for galvanizing and die-casting.",
+        "unit": "MT",
+        "hsnCode": "7901",
+        "attributes": {},
+        "specifications": {
+            "is_lme_linked": true,
+            "gst_rate": 18,
+            "min_order_quantity": 5
+        },
+        "showOnHome": true,
+        "isActive": true,
+        "search_keywords": [
+            "zinc",
+            "ingot"
+        ],
+        "createdAt": "2026-03-23T22:26:31.434Z",
+        "updatedAt": "2026-03-23T22:26:31.434Z",
+        "__v": 0
+    }
+]

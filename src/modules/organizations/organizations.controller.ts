@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Param, Post, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Res, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from "@nestjs/swagger";
 import { CustomLoggerService } from "src/core/logger/custom.logger.service";
 import { FileStorageService } from "../../core/file/services/file-storage.service";
@@ -106,4 +106,14 @@ export class OrganizationsController {
     }
   }
 
+  /**
+   * Update and Verify Expertise Tags
+   * PATCH /organizations/:id/expertise-tags
+   */
+  @Patch(":id/expertise-tags")
+  @ApiOperation({ summary: "Update/Verify expertise tags for an organization" })
+  async updateExpertiseTags(@Param("id") id: string, @Body() body: { tags: Array<{ tag: string, isVerified: boolean }> }) {
+    this.logger.log(`PATCH /organizations/${id}/expertise-tags called`, "OrganizationsController.updateExpertiseTags");
+    return this.organizationsService.updateExpertiseTags(id, body.tags);
+  }
 }

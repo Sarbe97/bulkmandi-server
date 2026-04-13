@@ -106,14 +106,14 @@ export class MasterDataService implements OnModuleInit {
       return;
     }
 
-    this.logger.log('Seeding catalog data from CSV...');
+    this.logger.log('Seeding catalog data from JSON...');
 
     try {
-      const itemsPath = path.join(process.cwd(), 'seed-data', 'catalog_items_upload.csv');
-      const listingsPath = path.join(process.cwd(), 'seed-data', 'catalog_listings_upload.csv');
+      const itemsPath = path.join(process.cwd(), 'seed-data', 'catalog_items.json');
+      const listingsPath = path.join(process.cwd(), 'seed-data', 'catalog_listings.json');
 
       if (fs.existsSync(itemsPath)) {
-        const itemRows = this.parseCsvToJson(fs.readFileSync(itemsPath, 'utf8'));
+        const itemRows = JSON.parse(fs.readFileSync(itemsPath, 'utf8'));
         const resultItems = await this.bulkUploadCatalogItems(itemRows);
         this.logger.log(`Seeded catalog items: ${resultItems.created} created, ${resultItems.updated} updated. Errors: ${resultItems.errors.length}`);
         if (resultItems.errors.length > 0) {
@@ -122,32 +122,13 @@ export class MasterDataService implements OnModuleInit {
       }
 
       if (fs.existsSync(listingsPath)) {
-        const listingRows = this.parseCsvToJson(fs.readFileSync(listingsPath, 'utf8'));
+        const listingRows = JSON.parse(fs.readFileSync(listingsPath, 'utf8'));
         const resultListings = await this.bulkUploadCatalogListings(listingRows);
         this.logger.log(`Seeded catalog listings: ${resultListings.created} created.`);
       }
     } catch (e) {
-      this.logger.error('Failed to seed catalog data from CSV', e);
+      this.logger.error('Failed to seed catalog data from JSON', e);
     }
-  }
-
-  private parseCsvToJson(csvText: string): any[] {
-    const lines = csvText.split('\n').map(l => l.trim()).filter(Boolean);
-    if (lines.length < 2) return [];
-
-    const headers = lines[0].split(',').map(h => h.trim());
-    return lines.slice(1).map(line => {
-      // Regex perfectly splits by comma, ignoring commas inside double-quotes
-      const data = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-      const row: any = {};
-      headers.forEach((h, i) => {
-        let val = data[i] || '';
-        // Remove outer quotes, then replace escaped "" with "
-        val = val.trim().replace(/^"|"$/g, '').replace(/""/g, '"').trim();
-        row[h] = val;
-      });
-      return row;
-    });
   }
 
   // ══════════════════════════════════════════
@@ -531,13 +512,14 @@ export class MasterDataService implements OnModuleInit {
       this.logger.warn('Overwriting existing catalog items. Deleting all records...');
       await this.catalogItemModel.deleteMany({});
     }
-    let rows: any[] = [];
-    if (typeof data === 'string') {
-      rows = this.parseCsvToJson(data);
-    } else if (Array.isArray(data)) {
-      rows = data;
-    } else {
-      throw new BadRequestException('Invalid data format. Expected CSV string or JSON array.');
+    
+    let rows: any[] = Array.isArray(data) ? data : [];
+    if (!Array.isArray(data) && typeof data === 'string') {
+      try {
+        rows = JSON.parse(data);
+      } catch (e) {
+        throw new BadRequestException('Invalid JSON data format.');
+      }
     }
 
     let created = 0, updated = 0;
@@ -551,60 +533,12 @@ export class MasterDataService implements OnModuleInit {
           continue;
         }
 
-        // Standardize isActive (handle both isActive and is_active)
-        const isActiveVal = row.isActive !== undefined ? row.isActive : row.is_active;
-        const isActive = isActiveVal !== undefined ? (isActiveVal === 'true' || isActiveVal === '1' || isActiveVal === true) : true;
-
-        let search_keywords: string[] = [];
-        if (Array.isArray(row.search_keywords)) {
-          search_keywords = row.search_keywords;
-        } else if (typeof row.search_keywords === 'string' && row.search_keywords.trim()) {
-          search_keywords = row.search_keywords.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
-        }
-
-        if (!search_keywords.length) {
-          search_keywords = [
-            row.category.toLowerCase(),
-            row.subcategory.toLowerCase(),
-            row.product_type.toLowerCase()
-          ];
-        }
-
-        // Parse attributes (handle both Object and JSON string)
-        let attributes: Record<string, any> = {};
-        if (row.attributes && typeof row.attributes === 'object') {
-          attributes = row.attributes;
-        } else if (typeof row.attributes === 'string' && row.attributes.trim()) {
-          let attrStr = row.attributes.trim();
-          if (attrStr.startsWith('"') && attrStr.endsWith('"')) {
-            attrStr = attrStr.replace(/^"|"$/g, '').replace(/""/g, '"').trim();
-          } else if (attrStr.includes('""')) {
-            attrStr = attrStr.replace(/""/g, '"').trim();
-          }
-          try {
-            attributes = JSON.parse(attrStr);
-          } catch (e: any) {
-            this.logger.warn(`Row ${i + 1}: Invalid attributes JSON. Error: ${e.message}`);
-          }
-        }
-
-        // Parse specifications
-        let specifications: any = {};
-        if (row.specifications && typeof row.specifications === 'object') {
-          specifications = row.specifications;
-        } else if (typeof row.specifications === 'string' && row.specifications.trim()) {
-          let specStr = row.specifications.trim();
-          if (specStr.startsWith('"') && specStr.endsWith('"')) {
-            specStr = specStr.replace(/^"|"$/g, '').replace(/""/g, '"').trim();
-          }
-          try {
-            specifications = JSON.parse(specStr);
-          } catch (e: any) {
-            this.logger.warn(`Row ${i + 1}: Invalid specifications JSON. Error: ${e.message}`);
-          }
-        }
-
-        const showOnHome = row.showOnHome === 'true' || row.showOnHome === '1' || row.showOnHome === true;
+        const isActive = row.isActive !== undefined ? row.isActive : true;
+        const search_keywords = Array.isArray(row.search_keywords) ? row.search_keywords : [];
+        const attributes = row.attributes || {};
+        const specifications = row.specifications || {};
+        const technical_specs = row.technical_specs || {};
+        const showOnHome = !!row.showOnHome;
 
         const existing = await this.catalogItemModel.findOne({ slug: row.slug });
         if (existing) {
@@ -618,6 +552,7 @@ export class MasterDataService implements OnModuleInit {
               image: row.image || existing.image,
               attributes: row.attributes ? attributes : existing.attributes,
               specifications: row.specifications ? specifications : existing.specifications,
+              technical_specs: row.technical_specs ? technical_specs : existing.technical_specs,
               showOnHome: row.showOnHome !== undefined ? showOnHome : existing.showOnHome,
               search_keywords: row.search_keywords ? search_keywords : existing.search_keywords,
               isActive,
@@ -634,6 +569,7 @@ export class MasterDataService implements OnModuleInit {
             image: row.image || '',
             attributes,
             specifications,
+            technical_specs,
             showOnHome,
             search_keywords,
             isActive,
@@ -653,13 +589,14 @@ export class MasterDataService implements OnModuleInit {
       this.logger.warn('Overwriting existing catalog listings. Deleting all records...');
       await this.catalogListingModel.deleteMany({});
     }
-    let rows: any[] = [];
-    if (typeof data === 'string') {
-      rows = this.parseCsvToJson(data);
-    } else if (Array.isArray(data)) {
-      rows = data;
-    } else {
-      throw new BadRequestException('Invalid data format. Expected CSV string or JSON array.');
+    
+    let rows: any[] = Array.isArray(data) ? data : [];
+    if (!Array.isArray(data) && typeof data === 'string') {
+      try {
+        rows = JSON.parse(data);
+      } catch (e) {
+        throw new BadRequestException('Invalid JSON data format.');
+      }
     }
 
     let created = 0, updated = 0;
@@ -674,73 +611,40 @@ export class MasterDataService implements OnModuleInit {
           continue;
         }
 
-        // Parse attributes
-        let attributes: Record<string, string> = {};
-        if (row.attributes && typeof row.attributes === 'object') {
-          attributes = row.attributes;
-        } else if (typeof row.attributes === 'string' && row.attributes.trim()) {
-          let attrStr = row.attributes.trim();
-          if (attrStr.startsWith('"') && attrStr.endsWith('"')) {
-            attrStr = attrStr.replace(/^"|"$/g, '').replace(/""/g, '"').trim();
-          } else if (attrStr.includes('""')) {
-            attrStr = attrStr.replace(/""/g, '"').trim();
-          }
-          try {
-            attributes = JSON.parse(attrStr);
-          } catch (e: any) {
-            this.logger.warn(`Listing Row ${i + 1}: Invalid attributes JSON. Error: ${e.message}`);
-          }
-        }
-
+        const attributes = row.attributes || {};
         const supplier_name = row.supplier_name ? row.supplier_name.trim().toLowerCase() : '';
         const lead_time = row.lead_time ? Number(row.lead_time) : 0;
-        
-        const isActiveVal = row.isActive !== undefined ? row.isActive : row.is_active;
-        const isActive = isActiveVal !== undefined ? (isActiveVal === 'true' || isActiveVal === '1' || isActiveVal === true) : true;
+        const isActive = row.isActive !== undefined ? row.isActive : true;
 
-        // Resolve catalogItemId from slug
+        // Resolve catalogItemId from slug or ID
         let item: any = null;
         if (row.catalogItemSlug) {
           item = await this.catalogItemModel.findOne({ slug: row.catalogItemSlug });
-          if (!item) {
-            errors.push({ row: i + 1, error: `Catalog item "${row.catalogItemSlug}" not found` });
-            continue;
-          }
         } else if (row.catalogItemId) {
           item = await this.catalogItemModel.findById(row.catalogItemId);
         }
 
         if (!item) {
-          errors.push({ row: i + 1, error: 'No valid catalogItemId or catalogItemSlug provided' });
+          errors.push({ row: i + 1, error: `Catalog item for "${row.catalogItemSlug || row.catalogItemId}" not found` });
           continue;
         }
 
         const catalogItemId = item._id;
         const catalogItemSlug = item.slug;
 
-        // Validate attributes against catalog and DO NOT store nulls if inapplicable
-        let isValidAttributes = true;
+        // Normalize attributes against catalog
         const normalizedAttributes: Record<string, string> = {};
-
         for (const key of Object.keys(item.attributes || {})) {
           const providedValue = attributes[key];
           if (providedValue) {
-            const allowedValues = Array.isArray(item.attributes[key]) ? item.attributes[key] : [];
-            if (allowedValues.length > 0 && !allowedValues.includes(providedValue)) {
-              errors.push({ row: i + 1, error: `Invalid attribute value for '${key}': '${providedValue}'. Allowed: ${allowedValues.join(', ')}` });
-              isValidAttributes = false;
-              break;
-            }
             normalizedAttributes[key] = providedValue;
           }
         }
-        if (!isValidAttributes) continue;
 
         const uniqueKeyProps = Object.keys(normalizedAttributes).sort().map(k => `${k}=${normalizedAttributes[k]}`).join('|');
         const uniqueKey = `${catalogItemSlug}|${supplier_name}|${city}${uniqueKeyProps ? '|' + uniqueKeyProps : ''}`;
 
         const existing = await this.catalogListingModel.findOne({ uniqueKey });
-
         if (existing) {
           existing.basePrice = Number(row.basePrice);
           existing.stockQty = row.stockQty != null ? Number(row.stockQty) : existing.stockQty;

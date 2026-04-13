@@ -32,6 +32,7 @@ import { DevModule } from './modules/dev/dev.module';
 import { OtpModule } from './modules/otp/otp.module';
 import { NegotiationsModule } from './modules/negotiations/negotiations.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { EnquiriesModule } from './modules/enquiries/enquiries.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     OtpModule,
     NegotiationsModule,
     ReportsModule,
+    EnquiriesModule,
 
   ],
   controllers: [AppController],

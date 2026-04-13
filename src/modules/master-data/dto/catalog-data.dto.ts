@@ -60,6 +60,11 @@ export class CreateCatalogItemDto {
   @IsObject()
   specifications?: Record<string, any>;
 
+  @ApiPropertyOptional({ example: { yield_strength: { min: 500, unit: 'N/mm²' } } })
+  @IsOptional()
+  @IsObject()
+  technical_specs?: Record<string, any>;
+
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()
@@ -84,6 +89,7 @@ export class UpdateCatalogItemDto {
   @IsOptional() @IsObject() attributes?: Record<string, any>;
   @IsOptional() @IsString({ each: true }) search_keywords?: string[];
   @IsOptional() @IsObject() specifications?: Record<string, any>;
+  @IsOptional() @IsObject() technical_specs?: Record<string, any>;
   @IsOptional() @IsBoolean() showOnHome?: boolean;
   @IsOptional() @IsBoolean() isActive?: boolean;
 }

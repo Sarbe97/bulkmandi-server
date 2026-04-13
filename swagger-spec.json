@@ -246,6 +246,35 @@
         ]
       }
     },
+    "/api/v1/organizations/{id}/expertise-tags": {
+      "patch": {
+        "operationId": "OrganizationsController_updateExpertiseTags",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update/Verify expertise tags for an organization",
+        "tags": [
+          "Organizations"
+        ]
+      }
+    },
     "/api/v1/users/export-csv": {
       "get": {
         "operationId": "UsersController_exportCsv",
@@ -5738,6 +5767,151 @@
           "Negotiations"
         ]
       }
+    },
+    "/api/v1/enquiries/submit": {
+      "post": {
+        "operationId": "EnquiriesController_submitEnquiry",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Enquiry submitted successfully"
+          },
+          "400": {
+            "description": "Invalid data or OTP"
+          }
+        },
+        "summary": "Submit a new product enquiry (Buy/Sell)",
+        "tags": [
+          "Enquiries"
+        ]
+      }
+    },
+    "/api/v1/enquiries/seller/leads": {
+      "get": {
+        "operationId": "EnquiriesController_getSellerLeads",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get categorized leads for the current seller",
+        "tags": [
+          "Enquiries"
+        ]
+      }
+    },
+    "/api/v1/enquiries/{id}/track-click": {
+      "post": {
+        "operationId": "EnquiriesController_trackEngagement",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Track Call/WhatsApp engagement",
+        "tags": [
+          "Enquiries"
+        ]
+      }
+    },
+    "/api/v1/enquiries": {
+      "get": {
+        "operationId": "EnquiriesController_getAllEnquiries",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get all enquiries (Admin only)",
+        "tags": [
+          "Enquiries"
+        ]
+      }
+    },
+    "/api/v1/enquiries/{id}": {
+      "get": {
+        "operationId": "EnquiriesController_getEnquiry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get enquiry by ID",
+        "tags": [
+          "Enquiries"
+        ]
+      }
+    },
+    "/api/v1/enquiries/{id}/status": {
+      "patch": {
+        "operationId": "EnquiriesController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update enquiry status",
+        "tags": [
+          "Enquiries"
+        ]
+      }
     }
   },
   "info": {
@@ -5995,6 +6169,15 @@
               "standard": "IS 1786:2008",
               "gst_rate": 18,
               "min_order_quantity": 25
+            }
+          },
+          "technical_specs": {
+            "type": "object",
+            "example": {
+              "yield_strength": {
+                "min": 500,
+                "unit": "N/mm²"
+              }
             }
           },
           "showOnHome": {

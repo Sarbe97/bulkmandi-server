@@ -43,6 +43,9 @@ export class CatalogItem {
     min_order_quantity?: number;
   };
 
+  @Prop({ type: Object, default: {} })
+  technical_specs: Record<string, any>;
+
   @Prop({ default: false })
   showOnHome: boolean;
 

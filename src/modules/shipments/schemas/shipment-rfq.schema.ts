@@ -58,6 +58,4 @@ export class ShipmentRfq {
 
 export const ShipmentRfqSchema = SchemaFactory.createForClass(ShipmentRfq);
 ShipmentRfqSchema.index({ status: 1 });
-ShipmentRfqSchema.index({ orderId: 1 }, { unique: true });
-ShipmentRfqSchema.index({ rfqId: 1 }, { unique: true });
 ShipmentRfqSchema.index({ originPin: 1 });

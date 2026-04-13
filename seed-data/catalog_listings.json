@@ -1,0 +1,76 @@
+[
+  {
+    "catalogItemSlug": "primary_tmt",
+    "supplier_name": "ABC Steel",
+    "brand": "Tata Tiscon",
+    "city": "bhubaneswar",
+    "basePrice": 52000,
+    "stockQty": 500,
+    "moq": 5,
+    "attributes": {
+      "grade": "Fe500",
+      "size": "12mm"
+    },
+    "lead_time": 2,
+    "isActive": true
+  },
+  {
+    "catalogItemSlug": "primary_tmt",
+    "supplier_name": "ABC Steel",
+    "brand": "Tata Tiscon",
+    "city": "bhubaneswar",
+    "basePrice": 53000,
+    "stockQty": 300,
+    "moq": 5,
+    "attributes": {
+      "grade": "Fe500",
+      "size": "16mm"
+    },
+    "lead_time": 2,
+    "isActive": true
+  },
+  {
+    "catalogItemSlug": "primary_tmt",
+    "supplier_name": "ABC Steel",
+    "brand": "JSW Neo",
+    "city": "bhubaneswar",
+    "basePrice": 51000,
+    "stockQty": 800,
+    "moq": 10,
+    "attributes": {
+      "grade": "Fe500D",
+      "size": "12mm"
+    },
+    "lead_time": 3,
+    "isActive": true
+  },
+  {
+    "catalogItemSlug": "wire_rod",
+    "supplier_name": "XYZ Metals",
+    "brand": "SAIL",
+    "city": "kolkata",
+    "basePrice": 48000,
+    "stockQty": 1000,
+    "moq": 20,
+    "attributes": {
+      "grade": "SAE1008",
+      "size": "5.5mm"
+    },
+    "lead_time": 4,
+    "isActive": true
+  },
+  {
+    "catalogItemSlug": "aluminium_ingot",
+    "supplier_name": "Global Traders",
+    "brand": "Hindalco",
+    "city": "mumbai",
+    "basePrice": 210000,
+    "stockQty": 50,
+    "moq": 1,
+    "attributes": {
+      "grade": "P1020"
+    },
+    "lead_time": 1,
+    "isActive": true
+  }
+]

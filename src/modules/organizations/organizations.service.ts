@@ -432,5 +432,12 @@ export class OrganizationsService {
     };
   }
 
-
+  async updateExpertiseTags(orgId: string, tags: Array<{ tag: string, isVerified: boolean }>) {
+    this.logger.log(`Updating expertise tags for org ${orgId}`, "OrganizationsService.updateExpertiseTags");
+    return this.orgModel.findByIdAndUpdate(
+      orgId,
+      { $set: { expertiseTags: tags } },
+      { new: true }
+    ).exec();
+  }
 }
