@@ -7,6 +7,8 @@ import { MasterDataService } from '../master-data/master-data.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UsersService } from '../users/services/users.service';
+import { RfqService } from '../rfq/rfq.service';
+import { RfqStatus } from 'src/common/enums';
 
 @Injectable()
 export class EnquiriesService {
@@ -19,6 +21,7 @@ export class EnquiriesService {
     private organizationsService: OrganizationsService,
     private notificationsService: NotificationsService,
     private usersService: UsersService,
+    private rfqService: RfqService,
   ) {}
 
   async createEnquiry(data: any): Promise<Enquiry> {
@@ -86,7 +89,21 @@ export class EnquiriesService {
             seller._id.toString(),
             'New Buy Opportunity!',
             `${enquiry.fullName} is looking for ${enquiry.productName} in ${enquiry.city}.`,
-            { category: 'MARKETPLACE_LEAD', data: { enquiryId: enquiry._id } }
+            { 
+              template: 'marketplace-lead',
+              data: {
+                fullName: enquiry.fullName,
+                mobile: enquiry.mobile,
+                productName: enquiry.productName,
+                quantity: enquiry.availableStock || enquiry.quantityMT, // Handles both types
+                unit: catalogItem.unit,
+                city: enquiry.city,
+                timeline: enquiry.timeline,
+                dashboardUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/seller/dashboard#radar`
+              },
+              category: 'MARKETPLACE_LEAD', 
+              metadata: { enquiryId: enquiry._id } 
+            }
           );
         }
       }
@@ -97,7 +114,7 @@ export class EnquiriesService {
     const user = await this.usersService.findById(sellerId);
     if (!user.organizationId) return { relevant: [], explore: [] };
 
-    const org = await this.organizationsService.getOrganization(user.organizationId.toString());
+    const org = await this.organizationsService.getOrganization(user.organizationId);
     
     // Find what this seller specializes in
     // 1. Listings
@@ -171,5 +188,54 @@ export class EnquiriesService {
 
   async updateStatus(id: string, status: EnquiryStatus) {
     return this.enquiryModel.findByIdAndUpdate(id, { status }, { new: true }).exec();
+  }
+  
+  async convertToRfq(id: string, adminUserId: string) {
+    const enquiry = await this.findOne(id);
+    if (!enquiry) throw new NotFoundException('Enquiry not found');
+    
+    // 1. Logic: Check if user exists by mobile
+    let user = await this.usersService.findByMobile(enquiry.mobile);
+    let organizationId: string;
+    
+    if (!user) {
+        this.logger.log(`Auto-onboarding guest buyer: ${enquiry.fullName}`);
+        // This is a simplified guest-onboarding for RFQ creation
+        // ideally uses AdminOnboardingService, but here we keep it direct
+        // for "Auto-Generate RFQ" POC
+        const org = await this.organizationsService.create({
+            legalName: `${enquiry.fullName} (Guest)`,
+            businessType: 'INDIVIDUAL',
+            city: enquiry.city,
+        } as any);
+        
+        organizationId = (org as any)._id.toString();
+        // Since we don't have email, we might hit issues if email is mandatory
+        // For now, we skip user creation if no email, and just create RFQ under Admin
+    } else {
+        organizationId = user.organizationId?.toString();
+    }
+    
+    if (!organizationId) {
+        // Fallback: Create under a placeholder System/Admin Org if necessary
+        // but here we throw error as we need a buyer
+        throw new BadRequestException('Lead must be onboarded (Fast-Track) before RFQ generation.');
+    }
+
+    const catalogItem = await this.masterDataService.getCatalogItemBySlug(enquiry.productSlug);
+
+    // 2. Create RFQ
+    return this.rfqService.create(adminUserId, organizationId, {
+      buyerOrgName: enquiry.fullName,
+      category: catalogItem.category,
+      subCategory: catalogItem.subcategory,
+      grade: (enquiry as any).attributes?.grade || 'Standard',
+      quantityMT: enquiry.quantityMT || enquiry.availableStock || 0,
+      targetPin: '000000', // Unknown from guest
+      deliveryBy: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days default
+      incoterm: 'FOR',
+      notes: `Auto-generated from enquiry ${id}. ${enquiry.message || ''}`,
+      status: RfqStatus.OPEN,
+    } as any);
   }
 }

@@ -8,6 +8,7 @@ import { OrganizationsModule } from '../organizations/organizations.module';
 import { UsersModule } from '../users/users.module';
 import { MasterDataModule } from '../master-data/master-data.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { RfqModule } from '../rfq/rfq.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     UsersModule,
     MasterDataModule,
     NotificationsModule,
+    RfqModule,
   ],
   controllers: [EnquiriesController],
   providers: [EnquiriesService],

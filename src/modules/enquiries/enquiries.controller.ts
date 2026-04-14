@@ -58,6 +58,15 @@ export class EnquiriesController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @Post(':id/convert-to-rfq')
+  @ApiOperation({ summary: 'Convert a marketplace lead to an official RFQ' })
+  async convertToRfq(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.enquiriesService.convertToRfq(id, user.userId);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @Patch(':id/status')
   @ApiOperation({ summary: 'Update enquiry status' })
   async updateStatus(@Param('id') id: string, @Body('status') status: EnquiryStatus) {

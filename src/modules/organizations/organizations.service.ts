@@ -87,13 +87,16 @@ export class OrganizationsService {
   /**
    * Get organization by ID
    */
-  async getOrganization(orgId: string): Promise<OrganizationDocument> {
+  async getOrganization(orgId: any): Promise<OrganizationDocument> {
     try {
-      this.logger.log(`Fetching organization with id ${orgId}`, "OrganizationsService.getOrganization");
+      // ✅ Handle case where a populated object might be passed instead of a string ID
+      const cleanedId = (orgId && typeof orgId === 'object' && orgId._id) ? orgId._id : orgId;
 
-      const org = await this.orgModel.findById(orgId);
+      this.logger.log(`Fetching organization with id ${cleanedId}`, "OrganizationsService.getOrganization");
+
+      const org = await this.orgModel.findById(cleanedId);
       if (!org) {
-        this.logger.log(`Organization not found: ${orgId}`, "OrganizationsService.getOrganization");
+        this.logger.log(`Organization not found: ${cleanedId}`, "OrganizationsService.getOrganization");
         throw new NotFoundException("Organization not found");
       }
       return org;
@@ -305,7 +308,7 @@ export class OrganizationsService {
     // Check if user already linked to an organization
     if (user.organizationId) {
       // If it's the SAME organization, just return success
-      const currentOrg = await this.getOrganization(user.organizationId.toString());
+      const currentOrg = await this.getOrganization(user.organizationId);
       if (currentOrg.orgCode === orgCode) {
         return {
           success: true,

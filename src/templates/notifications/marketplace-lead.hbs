@@ -1,0 +1,53 @@
+<div class="status-header">
+    <div class="tag">Marketplace Lead</div>
+    <h1>New Requirement Captured</h1>
+    <p>A new purchase enquiry has been registered for <strong>{{productName}}</strong>.</p>
+</div>
+
+<div class="highlight-box">
+    <h3 style="margin-top: 0; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Lead Context</h3>
+    
+    <table style="width: 100%; margin-top: 15px;">
+        <tr>
+            <td style="padding: 8px 0;">
+                <div class="info-label">Material</div>
+                <div class="info-value" style="color: #2563eb;">{{productName}}</div>
+            </td>
+            <td style="padding: 8px 0;">
+                <div class="info-label">Quantity</div>
+                <div class="info-value">{{quantity}} {{unit}}</div>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0;">
+                <div class="info-label">Timeline</div>
+                <div class="info-value" style="text-transform: capitalize;">{{timeline}}</div>
+            </td>
+            <td style="padding: 8px 0;">
+                <div class="info-label">Destination</div>
+                <div class="info-value">{{city}}</div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div style="background-color: #f1f5f9; border-radius: 8px; padding: 20px; text-align: center;">
+    <h3 style="margin-top: 0; font-size: 14px; color: #64748b;">Buyer Contact Details</h3>
+    <div style="font-size: 20px; font-weight: 800; color: #1e293b; margin: 10px 0;">{{fullName}}</div>
+    <div style="font-size: 16px; font-weight: 600; color: #2563eb;">+91 {{mobile}}</div>
+    
+    <div style="margin-top: 20px; display: flex; justify-items: center; gap: 10px;">
+        <a href="tel:+91{{mobile}}" class="btn" style="background-color: #0f172a; margin-right: 10px;">Call Now</a>
+        <a href="https://wa.me/91{{mobile}}" class="btn">WhatsApp</a>
+    </div>
+</div>
+
+<div class="divider"></div>
+
+<p style="font-size: 12px; color: #94a3b8; text-align: center;">
+    This lead was captured via BulkMandi Product Discovery. Please verify credit terms and logistics feasibility before finalizing.
+</p>
+
+<div style="text-align: center; margin-top: 20px;">
+    <a href="{{dashboardUrl}}" style="font-size: 12px; color: #2563eb; font-weight: 700; text-decoration: none;">View in Marketplace Radar &rarr;</a>
+</div>
