@@ -5884,6 +5884,35 @@
         ]
       }
     },
+    "/api/v1/enquiries/{id}/convert-to-rfq": {
+      "post": {
+        "operationId": "EnquiriesController_convertToRfq",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Convert a marketplace lead to an official RFQ",
+        "tags": [
+          "Enquiries"
+        ]
+      }
+    },
     "/api/v1/enquiries/{id}/status": {
       "patch": {
         "operationId": "EnquiriesController_updateStatus",

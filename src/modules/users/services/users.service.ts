@@ -55,6 +55,10 @@ export class UsersService {
     return this.userModel.findOne({ email }).populate('organizationId');
   }
 
+  async findByMobile(mobile: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({ mobile }).populate('organizationId');
+  }
+
   async updateLastLogin(id: string): Promise<void> {
     await this.userModel.findByIdAndUpdate(id, { lastLoginAt: new Date() });
   }

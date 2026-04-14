@@ -203,7 +203,7 @@ export class EnquiriesService {
         // This is a simplified guest-onboarding for RFQ creation
         // ideally uses AdminOnboardingService, but here we keep it direct
         // for "Auto-Generate RFQ" POC
-        const org = await this.organizationsService.create({
+        const org = await this.organizationsService.createOrganization({
             legalName: `${enquiry.fullName} (Guest)`,
             businessType: 'INDIVIDUAL',
             city: enquiry.city,
