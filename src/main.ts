@@ -23,12 +23,15 @@ async function bootstrap(): Promise<void> {
     // cors.options.ts
     const corsOptions = {
       origin: function (origin: string, callback: Function) {
-        const whitelist = ["http://localhost:8080", process.env.FRONTEND_URL].filter(Boolean);
-
         // allow postman / mobile apps / curl (no origin header)
         if (!origin) return callback(null, true);
 
-        if (whitelist.includes(origin)) return callback(null, true);
+        const frontendUrl = process.env.FRONTEND_URL;
+        const whitelist = frontendUrl ? frontendUrl.split(",").map((url) => url.trim()) : [];
+
+        if (whitelist.includes(origin)) {
+          return callback(null, true);
+        }
 
         return callback(new Error(`CORS blocked: ${origin}`));
       },
